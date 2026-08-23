@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { clearApiKey, getApiKey, setApiKey } from '../lib/settings'
 import { getModel, setModel } from '../lib/gemini'
 import { db } from '../lib/db'
+import { isStoragePersisted, requestPersistentStorage } from '../lib/persistence'
 
 const MODEL_SUGGESTIONS = [
   { value: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash (empfohlen – gutes Gratis-Kontingent)' },
@@ -14,6 +15,16 @@ export function SettingsPage() {
   const [model, setModelInput] = useState(getModel())
   const [savedMsg, setSavedMsg] = useState<string | null>(null)
   const [confirmingReset, setConfirmingReset] = useState(false)
+  const [persisted, setPersisted] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    isStoragePersisted().then(setPersisted)
+  }, [])
+
+  async function handleRequestPersistence() {
+    const granted = await requestPersistentStorage()
+    setPersisted(granted)
+  }
 
   function handleSaveKey() {
     if (apiKey.trim()) {
@@ -142,10 +153,33 @@ export function SettingsPage() {
       <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
         <h2 className="mb-1 text-sm font-semibold text-ink">Daten</h2>
         <p className="mb-3 text-xs text-ink-soft">
-          Alle Mahlzeiten liegen nur in diesem Browser. Exportiere regelmäßig ein Backup, falls du den
-          Browser wechselst oder Speicher leerst. Ein druckfertiges Ernährungstagebuch als PDF
-          exportierst du auf der Statistik-Seite für den dort gewählten Zeitraum.
+          Alle Mahlzeiten und dein API-Key liegen nur in diesem Browser. Exportiere regelmäßig ein
+          Backup, falls du den Browser wechselst oder Speicher leerst. Ein druckfertiges
+          Ernährungstagebuch als PDF exportierst du auf der Statistik-Seite für den dort gewählten
+          Zeitraum.
         </p>
+
+        {persisted === true && (
+          <p className="mb-3 rounded-xl bg-carbs/15 px-3 py-2 text-xs font-medium text-ink">
+            ✓ Dauerhafter Speicher aktiv – Browser räumt diese Daten nicht automatisch auf, du musst
+            API-Key und Mahlzeiten nicht erneut eintragen.
+          </p>
+        )}
+        {persisted === false && (
+          <div className="mb-3 rounded-xl bg-fat/15 px-3 py-2 text-xs text-ink">
+            <p className="mb-2">
+              Dauerhafter Speicher noch nicht bestätigt – der Browser könnte Daten bei wenig
+              Speicherplatz oder langer Inaktivität löschen.
+            </p>
+            <button
+              onClick={handleRequestPersistence}
+              className="rounded-full bg-fat/30 px-3 py-1 font-semibold hover:bg-fat/40"
+            >
+              Jetzt aktivieren
+            </button>
+          </div>
+        )}
+
         <div className="flex flex-col gap-2">
           <button
             onClick={handleExport}
