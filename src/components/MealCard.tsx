@@ -12,43 +12,45 @@ export function MealCard({ meal, onView }: { meal: Meal; onView: () => void }) {
         {meal.photo && (
           <img src={meal.photo} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
         )}
-        <button className="min-w-0 flex-1 text-left" onClick={onView}>
-          <h3 className="font-medium text-ink">{meal.title}</h3>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            <span className="rounded-full bg-kcal/15 px-2.5 py-0.5 text-[11px] font-bold text-ink">
-              {Math.round(meal.nutrition.kcal)} kcal
-            </span>
-            <MacroBadge type="protein" value={meal.nutrition.protein} size="sm" />
-            <MacroBadge type="carbs" value={meal.nutrition.carbs} size="sm" />
-            <MacroBadge type="fat" value={meal.nutrition.fat} size="sm" />
-          </div>
-        </button>
-      </div>
-      <div className="mt-2 flex justify-end">
-        {confirmingDelete ? (
-          <div className="flex gap-1">
-            <button
-              onClick={() => deleteMeal(meal.id)}
-              className="rounded-full bg-danger px-2.5 py-1 text-xs font-medium text-white hover:opacity-90"
-            >
-              Löschen
-            </button>
-            <button
-              onClick={() => setConfirmingDelete(false)}
-              className="rounded-full bg-bg px-2.5 py-1 text-xs text-ink-soft hover:bg-line"
-            >
-              Abbrechen
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setConfirmingDelete(true)}
-            aria-label="Mahlzeit löschen"
-            className="text-ink-faint hover:text-danger"
-          >
-            <TrashIcon />
+        <div className="min-w-0 flex-1">
+          <button className="block w-full text-left" onClick={onView}>
+            <h3 className="font-medium text-ink">{meal.title}</h3>
           </button>
-        )}
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <button className="flex min-w-0 flex-1 flex-wrap gap-1.5 text-left" onClick={onView}>
+              <span className="rounded-full bg-kcal/15 px-2.5 py-0.5 text-[11px] font-bold text-ink">
+                {Math.round(meal.nutrition.kcal)} kcal
+              </span>
+              <MacroBadge type="protein" value={meal.nutrition.protein} size="sm" />
+              <MacroBadge type="carbs" value={meal.nutrition.carbs} size="sm" />
+              <MacroBadge type="fat" value={meal.nutrition.fat} size="sm" />
+            </button>
+            {confirmingDelete ? (
+              <div className="flex shrink-0 gap-1">
+                <button
+                  onClick={() => deleteMeal(meal.id)}
+                  className="rounded-full bg-danger px-2.5 py-1 text-xs font-medium text-white hover:opacity-90"
+                >
+                  Löschen
+                </button>
+                <button
+                  onClick={() => setConfirmingDelete(false)}
+                  className="rounded-full bg-bg px-2.5 py-1 text-xs text-ink-soft hover:bg-line"
+                >
+                  Abbrechen
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmingDelete(true)}
+                aria-label="Mahlzeit löschen"
+                className="shrink-0 text-ink-faint hover:text-danger"
+              >
+                <TrashIcon />
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

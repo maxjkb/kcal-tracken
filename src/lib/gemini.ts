@@ -27,7 +27,8 @@ export class GeminiError extends Error {
 
 export interface IngredientEstimate {
   name: string
-  amount: string
+  amount: number
+  unit: string
   kcal: number
   protein: number
   carbs: number
@@ -59,18 +60,23 @@ const NUTRITION_RESPONSE_SCHEMA = {
         type: 'OBJECT',
         properties: {
           name: { type: 'STRING', description: 'Name der Zutat, z.B. "Hähnchenbrust".' },
-          amount: { type: 'STRING', description: 'Menge als lesbarer Text, z.B. "200 g" oder "1 Stück".' },
-          kcal: { type: 'NUMBER', description: 'Kalorien dieser Zutat in der angegebenen Menge.' },
+          amount: {
+            type: 'NUMBER',
+            description:
+              'Numerische Menge, die TATSÄCHLICH VERZEHRT wurde (passend zu den unten angegebenen Nährwerten dieser Zutat) — z.B. 200, nicht "200g" als Text. Wurde nur ein Teil einer zubereiteten Menge gegessen, ist dies die gegessene Teilmenge, nicht die zubereitete Gesamtmenge.',
+          },
+          unit: { type: 'STRING', description: 'Kurze Einheit zu "amount", z.B. "g", "ml", "Stück", "EL", "TL".' },
+          kcal: { type: 'NUMBER', description: 'Kalorien dieser Zutat in der angegebenen (verzehrten) Menge.' },
           protein: { type: 'NUMBER', description: 'Protein dieser Zutat in Gramm.' },
           carbs: { type: 'NUMBER', description: 'Kohlenhydrate dieser Zutat in Gramm.' },
           fat: { type: 'NUMBER', description: 'Fett dieser Zutat in Gramm.' },
           note: {
             type: 'STRING',
             description:
-              'NUR falls für diese Zutat eine Annahme nötig war (z.B. roh/gekocht, Fettgehalt, Portionsgröße) — sonst weglassen.',
+              'NUR falls für diese Zutat eine Annahme nötig war (z.B. roh/gekocht, nur Teilmenge einer zubereiteten Menge gegessen, Fettgehalt) — sonst weglassen.',
           },
         },
-        required: ['name', 'amount', 'kcal', 'protein', 'carbs', 'fat'],
+        required: ['name', 'amount', 'unit', 'kcal', 'protein', 'carbs', 'fat'],
       },
     },
     note: {
@@ -81,7 +87,7 @@ const NUTRITION_RESPONSE_SCHEMA = {
   required: ['suggestedTitle', 'ingredients'],
 }
 
-const SYSTEM_PROMPT = `Du bist ein Ernährungsassistent. Der Nutzer beschreibt eine Mahlzeit (Text und/oder Foto) auf Deutsch, ggf. mit ungefähren Mengenangaben in Gramm oder Haushaltsmaßen. Zerlege die Mahlzeit in ihre einzelnen Zutaten und schätze für JEDE Zutat einzeln die Nährwerte auf Basis üblicher Standard-Nährwerttabellen (wie z.B. USDA oder gängige Lebensmitteldatenbanken) für die tatsächlich verwendete Menge (nicht pro 100g). Wenn Mengenangaben fehlen, nimm plausible durchschnittliche Portionsgrößen an. Schreibe eine "note" nur dort, wo wirklich eine relevante Annahme getroffen wurde (z.B. "Nudeln ungekocht angenommen") — bei eindeutigen Zutaten bleibt "note" weg. Betrifft eine Annahme eine EINZELNE Zutat (z.B. "nur die Hälfte der Soße gegessen", "roh/gekocht angenommen"), schreibe sie IMMER in die "note" dieser Zutat, niemals in die übergreifende "note" der Mahlzeit — die übergreifende "note" ist ausschließlich für Annahmen reserviert, die sich nicht einer einzelnen Zutat zuordnen lassen. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema.`
+const SYSTEM_PROMPT = `Du bist ein Ernährungsassistent. Der Nutzer beschreibt eine Mahlzeit (Text und/oder Foto) auf Deutsch, ggf. mit ungefähren Mengenangaben in Gramm oder Haushaltsmaßen. Zerlege die Mahlzeit in ihre einzelnen Zutaten und schätze für JEDE Zutat einzeln die Nährwerte auf Basis üblicher Standard-Nährwerttabellen (wie z.B. USDA oder gängige Lebensmitteldatenbanken) für die TATSÄCHLICH VERZEHRTE Menge (nicht pro 100g). "amount" muss diese verzehrte Menge als reine Zahl enthalten (die Einheit kommt separat in "unit"), passend zu den angegebenen Nährwerten — wurde z.B. nur die Hälfte einer zubereiteten Soße gegessen, ist "amount" die gegessene Teilmenge, nicht die zubereitete Gesamtmenge. Wenn Mengenangaben fehlen, nimm plausible durchschnittliche Portionsgrößen an. Schreibe eine "note" nur dort, wo wirklich eine relevante Annahme getroffen wurde (z.B. "Nudeln ungekocht angenommen", "nur die Hälfte der zubereiteten Menge gegessen") — bei eindeutigen Zutaten bleibt "note" weg. Betrifft eine Annahme eine EINZELNE Zutat, schreibe sie IMMER in die "note" dieser Zutat, niemals in die übergreifende "note" der Mahlzeit — die übergreifende "note" ist ausschließlich für Annahmen reserviert, die sich nicht einer einzelnen Zutat zuordnen lassen. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema.`
 
 const DICTATION_CLEANUP_SCHEMA = {
   type: 'OBJECT',
@@ -204,7 +210,8 @@ export async function estimateNutrition(params: {
   const rawIngredients = Array.isArray(parsed.ingredients) ? parsed.ingredients : []
   const ingredients: IngredientEstimate[] = rawIngredients.map((i) => ({
     name: String(i.name ?? 'Zutat'),
-    amount: String(i.amount ?? ''),
+    amount: round1(Number(i.amount) || 0),
+    unit: String(i.unit ?? ''),
     kcal: round1(Number(i.kcal) || 0),
     protein: round1(Number(i.protein) || 0),
     carbs: round1(Number(i.carbs) || 0),
