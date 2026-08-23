@@ -39,6 +39,15 @@ function sumIngredients(ingredients: Ingredient[]): Nutrition {
   )
 }
 
+/** Turns a failed IndexedDB write into an actionable German message instead of a silent no-op. */
+function describeSaveError(err: unknown): string {
+  if (err instanceof DOMException && err.name === 'QuotaExceededError') {
+    return 'Speicherplatz auf dem Gerät ist voll. Lösche alte Fotos/Mahlzeiten oder gib Speicher frei und versuche es erneut.'
+  }
+  const message = err instanceof Error ? err.message : String(err)
+  return `Mahlzeit konnte nicht gespeichert werden (${message}). Bitte erneut versuchen.`
+}
+
 export function MealEditor({
   date,
   initial,
@@ -127,6 +136,7 @@ export function MealEditor({
 
   async function handleSave() {
     setSaving(true)
+    setError(null)
     const now = Date.now()
     const meal: Meal = {
       id: initial?.id ?? newMealId(),
@@ -142,9 +152,17 @@ export function MealEditor({
       createdAt: initial?.createdAt ?? now,
       updatedAt: now,
     }
-    await saveMeal(meal)
-    setSaving(false)
-    onClose()
+    try {
+      await saveMeal(meal)
+      onClose()
+    } catch (err) {
+      // Without this, a failed write (full storage, a browser/IndexedDB
+      // hiccup, …) left the editor stuck on a disabled "Speichern…" button
+      // with no explanation — the meal silently never made it into the feed.
+      setError(describeSaveError(err))
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -319,6 +337,8 @@ export function MealEditor({
                 >
                   {saving ? 'Speichern…' : 'Speichern'}
                 </button>
+
+                {error && <p className="text-sm font-medium text-danger">{error}</p>}
               </div>
             </div>
           </div>

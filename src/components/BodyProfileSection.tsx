@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ACTIVITY_LABELS,
   clearBodyProfile,
   computeDailyTargets,
+  computeGoalRateBounds,
+  computeTDEE,
   getBodyProfile,
   GOAL_LABELS,
   setBodyProfile,
@@ -31,10 +33,22 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
   const [enabled, setEnabled] = useState(Boolean(existing))
 
   const targets = computeDailyTargets(profile)
+  const tdee = computeTDEE(profile)
+  const goalRateBounds = computeGoalRateBounds(profile.goal, tdee)
 
   function update<K extends keyof BodyProfile>(key: K, value: BodyProfile[K]) {
     setProfile((p) => ({ ...p, [key]: value }))
   }
+
+  // Re-clamp the deficit/surplus into range whenever the goal or the
+  // TDEE-affecting fields change — e.g. switching from "Abnehmen" to
+  // "Muskelaufbau" (a much smaller range), or lowering weight/activity so
+  // the same kcal value would now exceed the recomputed bound.
+  useEffect(() => {
+    const clamped = Math.min(goalRateBounds.max, Math.max(goalRateBounds.min, profile.goalRateKcal))
+    if (clamped !== profile.goalRateKcal) update('goalRateKcal', clamped)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile.goal, goalRateBounds.min, goalRateBounds.max])
 
   function handleSave() {
     setBodyProfile(profile)
@@ -139,24 +153,19 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
           </div>
           {profile.goal === 'build_muscle' && (
             <p className="mt-1.5 text-[11px] text-ink-soft">
-              Kalorienziel bleibt beim Erhaltungsbedarf, Protein wird höher angesetzt (2,2g/kg) — kein
-              Kalorienüberschuss nötig.
+              Protein wird höher angesetzt (2,2g/kg). Die Kalorienbilanz kannst du unten in einem kleinen
+              Rahmen selbst wählen — kein Überschuss nötig, aber möglich.
             </p>
           )}
         </div>
 
-        {(profile.goal === 'lose' || profile.goal === 'gain') && (
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-ink-soft">
-              Tägliches {profile.goal === 'lose' ? 'Defizit' : 'Überschuss'} (kcal)
-            </span>
-            <input
-              type="number"
-              value={profile.goalRateKcal}
-              onChange={(e) => update('goalRateKcal', Number(e.target.value) || 0)}
-              className="rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
-            />
-          </label>
+        {profile.goal !== 'maintain' && (
+          <GoalRateSlider
+            goal={profile.goal}
+            value={profile.goalRateKcal}
+            bounds={goalRateBounds}
+            onChange={(v) => update('goalRateKcal', v)}
+          />
         )}
 
         <div className="rounded-2xl bg-bg p-3">
@@ -199,5 +208,54 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
         </div>
       </div>
     </section>
+  )
+}
+
+/**
+ * A slider for the daily deficit/surplus. "Abnehmen"/"Zunehmen" only reach
+ * into their respective half (0 at one end); "Muskelaufbau" is the one goal
+ * that can go either way, within a smaller range (see computeGoalRateBounds).
+ */
+function GoalRateSlider({
+  goal,
+  value,
+  bounds,
+  onChange,
+}: {
+  goal: Goal
+  value: number
+  bounds: { min: number; max: number }
+  onChange: (value: number) => void
+}) {
+  const title = goal === 'lose' ? 'Tägliches Defizit' : goal === 'gain' ? 'Täglicher Überschuss' : 'Kalorienbilanz'
+  const valueLabel =
+    value === 0
+      ? 'Ausgeglichen (0 kcal)'
+      : `${value > 0 ? '+' : ''}${value} kcal ${value < 0 ? 'Defizit' : 'Überschuss'}`
+
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <span className="text-xs text-ink-soft">{title}</span>
+        <span className="text-xs font-semibold text-ink">{valueLabel}</span>
+      </div>
+      <input
+        type="range"
+        min={bounds.min}
+        max={bounds.max}
+        step={10}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full accent-accent"
+      />
+      <div className="mt-0.5 flex justify-between text-[10px] text-ink-faint">
+        <span>{bounds.min} kcal</span>
+        {bounds.min < 0 && bounds.max > 0 && <span>0</span>}
+        <span>
+          {bounds.max > 0 ? '+' : ''}
+          {bounds.max} kcal
+        </span>
+      </div>
+    </div>
   )
 }

@@ -15,6 +15,8 @@ import { MEAL_TYPE_LABELS, toLocalDateKey, type Meal } from '../lib/db'
 import { lazyRetry } from '../lib/lazyRetry'
 import { MacroBadge } from '../components/MacroBadge'
 import { ChevronIcon } from '../components/ChevronIcon'
+import { NutrientRings } from '../components/NutrientRings'
+import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import {
   bucketByDay,
   bucketByMonth,
@@ -68,6 +70,9 @@ export function StatsPage() {
   const dailyAverage = computeDailyAverage(startKey, endKey, totals.kcal)
   const macroAverages = computeDailyMacroAverages(startKey, endKey, totals)
 
+  const bodyProfile = getBodyProfile()
+  const dailyTargets = bodyProfile ? computeDailyTargets(bodyProfile) : null
+
   const dayData = period === 'week' || period === 'month' ? bucketByDay(startKey, endKey, kcalByDate) : []
   const monthData = period === 'year' ? bucketByMonth(Number(anchorKey.slice(0, 4)), kcalByDate) : []
   const perMealData =
@@ -78,7 +83,7 @@ export function StatsPage() {
       : []
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-40 pt-6">
+    <div className="mx-auto max-w-lg px-4 pb-40 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-ink">Statistik</h1>
         <button
@@ -91,7 +96,7 @@ export function StatsPage() {
         </button>
       </div>
 
-      <div className="mb-4 flex gap-1.5 rounded-full bg-surface p-1.5 shadow-sm shadow-black/5">
+      <div className="glass-subtle mb-4 flex gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5">
         {PERIODS.map(({ key, label }) => (
           <button
             key={key}
@@ -105,7 +110,7 @@ export function StatsPage() {
         ))}
       </div>
 
-      <div className="mb-4 flex items-center justify-between rounded-2xl border border-line bg-surface px-2 py-2 shadow-sm shadow-black/5">
+      <div className="glass-subtle mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
         <button
           onClick={() => setAnchorKey((k) => shiftAnchor(period, k, -1))}
           className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-ink"
@@ -138,6 +143,17 @@ export function StatsPage() {
         />
       </div>
 
+      {period === 'day' ? (
+        <div className="glass-subtle rounded-3xl p-5 shadow-sm shadow-black/5">
+          {meals === undefined ? (
+            <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
+          ) : perMealData.length === 0 ? (
+            <p className="py-10 text-center text-sm text-ink-soft">Keine Mahlzeiten an diesem Tag.</p>
+          ) : (
+            <NutrientRings kcal={totals.kcal} protein={totals.protein} carbs={totals.carbs} fat={totals.fat} targets={dailyTargets} />
+          )}
+        </div>
+      ) : (
       <div className="rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
         {(period === 'week' || period === 'month') && meals !== undefined && dayData.length > 0 && (
           <div className="mb-2 text-xs font-semibold text-ink-soft">{monthHeadingLabel(startKey, endKey)}</div>
@@ -145,26 +161,6 @@ export function StatsPage() {
         <div className="h-56">
           {meals === undefined ? (
             <p className="flex h-full items-center justify-center text-sm text-ink-soft">Lädt…</p>
-          ) : period === 'day' ? (
-            perMealData.length === 0 ? (
-              <p className="flex h-full items-center justify-center text-sm text-ink-soft">
-                Keine Mahlzeiten an diesem Tag.
-              </p>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={perMealData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e5ea" vertical={false} />
-                  <XAxis dataKey="label" stroke="#6e6e73" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#6e6e73" fontSize={12} tickLine={false} axisLine={false} />
-                  <Tooltip
-                    contentStyle={{ background: '#ffffff', border: '1px solid #e5e5ea', borderRadius: 12 }}
-                    labelStyle={{ color: '#1d1d1f' }}
-                    formatter={(v) => [`${Math.round(Number(v))} kcal`, 'Kalorien']}
-                  />
-                  <Bar dataKey="kcal" fill="#34c759" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )
           ) : period === 'year' ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={monthData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
@@ -203,6 +199,7 @@ export function StatsPage() {
           )}
         </div>
       </div>
+      )}
     </div>
   )
 }
