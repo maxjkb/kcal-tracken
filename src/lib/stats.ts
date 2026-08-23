@@ -1,6 +1,6 @@
 import { toLocalDateKey } from './db'
 
-export type Period = 'week' | 'month' | 'year'
+export type Period = 'day' | 'week' | 'month' | 'year'
 
 function parseDateKey(key: string): Date {
   const [y, m, d] = key.split('-').map(Number)
@@ -18,6 +18,9 @@ function startOfWeek(date: Date): Date {
 
 export function getPeriodRange(period: Period, anchorKey: string): { startKey: string; endKey: string } {
   const anchor = parseDateKey(anchorKey)
+  if (period === 'day') {
+    return { startKey: anchorKey, endKey: anchorKey }
+  }
   if (period === 'week') {
     const start = startOfWeek(anchor)
     const end = new Date(start)
@@ -36,7 +39,8 @@ export function getPeriodRange(period: Period, anchorKey: string): { startKey: s
 
 export function shiftAnchor(period: Period, anchorKey: string, delta: number): string {
   const anchor = parseDateKey(anchorKey)
-  if (period === 'week') anchor.setDate(anchor.getDate() + delta * 7)
+  if (period === 'day') anchor.setDate(anchor.getDate() + delta)
+  else if (period === 'week') anchor.setDate(anchor.getDate() + delta * 7)
   else if (period === 'month') anchor.setMonth(anchor.getMonth() + delta)
   else anchor.setFullYear(anchor.getFullYear() + delta)
   return toLocalDateKey(anchor)
@@ -44,6 +48,11 @@ export function shiftAnchor(period: Period, anchorKey: string, delta: number): s
 
 export function formatPeriodLabel(period: Period, anchorKey: string): string {
   const anchor = parseDateKey(anchorKey)
+  if (period === 'day') {
+    const todayKey = toLocalDateKey(new Date())
+    if (anchorKey === todayKey) return 'Heute'
+    return anchor.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long' })
+  }
   if (period === 'week') {
     const { startKey, endKey } = getPeriodRange('week', anchorKey)
     const s = parseDateKey(startKey)
@@ -107,4 +116,25 @@ export function computeDailyAverage(startKey: string, endKey: string, totalKcal:
   const end = parseDateKey(effectiveEndKey)
   const days = Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1
   return totalKcal / Math.max(1, days)
+}
+
+export interface MacroTotals {
+  protein: number
+  carbs: number
+  fat: number
+}
+
+/** Same elapsed-days logic as computeDailyAverage, applied to each macro at once. */
+export function computeDailyMacroAverages(startKey: string, endKey: string, totals: MacroTotals): MacroTotals {
+  const todayKey = toLocalDateKey(new Date())
+  const effectiveEndKey = endKey < todayKey ? endKey : todayKey
+  if (effectiveEndKey < startKey) return { protein: 0, carbs: 0, fat: 0 }
+  const start = parseDateKey(startKey)
+  const end = parseDateKey(effectiveEndKey)
+  const days = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1)
+  return {
+    protein: totals.protein / days,
+    carbs: totals.carbs / days,
+    fat: totals.fat / days,
+  }
 }

@@ -3,6 +3,7 @@ import { clearApiKey, getApiKey, setApiKey } from '../lib/settings'
 import { getModel, setModel } from '../lib/gemini'
 import { db } from '../lib/db'
 import { isStoragePersisted, requestPersistentStorage } from '../lib/persistence'
+import { BodyProfileSection } from '../components/BodyProfileSection'
 
 const MODEL_SUGGESTIONS = [
   { value: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash (empfohlen – gutes Gratis-Kontingent)' },
@@ -21,20 +22,25 @@ export function SettingsPage() {
     isStoragePersisted().then(setPersisted)
   }, [])
 
+  function flashSaved(message: string) {
+    setSavedMsg(message)
+    setTimeout(() => setSavedMsg(null), 2500)
+  }
+
   async function handleRequestPersistence() {
     const granted = await requestPersistentStorage()
     setPersisted(granted)
+    flashSaved(granted ? 'Dauerhafter Speicher aktiviert.' : 'Browser hat dauerhaften Speicher (noch) nicht gewährt.')
   }
 
   function handleSaveKey() {
     if (apiKey.trim()) {
       setApiKey(apiKey)
-      setSavedMsg('API-Key gespeichert.')
+      flashSaved('API-Key gespeichert.')
     } else {
       clearApiKey()
-      setSavedMsg('API-Key entfernt.')
+      flashSaved('API-Key entfernt.')
     }
-    setTimeout(() => setSavedMsg(null), 2500)
   }
 
   function handleModelChange(value: string) {
@@ -60,23 +66,21 @@ export function SettingsPage() {
       const meals = JSON.parse(text)
       if (!Array.isArray(meals)) throw new Error('invalid')
       await db.meals.bulkPut(meals)
-      setSavedMsg(`${meals.length} Mahlzeiten importiert.`)
+      flashSaved(`${meals.length} Mahlzeiten importiert.`)
     } catch {
-      setSavedMsg('Import fehlgeschlagen: ungültige Datei.')
+      flashSaved('Import fehlgeschlagen: ungültige Datei.')
     }
-    setTimeout(() => setSavedMsg(null), 3000)
   }
 
   async function handleResetAll() {
     await db.meals.clear()
     setConfirmingReset(false)
-    setSavedMsg('Alle Mahlzeiten gelöscht.')
-    setTimeout(() => setSavedMsg(null), 2500)
+    flashSaved('Alle Mahlzeiten gelöscht.')
   }
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-32 pt-6">
-      <h1 className="mb-4 text-lg font-semibold text-ink">Einstellungen</h1>
+      <h1 className="mb-4 text-2xl font-bold tracking-tight text-ink">Einstellungen</h1>
 
       <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
         <h2 className="mb-1 text-sm font-semibold text-ink">Google Gemini API-Key</h2>
@@ -88,7 +92,7 @@ export function SettingsPage() {
             href="https://aistudio.google.com/apikey"
             target="_blank"
             rel="noreferrer"
-            className="font-medium text-kcal underline"
+            className="font-medium text-accent underline"
           >
             aistudio.google.com/apikey
           </a>{' '}
@@ -101,7 +105,7 @@ export function SettingsPage() {
             value={apiKey}
             onChange={(e) => setApiKeyInput(e.target.value)}
             placeholder="AIza…"
-            className="flex-1 rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-kcal focus:outline-none"
+            className="flex-1 rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
           />
           <button
             type="button"
@@ -128,7 +132,7 @@ export function SettingsPage() {
             href="https://ai.google.dev/gemini-api/docs/models"
             target="_blank"
             rel="noreferrer"
-            className="font-medium text-kcal underline"
+            className="font-medium text-accent underline"
           >
             ai.google.dev/gemini-api/docs/models
           </a>{' '}
@@ -139,7 +143,7 @@ export function SettingsPage() {
           type="text"
           value={model}
           onChange={(e) => handleModelChange(e.target.value)}
-          className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-kcal focus:outline-none"
+          className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
         />
         <datalist id="model-suggestions">
           {MODEL_SUGGESTIONS.map((opt) => (
@@ -150,6 +154,36 @@ export function SettingsPage() {
         </datalist>
       </section>
 
+      <BodyProfileSection onSaved={() => flashSaved('Körperwerte gespeichert.')} />
+
+      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+        <h2 className="mb-1 text-sm font-semibold text-ink">Dauerhafter Speicher</h2>
+        <p className="mb-3 text-xs text-ink-soft">
+          Bittet den Browser, API-Key und Mahlzeiten nicht automatisch aufzuräumen (kostenlose
+          Browser-Funktion, kein Backend). Auf iOS ist eine zum Homescreen hinzugefügte App ohnehin
+          von Safaris automatischer 7-Tage-Bereinigung ausgenommen.
+        </p>
+        {persisted === true ? (
+          <p className="rounded-xl bg-carbs/15 px-3 py-2 text-xs font-medium text-ink">
+            ✓ Dauerhafter Speicher aktiv.
+          </p>
+        ) : (
+          <div className="rounded-xl bg-fat/15 px-3 py-2 text-xs text-ink">
+            <p className="mb-2">
+              Dauerhafter Speicher noch nicht bestätigt
+              {persisted === null && ' — dein Browser unterstützt diese Funktion evtl. nicht'}.
+            </p>
+            <button
+              type="button"
+              onClick={handleRequestPersistence}
+              className="rounded-full bg-fat/30 px-3 py-1 font-semibold hover:bg-fat/40"
+            >
+              Jetzt aktivieren
+            </button>
+          </div>
+        )}
+      </section>
+
       <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
         <h2 className="mb-1 text-sm font-semibold text-ink">Daten</h2>
         <p className="mb-3 text-xs text-ink-soft">
@@ -158,27 +192,6 @@ export function SettingsPage() {
           Ernährungstagebuch als PDF exportierst du auf der Statistik-Seite für den dort gewählten
           Zeitraum.
         </p>
-
-        {persisted === true && (
-          <p className="mb-3 rounded-xl bg-carbs/15 px-3 py-2 text-xs font-medium text-ink">
-            ✓ Dauerhafter Speicher aktiv – Browser räumt diese Daten nicht automatisch auf, du musst
-            API-Key und Mahlzeiten nicht erneut eintragen.
-          </p>
-        )}
-        {persisted === false && (
-          <div className="mb-3 rounded-xl bg-fat/15 px-3 py-2 text-xs text-ink">
-            <p className="mb-2">
-              Dauerhafter Speicher noch nicht bestätigt – der Browser könnte Daten bei wenig
-              Speicherplatz oder langer Inaktivität löschen.
-            </p>
-            <button
-              onClick={handleRequestPersistence}
-              className="rounded-full bg-fat/30 px-3 py-1 font-semibold hover:bg-fat/40"
-            >
-              Jetzt aktivieren
-            </button>
-          </div>
-        )}
 
         <div className="flex flex-col gap-2">
           <button

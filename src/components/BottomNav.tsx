@@ -8,8 +8,11 @@ const TABS = [
 
 export function BottomNav() {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
-      <div className="glass mx-4 flex gap-1 rounded-full p-1.5">
+    // pointer-events-none on the full-width wrapper + pointer-events-auto on the
+    // visible pill: otherwise the transparent strip around the pill still
+    // intercepts taps on whatever page content happens to sit behind it.
+    <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pointer-events-none">
+      <div className="glass pointer-events-auto mx-4 flex gap-1 rounded-full p-1.5">
         {TABS.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}

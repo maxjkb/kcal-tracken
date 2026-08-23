@@ -13,10 +13,12 @@ import {
 import { useMealsInRange } from '../hooks/useMeals'
 import { toLocalDateKey, type Meal } from '../lib/db'
 import { lazyRetry } from '../lib/lazyRetry'
+import { computeDailyTargets, getBodyProfile, percentOfTarget } from '../lib/bodyProfile'
 import {
   bucketByDay,
   bucketByMonth,
   computeDailyAverage,
+  computeDailyMacroAverages,
   formatPeriodLabel,
   getPeriodRange,
   shiftAnchor,
@@ -24,10 +26,15 @@ import {
 } from '../lib/stats'
 
 const PERIODS: { key: Period; label: string }[] = [
+  { key: 'day', label: 'Tag' },
   { key: 'week', label: 'Woche' },
   { key: 'month', label: 'Monat' },
   { key: 'year', label: 'Jahr' },
 ]
+
+function truncate(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, max)}…` : text
+}
 
 export function StatsPage() {
   const [period, setPeriod] = useState<Period>('week')
@@ -49,21 +56,36 @@ export function StatsPage() {
   }
 
   const kcalByDate = new Map<string, number>()
-  let totalKcal = 0
+  const totals = { kcal: 0, protein: 0, carbs: 0, fat: 0 }
   for (const m of meals ?? []) {
     kcalByDate.set(m.date, (kcalByDate.get(m.date) ?? 0) + m.nutrition.kcal)
-    totalKcal += m.nutrition.kcal
+    totals.kcal += m.nutrition.kcal
+    totals.protein += m.nutrition.protein
+    totals.carbs += m.nutrition.carbs
+    totals.fat += m.nutrition.fat
   }
 
-  const dailyAverage = computeDailyAverage(startKey, endKey, totalKcal)
+  const bodyProfile = getBodyProfile()
+  const targets = bodyProfile ? computeDailyTargets(bodyProfile) : null
 
-  const dayData = period !== 'year' ? bucketByDay(startKey, endKey, kcalByDate) : []
+  const mealCount = meals?.length ?? 0
+  const avgKcalPerMeal = mealCount > 0 ? totals.kcal / mealCount : 0
+  const dailyAverage = computeDailyAverage(startKey, endKey, totals.kcal)
+  const macroAverages = computeDailyMacroAverages(startKey, endKey, totals)
+
+  const dayData = period === 'week' || period === 'month' ? bucketByDay(startKey, endKey, kcalByDate) : []
   const monthData = period === 'year' ? bucketByMonth(Number(anchorKey.slice(0, 4)), kcalByDate) : []
+  const perMealData =
+    period === 'day'
+      ? [...(meals ?? [])]
+          .sort((a, b) => a.createdAt - b.createdAt)
+          .map((m) => ({ key: m.id, label: truncate(m.title, 9), fullTitle: m.title, kcal: m.nutrition.kcal }))
+      : []
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-32 pt-6">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-ink">Statistik</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-ink">Statistik</h1>
         <button
           onClick={() => meals && handleExportPdf(meals)}
           disabled={!meals || meals.length === 0 || exporting}
@@ -80,7 +102,7 @@ export function StatsPage() {
             key={key}
             onClick={() => setPeriod(key)}
             className={`flex-1 rounded-full py-2 text-sm font-medium transition ${
-              period === key ? 'bg-kcal/20 text-ink' : 'text-ink-soft hover:text-ink'
+              period === key ? 'bg-accent/20 text-ink' : 'text-ink-soft hover:text-ink'
             }`}
           >
             {label}
@@ -88,38 +110,72 @@ export function StatsPage() {
         ))}
       </div>
 
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between rounded-2xl border border-line bg-surface px-2 py-2 shadow-sm shadow-black/5">
         <button
           onClick={() => setAnchorKey((k) => shiftAnchor(period, k, -1))}
-          className="rounded-full p-2 text-ink-soft hover:bg-surface hover:text-ink"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-lg font-medium text-ink"
           aria-label="Vorheriger Zeitraum"
         >
           ‹
         </button>
-        <span className="text-sm text-ink">{formatPeriodLabel(period, anchorKey)}</span>
+        <span className="text-sm font-medium text-ink">{formatPeriodLabel(period, anchorKey)}</span>
         <button
           onClick={() => setAnchorKey((k) => shiftAnchor(period, k, 1))}
-          className="rounded-full p-2 text-ink-soft hover:bg-surface hover:text-ink"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-lg font-medium text-ink"
           aria-label="Nächster Zeitraum"
         >
           ›
         </button>
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-3">
-        <div className="rounded-3xl bg-surface p-4 text-center shadow-sm shadow-black/5">
-          <div className="text-2xl font-bold text-ink">{Math.round(totalKcal).toLocaleString('de-DE')}</div>
-          <div className="text-xs text-ink-soft">kcal gesamt</div>
-        </div>
-        <div className="rounded-3xl bg-surface p-4 text-center shadow-sm shadow-black/5">
-          <div className="text-2xl font-bold text-ink">{Math.round(dailyAverage).toLocaleString('de-DE')}</div>
-          <div className="text-xs text-ink-soft">Ø kcal / Tag</div>
-        </div>
+      <div className="mb-6 grid grid-cols-3 gap-2">
+        <StatTile
+          value={Math.round(totals.kcal).toLocaleString('de-DE')}
+          label="kcal gesamt"
+          sub={
+            period === 'day' && targets ? `${percentOfTarget(totals.kcal, targets.kcal)}% Ziel` : undefined
+          }
+        />
+        {period === 'day' ? (
+          <StatTile value={Math.round(avgKcalPerMeal).toLocaleString('de-DE')} label="Ø kcal / Mahlzeit" />
+        ) : (
+          <StatTile
+            value={Math.round(dailyAverage).toLocaleString('de-DE')}
+            label="Ø kcal / Tag"
+            sub={targets ? `${percentOfTarget(dailyAverage, targets.kcal)}% Ziel` : undefined}
+          />
+        )}
+        <MacroTile
+          heading={period === 'day' ? 'Nährwerte gesamt' : 'Ø Nährwerte/Tag'}
+          protein={period === 'day' ? totals.protein : macroAverages.protein}
+          carbs={period === 'day' ? totals.carbs : macroAverages.carbs}
+          fat={period === 'day' ? totals.fat : macroAverages.fat}
+        />
       </div>
 
       <div className="h-64 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
         {meals === undefined ? (
           <p className="flex h-full items-center justify-center text-sm text-ink-soft">Lädt…</p>
+        ) : period === 'day' ? (
+          perMealData.length === 0 ? (
+            <p className="flex h-full items-center justify-center text-sm text-ink-soft">
+              Keine Mahlzeiten an diesem Tag.
+            </p>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={perMealData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e5ea" vertical={false} />
+                <XAxis dataKey="label" stroke="#6e6e73" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="#6e6e73" fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip
+                  contentStyle={{ background: '#ffffff', border: '1px solid #e5e5ea', borderRadius: 12 }}
+                  labelStyle={{ color: '#1d1d1f' }}
+                  formatter={(v, _n, item) => [`${Math.round(Number(v))} kcal`, item.payload.fullTitle]}
+                />
+                <Bar dataKey="kcal" fill="#34c759" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )
         ) : period === 'year' ? (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={monthData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
@@ -131,7 +187,7 @@ export function StatsPage() {
                 labelStyle={{ color: '#1d1d1f' }}
                 formatter={(v) => [`${Math.round(Number(v))} kcal`, 'Gesamt']}
               />
-              <Line type="monotone" dataKey="kcal" stroke="#ff9500" strokeWidth={2.5} dot={{ r: 3, fill: '#ff9500' }} />
+              <Line type="monotone" dataKey="kcal" stroke="#34c759" strokeWidth={2.5} dot={{ r: 3, fill: '#34c759' }} />
             </LineChart>
           </ResponsiveContainer>
         ) : (
@@ -152,11 +208,56 @@ export function StatsPage() {
                 labelStyle={{ color: '#1d1d1f' }}
                 formatter={(v) => [`${Math.round(Number(v))} kcal`, 'Kalorien']}
               />
-              <Bar dataKey="kcal" fill="#ff9500" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="kcal" fill="#34c759" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
       </div>
+    </div>
+  )
+}
+
+function StatTile({ value, label, sub }: { value: string; label: string; sub?: string }) {
+  return (
+    <div className="rounded-3xl bg-surface p-3 text-center shadow-sm shadow-black/5">
+      <div className="text-xl font-bold text-ink">{value}</div>
+      <div className="text-[10px] text-ink-soft">{label}</div>
+      {sub && <div className="mt-0.5 text-[10px] font-semibold text-accent">{sub}</div>}
+    </div>
+  )
+}
+
+const MACRO_BADGE_BG: Record<'protein' | 'carbs' | 'fat', string> = {
+  protein: 'bg-protein/15',
+  carbs: 'bg-carbs/15',
+  fat: 'bg-fat/15',
+}
+
+function MacroTile({
+  heading,
+  protein,
+  carbs,
+  fat,
+}: {
+  heading: string
+  protein: number
+  carbs: number
+  fat: number
+}) {
+  return (
+    <div className="rounded-3xl bg-surface p-3 text-center shadow-sm shadow-black/5">
+      <div className="flex flex-col items-center gap-1">
+        <span className={`w-full rounded-full px-1.5 py-0.5 text-[10px] font-bold text-ink ${MACRO_BADGE_BG.protein}`}>
+          P {Math.round(protein)}g
+        </span>
+        <span className={`w-full rounded-full px-1.5 py-0.5 text-[10px] font-bold text-ink ${MACRO_BADGE_BG.carbs}`}>
+          K {Math.round(carbs)}g
+        </span>
+        <span className={`w-full rounded-full px-1.5 py-0.5 text-[10px] font-bold text-ink ${MACRO_BADGE_BG.fat}`}>
+          F {Math.round(fat)}g
+        </span>
+      </div>
+      <div className="mt-1 text-[10px] text-ink-soft">{heading}</div>
     </div>
   )
 }

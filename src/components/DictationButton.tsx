@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { isSpeechRecognitionSupported, startDictation, type DictationSession } from '../lib/speech'
 
-export function DictationButton({ onTranscript }: { onTranscript: (text: string) => void }) {
+export function DictationButton({
+  onRecordingDone,
+  disabled,
+}: {
+  onRecordingDone: (rawText: string) => void
+  disabled?: boolean
+}) {
   const [listening, setListening] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const sessionRef = useRef<DictationSession | null>(null)
@@ -14,18 +20,20 @@ export function DictationButton({ onTranscript }: { onTranscript: (text: string)
   function toggle() {
     if (listening) {
       sessionRef.current?.stop()
-      sessionRef.current = null
-      setListening(false)
       return
     }
     setError(null)
     const session = startDictation({
-      onTranscript,
+      onDone: (text) => {
+        setListening(false)
+        sessionRef.current = null
+        if (text) onRecordingDone(text)
+      },
       onError: (message) => {
         setError(message)
         setListening(false)
+        sessionRef.current = null
       },
-      onEnd: () => setListening(false),
     })
     if (session) {
       sessionRef.current = session
@@ -40,12 +48,11 @@ export function DictationButton({ onTranscript }: { onTranscript: (text: string)
       <button
         type="button"
         onClick={toggle}
+        disabled={disabled}
         aria-pressed={listening}
         aria-label={listening ? 'Diktat stoppen' : 'Diktat starten'}
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition ${
-          listening
-            ? 'bg-danger text-white shadow-lg shadow-danger/30 animate-pulse'
-            : 'bg-bg text-ink-soft hover:bg-line'
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition disabled:opacity-40 ${
+          listening ? 'bg-danger text-white shadow-lg shadow-danger/30 animate-pulse' : 'bg-bg text-ink-soft hover:bg-line'
         }`}
       >
         <MicIcon />
