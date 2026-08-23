@@ -1,41 +1,30 @@
 import { useState } from 'react'
 import type { Meal } from '../lib/db'
 import { deleteMeal } from '../hooks/useMeals'
-
-const MACRO_BADGE_BG: Record<'protein' | 'carbs' | 'fat', string> = {
-  protein: 'bg-protein/15',
-  carbs: 'bg-carbs/15',
-  fat: 'bg-fat/15',
-}
+import { MacroBadge } from './MacroBadge'
 
 export function MealCard({ meal, onView }: { meal: Meal; onView: () => void }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   return (
-    <div className="flex gap-3 rounded-2xl bg-surface p-3 shadow-sm shadow-black/5">
-      {meal.photo && (
-        <img src={meal.photo} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
-      )}
-      <button className="flex-1 text-left" onClick={onView}>
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="min-w-0 flex-1 truncate font-medium text-ink">{meal.title}</h3>
-          <span className="shrink-0 rounded-full bg-kcal/15 px-2.5 py-1 text-xs font-bold text-ink">
-            {Math.round(meal.nutrition.kcal)} kcal
-          </span>
-        </div>
-        <div className="mt-1.5 flex gap-1.5">
-          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold text-ink ${MACRO_BADGE_BG.protein}`}>
-            P {Math.round(meal.nutrition.protein)}g
-          </span>
-          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold text-ink ${MACRO_BADGE_BG.carbs}`}>
-            K {Math.round(meal.nutrition.carbs)}g
-          </span>
-          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold text-ink ${MACRO_BADGE_BG.fat}`}>
-            F {Math.round(meal.nutrition.fat)}g
-          </span>
-        </div>
-      </button>
-      <div className="flex shrink-0 flex-col items-end justify-between">
+    <div className="rounded-2xl bg-surface p-3 shadow-sm shadow-black/5">
+      <div className="flex gap-3">
+        {meal.photo && (
+          <img src={meal.photo} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+        )}
+        <button className="min-w-0 flex-1 text-left" onClick={onView}>
+          <h3 className="font-medium text-ink">{meal.title}</h3>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            <span className="rounded-full bg-kcal/15 px-2.5 py-0.5 text-[11px] font-bold text-ink">
+              {Math.round(meal.nutrition.kcal)} kcal
+            </span>
+            <MacroBadge type="protein" value={meal.nutrition.protein} size="sm" />
+            <MacroBadge type="carbs" value={meal.nutrition.carbs} size="sm" />
+            <MacroBadge type="fat" value={meal.nutrition.fat} size="sm" />
+          </div>
+        </button>
+      </div>
+      <div className="mt-2 flex justify-end">
         {confirmingDelete ? (
           <div className="flex gap-1">
             <button

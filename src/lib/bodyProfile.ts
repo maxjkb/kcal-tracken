@@ -2,7 +2,7 @@ const STORAGE_KEY = 'kcal-tracker:body-profile'
 
 export type Sex = 'male' | 'female'
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active'
-export type Goal = 'lose' | 'maintain' | 'gain'
+export type Goal = 'lose' | 'maintain' | 'gain' | 'build_muscle'
 
 export interface BodyProfile {
   sex: Sex
@@ -35,6 +35,7 @@ export const GOAL_LABELS: Record<Goal, string> = {
   lose: 'Abnehmen',
   maintain: 'Halten',
   gain: 'Zunehmen',
+  build_muscle: 'Muskelaufbau',
 }
 
 export function getBodyProfile(): BodyProfile | null {
@@ -64,8 +65,10 @@ export interface DailyTargets {
 /**
  * Mifflin-St Jeor basal metabolic rate, scaled by activity level (TDEE), then
  * adjusted by the goal's daily deficit/surplus. Macros: protein at 1.8g/kg
- * bodyweight, fat at 25% of target kcal, carbs fill the remainder. This is a
- * standard rule-of-thumb split, not personalized nutrition advice.
+ * bodyweight (2.2g/kg for "Muskelaufbau" — prioritizes hitting protein needs
+ * over a calorie surplus), fat at 25% of target kcal, carbs fill the
+ * remainder. This is a standard rule-of-thumb split, not personalized
+ * nutrition advice.
  */
 export function computeDailyTargets(profile: BodyProfile): DailyTargets {
   const { sex, heightCm, weightKg, age, activityLevel, goal, goalRateKcal } = profile
@@ -77,10 +80,13 @@ export function computeDailyTargets(profile: BodyProfile): DailyTargets {
 
   const tdee = bmr * ACTIVITY_MULTIPLIERS[activityLevel]
 
+  // "Muskelaufbau" stays calorie-neutral (like "Halten") — no deficit or
+  // surplus — and instead raises the protein target.
   const adjustment = goal === 'lose' ? -Math.abs(goalRateKcal) : goal === 'gain' ? Math.abs(goalRateKcal) : 0
   const kcalTarget = Math.max(1200, tdee + adjustment)
 
-  const proteinG = 1.8 * weightKg
+  const proteinPerKg = goal === 'build_muscle' ? 2.2 : 1.8
+  const proteinG = proteinPerKg * weightKg
   const proteinKcal = proteinG * 4
   const fatKcal = kcalTarget * 0.25
   const fatG = fatKcal / 9

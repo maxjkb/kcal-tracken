@@ -16,9 +16,12 @@ import { PhotoInput } from './PhotoInput'
 import { NutritionFields } from './NutritionFields'
 import { AutoGrowTextarea } from './AutoGrowTextarea'
 import { BouncingDots } from './BouncingDots'
+import { MacroBadge } from './MacroBadge'
 import { Link } from 'react-router-dom'
 
 const EMPTY_NUTRITION: Nutrition = { kcal: 0, protein: 0, carbs: 0, fat: 0 }
+
+type Step = 'input' | 'review'
 
 export function MealEditor({
   date,
@@ -31,13 +34,13 @@ export function MealEditor({
   defaultMealType?: MealType
   onClose: () => void
 }) {
+  const [step, setStep] = useState<Step>(initial ? 'review' : 'input')
   const [description, setDescription] = useState(initial?.description ?? '')
   const [photo, setPhoto] = useState<string | undefined>(initial?.photo)
   const [mealType, setMealType] = useState<MealType>(initial?.mealType ?? defaultMealType ?? 'lunch')
   const [title, setTitle] = useState(initial?.title ?? '')
   const [nutrition, setNutrition] = useState<Nutrition>(initial?.nutrition ?? EMPTY_NUTRITION)
   const [ingredients, setIngredients] = useState<Ingredient[] | undefined>(initial?.ingredients)
-  const [hasEstimate, setHasEstimate] = useState(Boolean(initial))
   const [estimating, setEstimating] = useState(false)
   const [cleaningUp, setCleaningUp] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -76,7 +79,7 @@ export function MealEditor({
       setIngredients(result.ingredients)
       setNote(result.note)
       setManuallyEdited(false)
-      setHasEstimate(true)
+      setStep('review')
     } catch (err) {
       setError(err instanceof GeminiError ? err.message : 'Unbekannter Fehler bei der Schätzung.')
     } finally {
@@ -108,118 +111,165 @@ export function MealEditor({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/30 backdrop-blur-sm sm:items-center">
-      <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-y-auto rounded-t-3xl bg-surface p-5 sm:rounded-3xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-ink">
-            {initial ? 'Mahlzeit bearbeiten' : 'Mahlzeit hinzufügen'}
-          </h2>
+      <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-surface sm:rounded-3xl">
+        <div className="flex items-center justify-between p-5 pb-4">
+          {step === 'review' ? (
+            <button onClick={() => setStep('input')} className="text-ink-soft hover:text-ink" aria-label="Zurück">
+              <BackIcon />
+            </button>
+          ) : (
+            <h2 className="text-lg font-semibold text-ink">{initial ? 'Mahlzeit bearbeiten' : 'Mahlzeit hinzufügen'}</h2>
+          )}
           <button onClick={onClose} className="text-ink-soft hover:text-ink" aria-label="Schließen">
             ✕
           </button>
         </div>
 
-        <div className="flex flex-col gap-4">
-          <div>
-            <span className="mb-1 block text-xs text-ink-soft">Was hast du gegessen?</span>
-            <div className="flex items-start gap-2">
-              <div className="flex-1">
-                <AutoGrowTextarea
-                  value={description}
-                  onChange={setDescription}
-                  disabled={cleaningUp}
-                  placeholder="z.B. 200g Hähnchenbrust, 150g Reis, etwas Brokkoli und 1 EL Olivenöl"
-                  className={`w-full rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none ${cleaningUp ? 'opacity-50' : ''}`}
-                />
-                {cleaningUp && (
-                  <p className="mt-1.5 flex items-center gap-2 text-xs text-ink-soft">
-                    <BouncingDots /> Diktat wird bereinigt…
+        <div className="overflow-hidden">
+          <div
+            className="flex transition-transform duration-300 ease-out"
+            style={{ transform: `translateX(-${step === 'review' ? 100 : 0}%)` }}
+          >
+            {/* Step 1: input */}
+            <div className="w-full shrink-0 overflow-y-auto px-5 pb-5">
+              <div className="flex flex-col gap-4">
+                <div>
+                  <span className="mb-1 block text-xs text-ink-soft">Was hast du gegessen?</span>
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1">
+                      <AutoGrowTextarea
+                        value={description}
+                        onChange={setDescription}
+                        disabled={cleaningUp}
+                        placeholder="z.B. 200g Hähnchenbrust, 150g Reis, etwas Brokkoli und 1 EL Olivenöl"
+                        className={`w-full rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none ${cleaningUp ? 'opacity-50' : ''}`}
+                      />
+                      {cleaningUp && (
+                        <p className="mt-1.5 flex items-center gap-2 text-xs text-ink-soft">
+                          <BouncingDots /> Diktat wird bereinigt…
+                        </p>
+                      )}
+                    </div>
+                    <DictationButton onRecordingDone={handleDictationDone} disabled={cleaningUp} />
+                  </div>
+                </div>
+
+                <PhotoInput photo={photo} onChange={setPhoto} />
+
+                {!hasApiKey && (
+                  <p className="rounded-2xl bg-fat/15 px-3 py-2 text-xs text-ink">
+                    Kein API-Key hinterlegt.{' '}
+                    <Link to="/settings" onClick={onClose} className="font-semibold underline">
+                      Jetzt in den Einstellungen eintragen
+                    </Link>
+                    , um Nährwerte automatisch schätzen zu lassen.
                   </p>
                 )}
+
+                <button
+                  type="button"
+                  onClick={handleEstimate}
+                  disabled={estimating || cleaningUp || !hasApiKey}
+                  className="glass-accent flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {estimating ? <BouncingDots /> : 'Nährwerte schätzen'}
+                </button>
+
+                {error && <p className="text-sm font-medium text-danger">{error}</p>}
               </div>
-              <DictationButton onRecordingDone={handleDictationDone} disabled={cleaningUp} />
+            </div>
+
+            {/* Step 2: review */}
+            <div className="w-full shrink-0 overflow-y-auto px-5 pb-5">
+              <div className="flex flex-col gap-4">
+                <div>
+                  <span className="mb-1 block text-xs text-ink-soft">Mahlzeit</span>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {MEAL_TYPE_ORDER.map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setMealType(type)}
+                        className={`rounded-xl px-2 py-2 text-xs font-medium transition ${
+                          mealType === type ? 'bg-accent/20 text-ink' : 'bg-bg text-ink-soft hover:bg-line'
+                        }`}
+                      >
+                        {MEAL_TYPE_LABELS[type]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs text-ink-soft">Titel</span>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Titel des Gerichts"
+                    className="rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+                  />
+                </label>
+
+                <div>
+                  <span className="mb-2 block text-xs text-ink-soft">
+                    Nährwerte {manuallyEdited && <span className="font-semibold text-accent">(manuell angepasst)</span>}
+                  </span>
+                  <NutritionFields
+                    value={nutrition}
+                    onChange={(next) => {
+                      setNutrition(next)
+                      setManuallyEdited(true)
+                    }}
+                  />
+                </div>
+
+                {ingredients && ingredients.length > 0 && (
+                  <div>
+                    <span className="mb-2 block text-xs text-ink-soft">Zutaten</span>
+                    <div className="flex flex-col gap-2">
+                      {ingredients.map((ing, i) => (
+                        <div key={i} className="rounded-2xl border border-line p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium text-ink">{ing.name}</span>
+                            <span className="shrink-0 text-xs text-ink-soft">{ing.amount}</span>
+                          </div>
+                          <div className="mt-1.5 flex flex-wrap gap-1.5">
+                            <span className="rounded-full bg-kcal/15 px-2 py-0.5 text-[11px] font-semibold text-ink">
+                              {Math.round(ing.kcal)} kcal
+                            </span>
+                            <MacroBadge type="protein" value={ing.protein} size="sm" />
+                            <MacroBadge type="carbs" value={ing.carbs} size="sm" />
+                            <MacroBadge type="fat" value={ing.fat} size="sm" />
+                          </div>
+                          {ing.note && <p className="mt-1.5 text-xs italic text-ink-soft">{ing.note}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="mt-2 rounded-2xl bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                >
+                  {saving ? 'Speichern…' : 'Speichern'}
+                </button>
+              </div>
             </div>
           </div>
-
-          <PhotoInput photo={photo} onChange={setPhoto} />
-
-          {!hasApiKey && (
-            <p className="rounded-2xl bg-fat/15 px-3 py-2 text-xs text-ink">
-              Kein API-Key hinterlegt.{' '}
-              <Link to="/settings" onClick={onClose} className="font-semibold underline">
-                Jetzt in den Einstellungen eintragen
-              </Link>
-              , um Nährwerte automatisch schätzen zu lassen.
-            </p>
-          )}
-
-          <button
-            type="button"
-            onClick={handleEstimate}
-            disabled={estimating || cleaningUp || !hasApiKey}
-            className="glass-accent flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {estimating ? <BouncingDots /> : hasEstimate ? 'Nährwerte neu schätzen' : 'Nährwerte schätzen'}
-          </button>
-
-          {error && <p className="text-sm font-medium text-danger">{error}</p>}
-          {note && <p className="text-xs italic text-ink-soft">Hinweis der KI: {note}</p>}
-
-          {hasEstimate && (
-            <>
-              <div>
-                <span className="mb-1 block text-xs text-ink-soft">Mahlzeit</span>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {MEAL_TYPE_ORDER.map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setMealType(type)}
-                      className={`rounded-xl px-2 py-2 text-xs font-medium transition ${
-                        mealType === type ? 'bg-accent/20 text-ink' : 'bg-bg text-ink-soft hover:bg-line'
-                      }`}
-                    >
-                      {MEAL_TYPE_LABELS[type]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-ink-soft">Titel</span>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Titel des Gerichts"
-                  className="rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
-                />
-              </label>
-
-              <div>
-                <span className="mb-2 block text-xs text-ink-soft">
-                  Nährwerte {manuallyEdited && <span className="font-semibold text-accent">(manuell angepasst)</span>}
-                </span>
-                <NutritionFields
-                  value={nutrition}
-                  onChange={(next) => {
-                    setNutrition(next)
-                    setManuallyEdited(true)
-                  }}
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving}
-                className="mt-2 rounded-2xl bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-              >
-                {saving ? 'Speichern…' : 'Speichern'}
-              </button>
-            </>
-          )}
         </div>
       </div>
     </div>
+  )
+}
+
+function BackIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+    </svg>
   )
 }

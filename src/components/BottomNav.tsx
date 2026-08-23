@@ -18,14 +18,14 @@ export function BottomNav() {
             key={to}
             to={to}
             end={end}
+            aria-label={label}
             className={({ isActive }) =>
-              `flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium transition-colors ${
+              `flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
                 isActive ? 'glass-accent' : 'text-ink-soft'
               }`
             }
           >
             <Icon />
-            {label}
           </NavLink>
         ))}
       </div>
