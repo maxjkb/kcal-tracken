@@ -65,3 +65,13 @@ Source: GitHub Actions** ist im Repository aktiviert (einmalig).
 Alle Mahlzeiten liegen ausschließlich in IndexedDB im Browser (keine Anmeldung, kein Server,
 kein Sync zwischen Geräten). Exportiere regelmäßig ein Backup über
 **Einstellungen → Backup exportieren**, falls du den Browser wechselst oder Speicher leerst.
+
+Die App fordert beim Start über die [Storage API](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API)
+"dauerhaften Speicher" an (`navigator.storage.persist()`), damit der Browser localStorage
+(API-Key) und IndexedDB (Mahlzeiten) nicht automatisch aufräumt — kostenlos, ohne Backend, per
+Browser-Bordmittel. Status und ein manueller Retry-Button finden sich unter
+**Einstellungen → Daten**. Auf iOS ist eine zum Homescreen hinzugefügte App laut Apple ohnehin
+von Safaris automatischer 7-Tage-Bereinigung ausgenommen; die Anfrage ist dort ein zusätzliches
+Sicherheitsnetz. Eine hundertprozentige Garantie gibt es bei rein clientseitiger Speicherung
+nie (z.B. bei manuellem "Website-Daten löschen" oder Neuinstallation der App) — dafür ist der
+JSON-Backup-Export da.
