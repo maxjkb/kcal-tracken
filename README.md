@@ -1,37 +1,44 @@
 # Kcal Tracker
 
-Ein Ernährungstracker: Mahlzeiten per Text, Diktat oder Foto beschreiben – eine KI (Claude)
-schätzt daraus die Nährwerte. Läuft komplett im Browser (als installierbare PWA), alle Daten
-bleiben lokal auf deinem Gerät.
+Ein Ernährungstracker: Mahlzeiten per Text, Diktat oder Foto beschreiben – eine KI (Google
+Gemini, kostenloses Kontingent) schätzt daraus die Nährwerte. Läuft komplett im Browser (als
+installierbare PWA), alle Daten bleiben lokal auf deinem Gerät.
 
 ## Funktionen
 
 - Mahlzeit per Tastatur, Diktierfunktion (Browser-Spracherkennung) oder Foto erfassen
-- Claude schätzt Kalorien, Protein, Kohlenhydrate und Fett – manuell nachbearbeitbar
+- Gemini schätzt Kalorien, Protein, Kohlenhydrate und Fett – manuell nachbearbeitbar
 - Tages-Feed, gegliedert nach Frühstück / Mittag / Abend / Snack
 - Wochen-, Monats- und Jahresübersicht als Diagramm inkl. Tagesdurchschnitt
 - Als App auf dem Homescreen installierbar (PWA)
 - Backup-Export/-Import als JSON
 
-## Einmalige Einrichtung: Anthropic API-Key
+## Einmalige Einrichtung: Google Gemini API-Key (kostenlos)
 
-Die Nährwertschätzung läuft über die Claude-API. Dafür brauchst du einen eigenen API-Key:
+Die Nährwertschätzung läuft über die Gemini-API im kostenlosen Kontingent von Google. Dafür
+brauchst du einen eigenen, ebenfalls kostenlosen API-Key:
 
-1. Gehe zu [console.anthropic.com](https://console.anthropic.com/settings/keys) und erstelle
-   einen Account (falls noch keiner vorhanden ist).
-2. Lege unter **Settings → API Keys** einen neuen Key an und kopiere ihn.
-3. Hinterlege ein kleines Guthaben unter **Settings → Billing** (die Nutzung wird nach
-   Verbrauch abgerechnet, für private Nutzung typischerweise wenige Cent pro Mahlzeit).
-4. Öffne die App → **Einstellungen** → füge den Key ein → **Speichern**.
+1. Gehe zu [aistudio.google.com/apikey](https://aistudio.google.com/apikey) und melde dich mit
+   einem Google-Konto an (kein Zahlungsmittel nötig).
+2. Erstelle dort einen neuen API-Key und kopiere ihn.
+3. Öffne die App → **Einstellungen** → füge den Key ein → **Speichern**.
 
 Der Key wird ausschließlich lokal in deinem Browser gespeichert (`localStorage`) und nur
-direkt an `api.anthropic.com` gesendet – nie an einen anderen Server.
+direkt an `generativelanguage.googleapis.com` gesendet – nie an einen anderen Server.
 
 > **Hinweis zur Sicherheit:** Da die App ohne eigenes Backend läuft, ruft dein Browser die
-> Claude-API direkt auf. Der Key ist dadurch im Netzwerk-Tab deines eigenen Browsers sichtbar.
+> Gemini-API direkt auf. Der Key ist dadurch im Netzwerk-Tab deines eigenen Browsers sichtbar.
 > Für eine private Einzelnutzer-App ist das ein bewusst akzeptierter Trade-off gegen den
-> Aufwand eines eigenen Backends. Teile den Key nicht und nutze am besten einen Key mit
-> Ausgabenlimit.
+> Aufwand eines eigenen Backends. Teile den Key nicht.
+
+> **Hinweis zum Gratis-Kontingent:** Das kostenlose Kontingent ist rate-limitiert (Anfragen pro
+> Minute/Tag) und Google kann laut Nutzungsbedingungen Inhalte aus der kostenlosen Stufe zur
+> Produktverbesserung verwenden. Für eine rein private Nutzung mit wenigen Mahlzeiten pro Tag
+> reicht es normalerweise gut aus. Falls die Schätzung mit "Rate-Limit" fehlschlägt, einfach
+> kurz warten und erneut versuchen. Google benennt Modelle gelegentlich um – falls die
+> Schätzung mit "Modell nicht gefunden" fehlschlägt, in den Einstellungen den aktuellen
+> Modellnamen von [ai.google.dev/gemini-api/docs/models](https://ai.google.dev/gemini-api/docs/models)
+> eintragen.
 
 ## Lokale Entwicklung
 

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, newMealId, type Meal, type MealType, type Nutrition } from '../lib/db'
 import { saveMeal } from '../hooks/useMeals'
-import { estimateNutrition, AnthropicError } from '../lib/anthropic'
+import { estimateNutrition, GeminiError } from '../lib/gemini'
 import { getApiKey } from '../lib/settings'
 import { DictationButton } from './DictationButton'
 import { PhotoInput } from './PhotoInput'
@@ -50,7 +50,7 @@ export function MealEditor({
       setManuallyEdited(false)
       setHasEstimate(true)
     } catch (err) {
-      setError(err instanceof AnthropicError ? err.message : 'Unbekannter Fehler bei der Schätzung.')
+      setError(err instanceof GeminiError ? err.message : 'Unbekannter Fehler bei der Schätzung.')
     } finally {
       setEstimating(false)
     }

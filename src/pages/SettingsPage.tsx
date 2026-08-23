@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import { clearApiKey, getApiKey, setApiKey } from '../lib/settings'
-import { getModel, setModel } from '../lib/anthropic'
+import { getModel, setModel } from '../lib/gemini'
 import { db } from '../lib/db'
 
-const MODEL_OPTIONS = [
-  { value: 'claude-sonnet-5', label: 'Claude Sonnet 5 (empfohlen – gute Balance)' },
-  { value: 'claude-opus-5', label: 'Claude Opus 5 (genauer, teurer)' },
-  { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 (schneller, günstiger)' },
+const MODEL_SUGGESTIONS = [
+  { value: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash (empfohlen – gutes Gratis-Kontingent)' },
+  { value: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite (schneller, höheres Kontingent)' },
 ]
 
 export function SettingsPage() {
@@ -69,26 +68,28 @@ export function SettingsPage() {
       <h1 className="mb-4 text-lg font-semibold text-slate-100">Einstellungen</h1>
 
       <section className="mb-6 rounded-2xl bg-slate-900 p-4">
-        <h2 className="mb-1 text-sm font-semibold text-slate-200">Anthropic API-Key</h2>
+        <h2 className="mb-1 text-sm font-semibold text-slate-200">Google Gemini API-Key</h2>
         <p className="mb-3 text-xs text-slate-500">
-          Wird nur lokal in deinem Browser gespeichert – nie an einen Server außer die Claude-API
-          gesendet. Einen Key bekommst du unter{' '}
+          Kostenlos im Rahmen des Gratis-Kontingents von Google. Wird nur lokal in deinem Browser
+          gespeichert – nie an einen Server außer die Gemini-API gesendet. Einen Key bekommst du
+          unter{' '}
           <a
-            href="https://console.anthropic.com/settings/keys"
+            href="https://aistudio.google.com/apikey"
             target="_blank"
             rel="noreferrer"
             className="text-emerald-400 underline"
           >
-            console.anthropic.com
+            aistudio.google.com/apikey
           </a>{' '}
-          (Account nötig, Nutzung wird nach Verbrauch abgerechnet).
+          (Google-Konto nötig, kein Zahlungsmittel erforderlich). Das Gratis-Kontingent ist
+          rate-limitiert – bei "Rate-Limit erreicht" einfach kurz warten.
         </p>
         <div className="flex gap-2">
           <input
             type={showKey ? 'text' : 'password'}
             value={apiKey}
             onChange={(e) => setApiKeyInput(e.target.value)}
-            placeholder="sk-ant-…"
+            placeholder="AIza…"
             className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none"
           />
           <button
@@ -109,18 +110,33 @@ export function SettingsPage() {
 
       <section className="mb-6 rounded-2xl bg-slate-900 p-4">
         <h2 className="mb-1 text-sm font-semibold text-slate-200">Modell für Nährwertschätzung</h2>
-        <p className="mb-3 text-xs text-slate-500">Größere Modelle sind meist genauer, aber teurer pro Anfrage.</p>
-        <select
+        <p className="mb-3 text-xs text-slate-500">
+          Google benennt Gemini-Modelle gelegentlich um oder schaltet alte Versionen ab. Falls die
+          Schätzung mit "Modell nicht gefunden" fehlschlägt, hier den aktuellen Modellnamen von{' '}
+          <a
+            href="https://ai.google.dev/gemini-api/docs/models"
+            target="_blank"
+            rel="noreferrer"
+            className="text-emerald-400 underline"
+          >
+            ai.google.dev/gemini-api/docs/models
+          </a>{' '}
+          eintragen.
+        </p>
+        <input
+          list="model-suggestions"
+          type="text"
           value={model}
           onChange={(e) => handleModelChange(e.target.value)}
           className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none"
-        >
-          {MODEL_OPTIONS.map((opt) => (
+        />
+        <datalist id="model-suggestions">
+          {MODEL_SUGGESTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
           ))}
-        </select>
+        </datalist>
       </section>
 
       <section className="mb-6 rounded-2xl bg-slate-900 p-4">

@@ -1,4 +1,4 @@
-const API_KEY_STORAGE_KEY = 'kcal-tracker:anthropic-api-key'
+const API_KEY_STORAGE_KEY = 'kcal-tracker:gemini-api-key'
 
 export function getApiKey(): string | null {
   try {
