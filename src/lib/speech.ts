@@ -43,13 +43,16 @@ export interface DictationSession {
 }
 
 /**
- * Starts continuous German speech recognition. `onTranscript` is called with
- * the full accumulated transcript (final + interim) each time it changes.
+ * Starts speech recognition and calls `onDone` exactly once, with the final
+ * transcript, when recording stops (either via `.stop()` or the browser
+ * ending recognition on its own). Deliberately does NOT use interim results
+ * or stream partial text back during recording — some browsers (notably iOS
+ * Safari) repeat/duplicate interim results, which previously caused the
+ * dictated text to appear several times over in the field.
  */
 export function startDictation(opts: {
-  onTranscript: (text: string) => void
+  onDone: (text: string) => void
   onError?: (message: string) => void
-  onEnd?: () => void
 }): DictationSession | null {
   const Ctor = getSpeechRecognitionCtor()
   if (!Ctor) {
@@ -60,22 +63,19 @@ export function startDictation(opts: {
   const recognition = new Ctor()
   recognition.lang = 'de-DE'
   recognition.continuous = true
-  recognition.interimResults = true
+  recognition.interimResults = false
 
-  let finalTranscript = ''
+  const finalSegments: string[] = []
+  let done = false
 
   recognition.onresult = (event) => {
-    let interim = ''
     for (let i = 0; i < event.results.length; i++) {
       const result = event.results[i]
-      const transcript = result[0].transcript
       if (result.isFinal) {
-        finalTranscript += transcript + ' '
-      } else {
-        interim += transcript
+        const transcript = result[0].transcript.trim()
+        if (transcript) finalSegments.push(transcript)
       }
     }
-    opts.onTranscript((finalTranscript + interim).trim())
   }
 
   recognition.onerror = (event) => {
@@ -84,7 +84,9 @@ export function startDictation(opts: {
   }
 
   recognition.onend = () => {
-    opts.onEnd?.()
+    if (done) return
+    done = true
+    opts.onDone(finalSegments.join(' ').trim())
   }
 
   recognition.start()

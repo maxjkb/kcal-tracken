@@ -1,11 +1,21 @@
 import { useState } from 'react'
-import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, newMealId, type Meal, type MealType, type Nutrition } from '../lib/db'
+import {
+  MEAL_TYPE_LABELS,
+  MEAL_TYPE_ORDER,
+  newMealId,
+  type Ingredient,
+  type Meal,
+  type MealType,
+  type Nutrition,
+} from '../lib/db'
 import { saveMeal } from '../hooks/useMeals'
-import { estimateNutrition, GeminiError } from '../lib/gemini'
+import { estimateNutrition, cleanUpDictation, GeminiError } from '../lib/gemini'
 import { getApiKey } from '../lib/settings'
 import { DictationButton } from './DictationButton'
 import { PhotoInput } from './PhotoInput'
 import { NutritionFields } from './NutritionFields'
+import { AutoGrowTextarea } from './AutoGrowTextarea'
+import { BouncingDots } from './BouncingDots'
 import { Link } from 'react-router-dom'
 
 const EMPTY_NUTRITION: Nutrition = { kcal: 0, protein: 0, carbs: 0, fat: 0 }
@@ -26,14 +36,31 @@ export function MealEditor({
   const [mealType, setMealType] = useState<MealType>(initial?.mealType ?? defaultMealType ?? 'lunch')
   const [title, setTitle] = useState(initial?.title ?? '')
   const [nutrition, setNutrition] = useState<Nutrition>(initial?.nutrition ?? EMPTY_NUTRITION)
+  const [ingredients, setIngredients] = useState<Ingredient[] | undefined>(initial?.ingredients)
   const [hasEstimate, setHasEstimate] = useState(Boolean(initial))
   const [estimating, setEstimating] = useState(false)
+  const [cleaningUp, setCleaningUp] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [note, setNote] = useState<string | undefined>()
+  const [note, setNote] = useState<string | undefined>(initial?.note)
   const [manuallyEdited, setManuallyEdited] = useState(initial?.manuallyEdited ?? false)
 
   const hasApiKey = Boolean(getApiKey())
+
+  async function handleDictationDone(rawText: string) {
+    setCleaningUp(true)
+    setError(null)
+    try {
+      const cleaned = await cleanUpDictation(rawText)
+      setDescription((current) => (current.trim() ? `${current.trim()} ${cleaned}` : cleaned))
+    } catch (err) {
+      // Cleanup failing shouldn't lose the recording — fall back to the raw transcript.
+      setDescription((current) => (current.trim() ? `${current.trim()} ${rawText}` : rawText))
+      if (err instanceof GeminiError) setError(err.message)
+    } finally {
+      setCleaningUp(false)
+    }
+  }
 
   async function handleEstimate() {
     if (!description.trim() && !photo) {
@@ -46,6 +73,7 @@ export function MealEditor({
       const result = await estimateNutrition({ description, photoDataUrl: photo })
       setTitle((current) => current || result.suggestedTitle)
       setNutrition({ kcal: result.kcal, protein: result.protein, carbs: result.carbs, fat: result.fat })
+      setIngredients(result.ingredients)
       setNote(result.note)
       setManuallyEdited(false)
       setHasEstimate(true)
@@ -67,6 +95,8 @@ export function MealEditor({
       description,
       photo,
       nutrition,
+      ingredients,
+      note,
       manuallyEdited,
       createdAt: initial?.createdAt ?? now,
       updatedAt: now,
@@ -92,14 +122,21 @@ export function MealEditor({
           <div>
             <span className="mb-1 block text-xs text-ink-soft">Was hast du gegessen?</span>
             <div className="flex items-start gap-2">
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="z.B. 200g Hähnchenbrust, 150g Reis, etwas Brokkoli und 1 EL Olivenöl"
-                rows={3}
-                className="flex-1 resize-none rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-kcal focus:outline-none"
-              />
-              <DictationButton onTranscript={setDescription} />
+              <div className="flex-1">
+                <AutoGrowTextarea
+                  value={description}
+                  onChange={setDescription}
+                  disabled={cleaningUp}
+                  placeholder="z.B. 200g Hähnchenbrust, 150g Reis, etwas Brokkoli und 1 EL Olivenöl"
+                  className={`w-full rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none ${cleaningUp ? 'opacity-50' : ''}`}
+                />
+                {cleaningUp && (
+                  <p className="mt-1.5 flex items-center gap-2 text-xs text-ink-soft">
+                    <BouncingDots /> Diktat wird bereinigt…
+                  </p>
+                )}
+              </div>
+              <DictationButton onRecordingDone={handleDictationDone} disabled={cleaningUp} />
             </div>
           </div>
 
@@ -118,10 +155,10 @@ export function MealEditor({
           <button
             type="button"
             onClick={handleEstimate}
-            disabled={estimating || !hasApiKey}
-            className="glass-accent rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={estimating || cleaningUp || !hasApiKey}
+            className="glass-accent flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {estimating ? 'Schätze Nährwerte…' : hasEstimate ? 'Nährwerte neu schätzen' : 'Nährwerte schätzen'}
+            {estimating ? <BouncingDots /> : hasEstimate ? 'Nährwerte neu schätzen' : 'Nährwerte schätzen'}
           </button>
 
           {error && <p className="text-sm font-medium text-danger">{error}</p>}
@@ -138,7 +175,7 @@ export function MealEditor({
                       type="button"
                       onClick={() => setMealType(type)}
                       className={`rounded-xl px-2 py-2 text-xs font-medium transition ${
-                        mealType === type ? 'bg-kcal/20 text-ink' : 'bg-bg text-ink-soft hover:bg-line'
+                        mealType === type ? 'bg-accent/20 text-ink' : 'bg-bg text-ink-soft hover:bg-line'
                       }`}
                     >
                       {MEAL_TYPE_LABELS[type]}
@@ -154,13 +191,13 @@ export function MealEditor({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Titel des Gerichts"
-                  className="rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-kcal focus:outline-none"
+                  className="rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
                 />
               </label>
 
               <div>
                 <span className="mb-2 block text-xs text-ink-soft">
-                  Nährwerte {manuallyEdited && <span className="font-semibold text-kcal">(manuell angepasst)</span>}
+                  Nährwerte {manuallyEdited && <span className="font-semibold text-accent">(manuell angepasst)</span>}
                 </span>
                 <NutritionFields
                   value={nutrition}

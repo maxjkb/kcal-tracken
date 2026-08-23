@@ -2,7 +2,13 @@ import { useState } from 'react'
 import type { Meal } from '../lib/db'
 import { deleteMeal } from '../hooks/useMeals'
 
-export function MealCard({ meal, onEdit }: { meal: Meal; onEdit: () => void }) {
+const MACRO_BADGE_BG: Record<'protein' | 'carbs' | 'fat', string> = {
+  protein: 'bg-protein/15',
+  carbs: 'bg-carbs/15',
+  fat: 'bg-fat/15',
+}
+
+export function MealCard({ meal, onView }: { meal: Meal; onView: () => void }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   return (
@@ -10,20 +16,23 @@ export function MealCard({ meal, onEdit }: { meal: Meal; onEdit: () => void }) {
       {meal.photo && (
         <img src={meal.photo} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
       )}
-      <button className="flex-1 text-left" onClick={onEdit}>
+      <button className="flex-1 text-left" onClick={onView}>
         <div className="flex items-center justify-between gap-2">
-          <h3 className="font-medium text-ink">{meal.title}</h3>
+          <h3 className="min-w-0 flex-1 truncate font-medium text-ink">{meal.title}</h3>
           <span className="shrink-0 rounded-full bg-kcal/15 px-2.5 py-1 text-xs font-bold text-ink">
             {Math.round(meal.nutrition.kcal)} kcal
           </span>
         </div>
-        {meal.description && (
-          <p className="mt-0.5 line-clamp-2 text-xs text-ink-soft">{meal.description}</p>
-        )}
-        <div className="mt-1.5 flex gap-3 text-xs text-ink-soft">
-          <span>P {Math.round(meal.nutrition.protein)}g</span>
-          <span>K {Math.round(meal.nutrition.carbs)}g</span>
-          <span>F {Math.round(meal.nutrition.fat)}g</span>
+        <div className="mt-1.5 flex gap-1.5">
+          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold text-ink ${MACRO_BADGE_BG.protein}`}>
+            P {Math.round(meal.nutrition.protein)}g
+          </span>
+          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold text-ink ${MACRO_BADGE_BG.carbs}`}>
+            K {Math.round(meal.nutrition.carbs)}g
+          </span>
+          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold text-ink ${MACRO_BADGE_BG.fat}`}>
+            F {Math.round(meal.nutrition.fat)}g
+          </span>
         </div>
       </button>
       <div className="flex shrink-0 flex-col items-end justify-between">

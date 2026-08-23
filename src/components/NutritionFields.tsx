@@ -27,7 +27,7 @@ export function NutritionFields({
             min={0}
             value={Number.isFinite(value[key]) ? value[key] : 0}
             onChange={(e) => onChange({ ...value, [key]: Number(e.target.value) || 0 })}
-            className="rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-kcal focus:outline-none"
+            className="rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
           />
         </label>
       ))}
