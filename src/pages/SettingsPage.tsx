@@ -79,7 +79,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-40 pt-6">
+    <div className="mx-auto max-w-lg px-4 pb-40 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       <h1 className="mb-4 text-2xl font-bold tracking-tight text-ink">Einstellungen</h1>
 
       <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">

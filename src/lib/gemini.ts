@@ -158,7 +158,8 @@ async function callGemini(params: {
     if (response.status === 400 || response.status === 401 || response.status === 403) {
       message = 'API-Key ungültig oder nicht berechtigt. Bitte in den Einstellungen prüfen.'
     } else if (response.status === 429) {
-      message = 'Kostenloses Kontingent gerade ausgeschöpft (Rate-Limit). Bitte kurz warten und erneut versuchen.'
+      message =
+        'Kostenloses Kontingent gerade ausgeschöpft (Rate-Limit). Das kann eine kurze Sperre von wenigen Sekunden sein — oder das tägliche Gratis-Kontingent für dieses Modell ist für heute aufgebraucht. Prüfe ggf. dein Kontingent in Google AI Studio, oder versuche es später/morgen erneut.'
     }
     throw new GeminiError(message, response.status)
   }

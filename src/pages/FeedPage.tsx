@@ -64,8 +64,8 @@ export function FeedPage() {
   )
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-40 pt-6">
-      <div className="mb-4 flex items-center justify-between rounded-2xl border border-line bg-surface px-2 py-2 shadow-sm shadow-black/5">
+    <div className="mx-auto max-w-lg px-4 pb-40 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
+      <div className="glass-subtle mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
         <button
           onClick={() => setDateKey((k) => addDays(k, -1))}
           className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-ink"
@@ -93,7 +93,7 @@ export function FeedPage() {
         </button>
       </div>
 
-      <div className="mb-6 rounded-3xl bg-surface p-5 text-center shadow-sm shadow-black/5">
+      <div className="glass-subtle mb-6 rounded-3xl p-5 text-center shadow-sm shadow-black/5">
         <div className="flex justify-center">
           <div className="rounded-full bg-kcal/15 px-9 py-4 text-center">
             <div className="text-4xl font-bold tracking-tight text-ink">{Math.round(totals.kcal)}</div>

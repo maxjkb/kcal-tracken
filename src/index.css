@@ -23,13 +23,30 @@
 }
 
 html {
-  color-scheme: light;
+  color-scheme: light dark;
 }
 
 body {
   @apply antialiased;
   background: var(--color-bg);
   color: var(--color-ink);
+}
+
+/* --- Dark mode — follows the device setting only (no in-app toggle) --- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #000000;
+    --color-surface: #1c1c1e;
+    --color-ink: #ffffff;
+    --color-ink-soft: #98989d;
+    --color-ink-faint: #636366;
+    --color-line: #38383a;
+
+    --color-accent: #30d158;
+    --color-kcal: #30d158;
+    --color-fat: #ffd60a;
+    --color-danger: #ff453a;
+  }
 }
 
 /* Hide number input spinners for a cleaner nutrition-edit UI */
@@ -61,7 +78,31 @@ input[type="number"] {
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid color-mix(in srgb, var(--color-accent) 55%, white 45%);
-  color: var(--color-ink);
+  color: #000000;
+}
+
+/* A lighter frosted-glass treatment for cards/tiles — visible but doesn't
+   fight with the badge colors and text sitting on top of it. */
+.glass-subtle {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+@media (prefers-color-scheme: dark) {
+  .glass {
+    background: rgba(28, 28, 30, 0.65);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-subtle {
+    background: rgba(28, 28, 30, 0.55);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
 }
 
 /* --- Bouncing-dots "working" indicator, shown on buttons while an AI call runs --- */
