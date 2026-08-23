@@ -18,8 +18,8 @@ export function NutritionFields({
     <div className="grid grid-cols-2 gap-3">
       {FIELDS.map(({ key, label, unit }) => (
         <label key={key} className="flex flex-col gap-1">
-          <span className="text-xs text-slate-400">
-            {label} <span className="text-slate-600">({unit})</span>
+          <span className="text-xs text-ink-soft">
+            {label} <span className="text-ink-faint">({unit})</span>
           </span>
           <input
             type="number"
@@ -27,7 +27,7 @@ export function NutritionFields({
             min={0}
             value={Number.isFinite(value[key]) ? value[key] : 0}
             onChange={(e) => onChange({ ...value, [key]: Number(e.target.value) || 0 })}
-            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none"
+            className="rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-kcal focus:outline-none"
           />
         </label>
       ))}

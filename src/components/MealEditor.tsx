@@ -77,27 +77,27 @@ export function MealEditor({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center">
-      <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-y-auto rounded-t-2xl bg-slate-900 p-5 sm:rounded-2xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/30 backdrop-blur-sm sm:items-center">
+      <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-y-auto rounded-t-3xl bg-surface p-5 sm:rounded-3xl">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-100">
+          <h2 className="text-lg font-semibold text-ink">
             {initial ? 'Mahlzeit bearbeiten' : 'Mahlzeit hinzufügen'}
           </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200" aria-label="Schließen">
+          <button onClick={onClose} className="text-ink-soft hover:text-ink" aria-label="Schließen">
             ✕
           </button>
         </div>
 
         <div className="flex flex-col gap-4">
           <div>
-            <span className="mb-1 block text-xs text-slate-400">Was hast du gegessen?</span>
+            <span className="mb-1 block text-xs text-ink-soft">Was hast du gegessen?</span>
             <div className="flex items-start gap-2">
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="z.B. 200g Hähnchenbrust, 150g Reis, etwas Brokkoli und 1 EL Olivenöl"
                 rows={3}
-                className="flex-1 resize-none rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none"
+                className="flex-1 resize-none rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-kcal focus:outline-none"
               />
               <DictationButton onTranscript={setDescription} />
             </div>
@@ -106,9 +106,9 @@ export function MealEditor({
           <PhotoInput photo={photo} onChange={setPhoto} />
 
           {!hasApiKey && (
-            <p className="rounded-lg bg-amber-950/50 px-3 py-2 text-xs text-amber-300">
+            <p className="rounded-2xl bg-fat/15 px-3 py-2 text-xs text-ink">
               Kein API-Key hinterlegt.{' '}
-              <Link to="/settings" onClick={onClose} className="underline">
+              <Link to="/settings" onClick={onClose} className="font-semibold underline">
                 Jetzt in den Einstellungen eintragen
               </Link>
               , um Nährwerte automatisch schätzen zu lassen.
@@ -119,28 +119,26 @@ export function MealEditor({
             type="button"
             onClick={handleEstimate}
             disabled={estimating || !hasApiKey}
-            className="rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+            className="glass-accent rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
           >
             {estimating ? 'Schätze Nährwerte…' : hasEstimate ? 'Nährwerte neu schätzen' : 'Nährwerte schätzen'}
           </button>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          {note && <p className="text-xs italic text-slate-500">Hinweis der KI: {note}</p>}
+          {error && <p className="text-sm font-medium text-danger">{error}</p>}
+          {note && <p className="text-xs italic text-ink-soft">Hinweis der KI: {note}</p>}
 
           {hasEstimate && (
             <>
               <div>
-                <span className="mb-1 block text-xs text-slate-400">Mahlzeit</span>
+                <span className="mb-1 block text-xs text-ink-soft">Mahlzeit</span>
                 <div className="grid grid-cols-4 gap-1.5">
                   {MEAL_TYPE_ORDER.map((type) => (
                     <button
                       key={type}
                       type="button"
                       onClick={() => setMealType(type)}
-                      className={`rounded-lg px-2 py-2 text-xs font-medium transition ${
-                        mealType === type
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                      className={`rounded-xl px-2 py-2 text-xs font-medium transition ${
+                        mealType === type ? 'bg-kcal/20 text-ink' : 'bg-bg text-ink-soft hover:bg-line'
                       }`}
                     >
                       {MEAL_TYPE_LABELS[type]}
@@ -150,19 +148,19 @@ export function MealEditor({
               </div>
 
               <label className="flex flex-col gap-1">
-                <span className="text-xs text-slate-400">Titel</span>
+                <span className="text-xs text-ink-soft">Titel</span>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Titel des Gerichts"
-                  className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none"
+                  className="rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-kcal focus:outline-none"
                 />
               </label>
 
               <div>
-                <span className="mb-2 block text-xs text-slate-400">
-                  Nährwerte {manuallyEdited && <span className="text-emerald-500">(manuell angepasst)</span>}
+                <span className="mb-2 block text-xs text-ink-soft">
+                  Nährwerte {manuallyEdited && <span className="font-semibold text-kcal">(manuell angepasst)</span>}
                 </span>
                 <NutritionFields
                   value={nutrition}
@@ -177,7 +175,7 @@ export function MealEditor({
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="mt-2 rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-white disabled:opacity-50"
+                className="mt-2 rounded-2xl bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
               >
                 {saving ? 'Speichern…' : 'Speichern'}
               </button>

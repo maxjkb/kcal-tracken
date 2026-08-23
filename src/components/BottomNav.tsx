@@ -8,16 +8,16 @@ const TABS = [
 
 export function BottomNav() {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-800 bg-slate-950/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
-      <div className="mx-auto flex max-w-lg justify-around">
+    <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+      <div className="glass mx-4 flex gap-1 rounded-full p-1.5">
         {TABS.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
             className={({ isActive }) =>
-              `flex flex-1 flex-col items-center gap-1 py-2.5 text-xs ${
-                isActive ? 'text-emerald-400' : 'text-slate-500'
+              `flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium transition-colors ${
+                isActive ? 'glass-accent' : 'text-ink-soft'
               }`
             }
           >
@@ -33,7 +33,7 @@ export function BottomNav() {
 function FeedIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
-      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <rect x="4" y="4" width="16" height="16" rx="4" />
       <path strokeLinecap="round" d="M8 9h8M8 13h8M8 17h4" />
     </svg>
   )

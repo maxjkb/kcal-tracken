@@ -64,12 +64,12 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-28 pt-6">
-      <h1 className="mb-4 text-lg font-semibold text-slate-100">Einstellungen</h1>
+    <div className="mx-auto max-w-lg px-4 pb-32 pt-6">
+      <h1 className="mb-4 text-lg font-semibold text-ink">Einstellungen</h1>
 
-      <section className="mb-6 rounded-2xl bg-slate-900 p-4">
-        <h2 className="mb-1 text-sm font-semibold text-slate-200">Google Gemini API-Key</h2>
-        <p className="mb-3 text-xs text-slate-500">
+      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+        <h2 className="mb-1 text-sm font-semibold text-ink">Google Gemini API-Key</h2>
+        <p className="mb-3 text-xs text-ink-soft">
           Kostenlos im Rahmen des Gratis-Kontingents von Google. Wird nur lokal in deinem Browser
           gespeichert – nie an einen Server außer die Gemini-API gesendet. Einen Key bekommst du
           unter{' '}
@@ -77,7 +77,7 @@ export function SettingsPage() {
             href="https://aistudio.google.com/apikey"
             target="_blank"
             rel="noreferrer"
-            className="text-emerald-400 underline"
+            className="font-medium text-kcal underline"
           >
             aistudio.google.com/apikey
           </a>{' '}
@@ -90,34 +90,34 @@ export function SettingsPage() {
             value={apiKey}
             onChange={(e) => setApiKeyInput(e.target.value)}
             placeholder="AIza…"
-            className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none"
+            className="flex-1 rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-kcal focus:outline-none"
           />
           <button
             type="button"
             onClick={() => setShowKey((v) => !v)}
-            className="rounded-lg bg-slate-800 px-3 text-xs text-slate-300 hover:bg-slate-700"
+            className="rounded-xl bg-bg px-3 text-xs font-medium text-ink-soft hover:bg-line"
           >
             {showKey ? 'Verbergen' : 'Anzeigen'}
           </button>
         </div>
         <button
           onClick={handleSaveKey}
-          className="mt-3 w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-medium text-white hover:bg-emerald-500"
+          className="glass-accent mt-3 w-full rounded-xl py-2.5 text-sm font-semibold"
         >
           Speichern
         </button>
       </section>
 
-      <section className="mb-6 rounded-2xl bg-slate-900 p-4">
-        <h2 className="mb-1 text-sm font-semibold text-slate-200">Modell für Nährwertschätzung</h2>
-        <p className="mb-3 text-xs text-slate-500">
+      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+        <h2 className="mb-1 text-sm font-semibold text-ink">Modell für Nährwertschätzung</h2>
+        <p className="mb-3 text-xs text-ink-soft">
           Google benennt Gemini-Modelle gelegentlich um oder schaltet alte Versionen ab. Falls die
           Schätzung mit "Modell nicht gefunden" fehlschlägt, hier den aktuellen Modellnamen von{' '}
           <a
             href="https://ai.google.dev/gemini-api/docs/models"
             target="_blank"
             rel="noreferrer"
-            className="text-emerald-400 underline"
+            className="font-medium text-kcal underline"
           >
             ai.google.dev/gemini-api/docs/models
           </a>{' '}
@@ -128,7 +128,7 @@ export function SettingsPage() {
           type="text"
           value={model}
           onChange={(e) => handleModelChange(e.target.value)}
-          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none"
+          className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-kcal focus:outline-none"
         />
         <datalist id="model-suggestions">
           {MODEL_SUGGESTIONS.map((opt) => (
@@ -139,20 +139,21 @@ export function SettingsPage() {
         </datalist>
       </section>
 
-      <section className="mb-6 rounded-2xl bg-slate-900 p-4">
-        <h2 className="mb-1 text-sm font-semibold text-slate-200">Daten</h2>
-        <p className="mb-3 text-xs text-slate-500">
+      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+        <h2 className="mb-1 text-sm font-semibold text-ink">Daten</h2>
+        <p className="mb-3 text-xs text-ink-soft">
           Alle Mahlzeiten liegen nur in diesem Browser. Exportiere regelmäßig ein Backup, falls du den
-          Browser wechselst oder Speicher leerst.
+          Browser wechselst oder Speicher leerst. Ein druckfertiges Ernährungstagebuch als PDF
+          exportierst du auf der Statistik-Seite für den dort gewählten Zeitraum.
         </p>
         <div className="flex flex-col gap-2">
           <button
             onClick={handleExport}
-            className="rounded-lg bg-slate-800 py-2.5 text-sm font-medium text-slate-200 hover:bg-slate-700"
+            className="rounded-xl bg-bg py-2.5 text-sm font-medium text-ink hover:bg-line"
           >
             Backup exportieren (JSON)
           </button>
-          <label className="cursor-pointer rounded-lg bg-slate-800 py-2.5 text-center text-sm font-medium text-slate-200 hover:bg-slate-700">
+          <label className="cursor-pointer rounded-xl bg-bg py-2.5 text-center text-sm font-medium text-ink hover:bg-line">
             Backup importieren
             <input
               type="file"
@@ -166,13 +167,13 @@ export function SettingsPage() {
             <div className="flex gap-2">
               <button
                 onClick={handleResetAll}
-                className="flex-1 rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white hover:bg-red-500"
+                className="flex-1 rounded-xl bg-danger py-2.5 text-sm font-medium text-white hover:opacity-90"
               >
                 Wirklich alles löschen
               </button>
               <button
                 onClick={() => setConfirmingReset(false)}
-                className="flex-1 rounded-lg bg-slate-800 py-2.5 text-sm text-slate-300 hover:bg-slate-700"
+                className="flex-1 rounded-xl bg-bg py-2.5 text-sm text-ink-soft hover:bg-line"
               >
                 Abbrechen
               </button>
@@ -180,7 +181,7 @@ export function SettingsPage() {
           ) : (
             <button
               onClick={() => setConfirmingReset(true)}
-              className="rounded-lg py-2.5 text-sm font-medium text-red-400 hover:bg-red-950/40"
+              className="rounded-xl py-2.5 text-sm font-medium text-danger hover:bg-danger/10"
             >
               Alle Mahlzeiten löschen
             </button>
@@ -189,7 +190,7 @@ export function SettingsPage() {
       </section>
 
       {savedMsg && (
-        <p className="fixed bottom-24 left-1/2 -translate-x-1/2 rounded-full bg-slate-800 px-4 py-2 text-xs text-slate-200 shadow-lg">
+        <p className="glass fixed bottom-24 left-1/2 -translate-x-1/2 rounded-full px-4 py-2 text-xs font-medium text-ink">
           {savedMsg}
         </p>
       )}

@@ -16,8 +16,8 @@ export default defineConfig({
         name: 'Kcal Tracker',
         short_name: 'Kcal Tracker',
         description: 'Ernährungstracker mit KI-Nährwertschätzung',
-        theme_color: '#0f172a',
-        background_color: '#0f172a',
+        theme_color: '#f2f2f7',
+        background_color: '#f2f2f7',
         display: 'standalone',
         start_url: '/kcal-tracken/',
         scope: '/kcal-tracken/',
@@ -41,7 +41,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Never cache Anthropic API calls
+        // Never cache Gemini API calls
         navigateFallbackDenylist: [/^\/api\//],
       },
     }),

@@ -51,21 +51,21 @@ export function FeedPage() {
   )
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-28 pt-6">
+    <div className="mx-auto max-w-lg px-4 pb-32 pt-6">
       <div className="mb-4 flex items-center justify-between">
         <button
           onClick={() => setDateKey((k) => addDays(k, -1))}
-          className="rounded-full p-2 text-slate-400 hover:bg-slate-900 hover:text-slate-200"
+          className="rounded-full p-2 text-ink-soft hover:bg-surface hover:text-ink"
           aria-label="Vorheriger Tag"
         >
           ‹
         </button>
         <div className="text-center">
-          <h1 className="text-lg font-semibold text-slate-100">{formatDateHeading(dateKey)}</h1>
+          <h1 className="text-lg font-semibold text-ink">{formatDateHeading(dateKey)}</h1>
           {!isToday && (
             <button
               onClick={() => setDateKey(toLocalDateKey(new Date()))}
-              className="text-xs text-emerald-400 hover:underline"
+              className="text-xs font-medium text-kcal hover:underline"
             >
               Zu heute springen
             </button>
@@ -73,40 +73,40 @@ export function FeedPage() {
         </div>
         <button
           onClick={() => setDateKey((k) => addDays(k, 1))}
-          className="rounded-full p-2 text-slate-400 hover:bg-slate-900 hover:text-slate-200"
+          className="rounded-full p-2 text-ink-soft hover:bg-surface hover:text-ink"
           aria-label="Nächster Tag"
         >
           ›
         </button>
       </div>
 
-      <div className="mb-6 rounded-2xl bg-slate-900 p-4 text-center">
-        <div className="text-3xl font-bold text-emerald-400">{Math.round(totals.kcal)}</div>
-        <div className="text-xs text-slate-500">kcal an diesem Tag</div>
-        <div className="mt-3 flex justify-center gap-4 text-xs text-slate-400">
-          <span>Protein {Math.round(totals.protein)}g</span>
-          <span>Kohlenhydrate {Math.round(totals.carbs)}g</span>
-          <span>Fett {Math.round(totals.fat)}g</span>
+      <div className="mb-6 rounded-3xl bg-surface p-5 text-center shadow-sm shadow-black/5">
+        <div className="text-4xl font-bold tracking-tight text-ink">{Math.round(totals.kcal)}</div>
+        <div className="text-xs text-ink-soft">kcal an diesem Tag</div>
+        <div className="mt-4 flex justify-center gap-2">
+          <MacroBadge color="protein" label="Protein" value={totals.protein} />
+          <MacroBadge color="carbs" label="Kohlenhydrate" value={totals.carbs} />
+          <MacroBadge color="fat" label="Fett" value={totals.fat} />
         </div>
       </div>
 
       {meals === undefined ? (
-        <p className="text-center text-sm text-slate-500">Lädt…</p>
+        <p className="text-center text-sm text-ink-soft">Lädt…</p>
       ) : (
         <div className="flex flex-col gap-6">
           {MEAL_TYPE_ORDER.map((type) => (
             <section key={type}>
               <div className="mb-2 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-slate-300">{MEAL_TYPE_LABELS[type]}</h2>
+                <h2 className="text-sm font-semibold text-ink">{MEAL_TYPE_LABELS[type]}</h2>
                 <button
                   onClick={() => setEditorState({ mode: 'create', mealType: type })}
-                  className="text-xs font-medium text-emerald-400 hover:underline"
+                  className="rounded-full bg-kcal/15 px-3 py-1 text-xs font-semibold text-ink hover:bg-kcal/25"
                 >
                   + Hinzufügen
                 </button>
               </div>
               {mealsByType[type].length === 0 ? (
-                <p className="text-xs text-slate-600">Noch nichts eingetragen.</p>
+                <p className="text-xs text-ink-faint">Noch nichts eingetragen.</p>
               ) : (
                 <div className="flex flex-col gap-2">
                   {mealsByType[type].map((meal) => (
@@ -121,7 +121,7 @@ export function FeedPage() {
 
       <button
         onClick={() => setEditorState({ mode: 'create' })}
-        className="fixed bottom-20 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-2xl text-white shadow-lg shadow-emerald-900/50 hover:bg-emerald-500 sm:right-[calc(50%-14rem)]"
+        className="glass-accent fixed bottom-24 right-4 flex h-14 w-14 items-center justify-center rounded-full text-2xl font-medium sm:right-[calc(50%-14rem)]"
         aria-label="Mahlzeit hinzufügen"
       >
         +
@@ -135,6 +135,21 @@ export function FeedPage() {
           onClose={() => setEditorState({ mode: 'closed' })}
         />
       )}
+    </div>
+  )
+}
+
+const MACRO_BADGE_BG: Record<'protein' | 'carbs' | 'fat', string> = {
+  protein: 'bg-protein/15',
+  carbs: 'bg-carbs/15',
+  fat: 'bg-fat/15',
+}
+
+function MacroBadge({ color, label, value }: { color: 'protein' | 'carbs' | 'fat'; label: string; value: number }) {
+  return (
+    <div className={`rounded-full px-3 py-1.5 text-center ${MACRO_BADGE_BG[color]}`}>
+      <div className="text-sm font-bold text-ink">{Math.round(value)}g</div>
+      <div className="text-[10px] font-medium text-ink-soft">{label}</div>
     </div>
   )
 }

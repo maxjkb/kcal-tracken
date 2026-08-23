@@ -6,19 +6,21 @@ export function MealCard({ meal, onEdit }: { meal: Meal; onEdit: () => void }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   return (
-    <div className="flex gap-3 rounded-xl bg-slate-900 p-3">
+    <div className="flex gap-3 rounded-2xl bg-surface p-3 shadow-sm shadow-black/5">
       {meal.photo && (
-        <img src={meal.photo} alt="" className="h-16 w-16 shrink-0 rounded-lg object-cover" />
+        <img src={meal.photo} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
       )}
       <button className="flex-1 text-left" onClick={onEdit}>
-        <div className="flex items-center justify-between">
-          <h3 className="font-medium text-slate-100">{meal.title}</h3>
-          <span className="font-semibold text-emerald-400">{Math.round(meal.nutrition.kcal)} kcal</span>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-medium text-ink">{meal.title}</h3>
+          <span className="shrink-0 rounded-full bg-kcal/15 px-2.5 py-1 text-xs font-bold text-ink">
+            {Math.round(meal.nutrition.kcal)} kcal
+          </span>
         </div>
         {meal.description && (
-          <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{meal.description}</p>
+          <p className="mt-0.5 line-clamp-2 text-xs text-ink-soft">{meal.description}</p>
         )}
-        <div className="mt-1.5 flex gap-3 text-xs text-slate-400">
+        <div className="mt-1.5 flex gap-3 text-xs text-ink-soft">
           <span>P {Math.round(meal.nutrition.protein)}g</span>
           <span>K {Math.round(meal.nutrition.carbs)}g</span>
           <span>F {Math.round(meal.nutrition.fat)}g</span>
@@ -29,13 +31,13 @@ export function MealCard({ meal, onEdit }: { meal: Meal; onEdit: () => void }) {
           <div className="flex gap-1">
             <button
               onClick={() => deleteMeal(meal.id)}
-              className="rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-500"
+              className="rounded-full bg-danger px-2.5 py-1 text-xs font-medium text-white hover:opacity-90"
             >
               Löschen
             </button>
             <button
               onClick={() => setConfirmingDelete(false)}
-              className="rounded bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
+              className="rounded-full bg-bg px-2.5 py-1 text-xs text-ink-soft hover:bg-line"
             >
               Abbrechen
             </button>
@@ -44,7 +46,7 @@ export function MealCard({ meal, onEdit }: { meal: Meal; onEdit: () => void }) {
           <button
             onClick={() => setConfirmingDelete(true)}
             aria-label="Mahlzeit löschen"
-            className="text-slate-600 hover:text-red-400"
+            className="text-ink-faint hover:text-danger"
           >
             <TrashIcon />
           </button>

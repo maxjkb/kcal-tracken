@@ -8,13 +8,13 @@ const StatsPage = lazy(() => import('./pages/StatsPage').then((m) => ({ default:
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-bg">
       <Routes>
         <Route path="/" element={<FeedPage />} />
         <Route
           path="/stats"
           element={
-            <Suspense fallback={<p className="pt-10 text-center text-sm text-slate-500">Lädt…</p>}>
+            <Suspense fallback={<p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>}>
               <StatsPage />
             </Suspense>
           }
