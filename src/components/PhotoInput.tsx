@@ -54,11 +54,11 @@ export function PhotoInput({
   if (photo) {
     return (
       <div className="relative w-full">
-        <img src={photo} alt="Foto der Mahlzeit" className="h-40 w-full rounded-xl object-cover" />
+        <img src={photo} alt="Foto der Mahlzeit" className="h-40 w-full rounded-2xl object-cover" />
         <button
           type="button"
           onClick={() => onChange(undefined)}
-          className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white"
+          className="absolute right-2 top-2 rounded-full bg-ink/70 px-2.5 py-1 text-xs font-medium text-white"
         >
           Entfernen
         </button>
@@ -71,7 +71,7 @@ export function PhotoInput({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-700 py-4 text-sm text-slate-400 hover:border-slate-500 hover:text-slate-300"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-line bg-bg py-4 text-sm text-ink-soft hover:border-ink-faint hover:text-ink"
       >
         <CameraIcon />
         Foto hinzufügen

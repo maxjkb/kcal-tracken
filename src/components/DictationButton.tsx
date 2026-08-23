@@ -44,13 +44,13 @@ export function DictationButton({ onTranscript }: { onTranscript: (text: string)
         aria-label={listening ? 'Diktat stoppen' : 'Diktat starten'}
         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition ${
           listening
-            ? 'bg-red-500 text-white shadow-lg shadow-red-500/30 animate-pulse'
-            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+            ? 'bg-danger text-white shadow-lg shadow-danger/30 animate-pulse'
+            : 'bg-bg text-ink-soft hover:bg-line'
         }`}
       >
         <MicIcon />
       </button>
-      {error && <span className="text-xs text-red-400">{error}</span>}
+      {error && <span className="text-xs text-danger">{error}</span>}
     </div>
   )
 }
