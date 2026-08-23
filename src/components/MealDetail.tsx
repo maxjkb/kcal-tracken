@@ -1,10 +1,6 @@
+import { useState } from 'react'
 import { MEAL_TYPE_LABELS, type Meal } from '../lib/db'
-
-const MACRO_BADGE_BG: Record<'protein' | 'carbs' | 'fat', string> = {
-  protein: 'bg-protein/15',
-  carbs: 'bg-carbs/15',
-  fat: 'bg-fat/15',
-}
+import { MacroBadge } from './MacroBadge'
 
 export function MealDetail({
   meal,
@@ -15,6 +11,8 @@ export function MealDetail({
   onClose: () => void
   onEdit: () => void
 }) {
+  const [descriptionOpen, setDescriptionOpen] = useState(false)
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/30 backdrop-blur-sm sm:items-center">
       <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-y-auto rounded-t-3xl bg-surface p-5 sm:rounded-3xl">
@@ -35,18 +33,12 @@ export function MealDetail({
           <span className="rounded-full bg-kcal/15 px-3 py-1.5 text-sm font-bold text-ink">
             {Math.round(meal.nutrition.kcal)} kcal
           </span>
-          <span className={`rounded-full px-3 py-1.5 text-sm font-semibold text-ink ${MACRO_BADGE_BG.protein}`}>
-            P {Math.round(meal.nutrition.protein)}g
-          </span>
-          <span className={`rounded-full px-3 py-1.5 text-sm font-semibold text-ink ${MACRO_BADGE_BG.carbs}`}>
-            K {Math.round(meal.nutrition.carbs)}g
-          </span>
-          <span className={`rounded-full px-3 py-1.5 text-sm font-semibold text-ink ${MACRO_BADGE_BG.fat}`}>
-            F {Math.round(meal.nutrition.fat)}g
-          </span>
+          <MacroBadge type="protein" value={meal.nutrition.protein} />
+          <MacroBadge type="carbs" value={meal.nutrition.carbs} />
+          <MacroBadge type="fat" value={meal.nutrition.fat} />
         </div>
 
-        {meal.ingredients && meal.ingredients.length > 0 ? (
+        {meal.ingredients && meal.ingredients.length > 0 && (
           <div className="mb-5">
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Zutaten</h3>
             <div className="flex flex-col gap-2">
@@ -56,11 +48,13 @@ export function MealDetail({
                     <span className="font-medium text-ink">{ing.name}</span>
                     <span className="shrink-0 text-xs text-ink-soft">{ing.amount}</span>
                   </div>
-                  <div className="mt-1.5 flex gap-3 text-xs text-ink-soft">
-                    <span>{Math.round(ing.kcal)} kcal</span>
-                    <span>P {Math.round(ing.protein)}g</span>
-                    <span>K {Math.round(ing.carbs)}g</span>
-                    <span>F {Math.round(ing.fat)}g</span>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    <span className="rounded-full bg-kcal/15 px-2 py-0.5 text-[11px] font-semibold text-ink">
+                      {Math.round(ing.kcal)} kcal
+                    </span>
+                    <MacroBadge type="protein" value={ing.protein} size="sm" />
+                    <MacroBadge type="carbs" value={ing.carbs} size="sm" />
+                    <MacroBadge type="fat" value={ing.fat} size="sm" />
                   </div>
                   {ing.note && <p className="mt-1.5 text-xs italic text-ink-soft">{ing.note}</p>}
                 </div>
@@ -73,13 +67,27 @@ export function MealDetail({
               </p>
             )}
           </div>
-        ) : (
-          meal.description && (
-            <div className="mb-5">
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Beschreibung</h3>
-              <p className="text-sm text-ink-soft">{meal.description}</p>
-            </div>
-          )
+        )}
+
+        {meal.description && (
+          <div className="mb-5">
+            <button
+              onClick={() => setDescriptionOpen((v) => !v)}
+              className="flex w-full items-center justify-between text-left text-xs font-semibold uppercase tracking-wide text-ink-soft"
+            >
+              Beschreibung
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.2}
+                className={`h-4 w-4 transition-transform ${descriptionOpen ? 'rotate-180' : ''}`}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+            {descriptionOpen && <p className="mt-2 text-sm text-ink-soft">{meal.description}</p>}
+          </div>
         )}
 
         {meal.note && <p className="mb-5 text-xs italic text-ink-soft">Hinweis der KI: {meal.note}</p>}

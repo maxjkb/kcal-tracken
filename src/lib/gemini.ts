@@ -81,7 +81,7 @@ const NUTRITION_RESPONSE_SCHEMA = {
   required: ['suggestedTitle', 'ingredients'],
 }
 
-const SYSTEM_PROMPT = `Du bist ein Ernährungsassistent. Der Nutzer beschreibt eine Mahlzeit (Text und/oder Foto) auf Deutsch, ggf. mit ungefähren Mengenangaben in Gramm oder Haushaltsmaßen. Zerlege die Mahlzeit in ihre einzelnen Zutaten und schätze für JEDE Zutat einzeln die Nährwerte auf Basis üblicher Standard-Nährwerttabellen (wie z.B. USDA oder gängige Lebensmitteldatenbanken) für die tatsächlich verwendete Menge (nicht pro 100g). Wenn Mengenangaben fehlen, nimm plausible durchschnittliche Portionsgrößen an. Schreibe eine "note" nur dort, wo wirklich eine relevante Annahme getroffen wurde (z.B. "Nudeln ungekocht angenommen") — bei eindeutigen Zutaten bleibt "note" weg. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema.`
+const SYSTEM_PROMPT = `Du bist ein Ernährungsassistent. Der Nutzer beschreibt eine Mahlzeit (Text und/oder Foto) auf Deutsch, ggf. mit ungefähren Mengenangaben in Gramm oder Haushaltsmaßen. Zerlege die Mahlzeit in ihre einzelnen Zutaten und schätze für JEDE Zutat einzeln die Nährwerte auf Basis üblicher Standard-Nährwerttabellen (wie z.B. USDA oder gängige Lebensmitteldatenbanken) für die tatsächlich verwendete Menge (nicht pro 100g). Wenn Mengenangaben fehlen, nimm plausible durchschnittliche Portionsgrößen an. Schreibe eine "note" nur dort, wo wirklich eine relevante Annahme getroffen wurde (z.B. "Nudeln ungekocht angenommen") — bei eindeutigen Zutaten bleibt "note" weg. Betrifft eine Annahme eine EINZELNE Zutat (z.B. "nur die Hälfte der Soße gegessen", "roh/gekocht angenommen"), schreibe sie IMMER in die "note" dieser Zutat, niemals in die übergreifende "note" der Mahlzeit — die übergreifende "note" ist ausschließlich für Annahmen reserviert, die sich nicht einer einzelnen Zutat zuordnen lassen. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema.`
 
 const DICTATION_CLEANUP_SCHEMA = {
   type: 'OBJECT',
@@ -205,20 +205,20 @@ export async function estimateNutrition(params: {
   const ingredients: IngredientEstimate[] = rawIngredients.map((i) => ({
     name: String(i.name ?? 'Zutat'),
     amount: String(i.amount ?? ''),
-    kcal: Number(i.kcal) || 0,
-    protein: Number(i.protein) || 0,
-    carbs: Number(i.carbs) || 0,
-    fat: Number(i.fat) || 0,
+    kcal: round1(Number(i.kcal) || 0),
+    protein: round1(Number(i.protein) || 0),
+    carbs: round1(Number(i.carbs) || 0),
+    fat: round1(Number(i.fat) || 0),
     note: i.note ? String(i.note) : undefined,
   }))
 
   // Totals are always derived from the ingredient breakdown so the two never disagree.
   const totals = ingredients.reduce(
     (acc, i) => ({
-      kcal: acc.kcal + i.kcal,
-      protein: acc.protein + i.protein,
-      carbs: acc.carbs + i.carbs,
-      fat: acc.fat + i.fat,
+      kcal: round1(acc.kcal + i.kcal),
+      protein: round1(acc.protein + i.protein),
+      carbs: round1(acc.carbs + i.carbs),
+      fat: round1(acc.fat + i.fat),
     }),
     { kcal: 0, protein: 0, carbs: 0, fat: 0 },
   )
@@ -229,6 +229,11 @@ export async function estimateNutrition(params: {
     ...totals,
     note: parsed.note ? String(parsed.note) : undefined,
   }
+}
+
+/** Rounds to 1 decimal place — guards against floating-point artifacts like 38.300000000000004 from repeated addition. */
+function round1(value: number): number {
+  return Math.round(value * 10) / 10
 }
 
 /**

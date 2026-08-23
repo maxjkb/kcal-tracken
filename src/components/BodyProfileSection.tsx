@@ -13,7 +13,7 @@ import {
 } from '../lib/bodyProfile'
 
 const ACTIVITY_LEVELS: ActivityLevel[] = ['sedentary', 'light', 'moderate', 'active', 'very_active']
-const GOALS: Goal[] = ['lose', 'maintain', 'gain']
+const GOALS: Goal[] = ['lose', 'maintain', 'gain', 'build_muscle']
 
 const DEFAULT_PROFILE: BodyProfile = {
   sex: 'male',
@@ -123,7 +123,7 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
 
         <div>
           <span className="mb-1 block text-xs text-ink-soft">Ziel</span>
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-2 gap-1.5">
             {GOALS.map((goal) => (
               <button
                 key={goal}
@@ -137,9 +137,15 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
               </button>
             ))}
           </div>
+          {profile.goal === 'build_muscle' && (
+            <p className="mt-1.5 text-[11px] text-ink-soft">
+              Kalorienziel bleibt beim Erhaltungsbedarf, Protein wird höher angesetzt (2,2g/kg) — kein
+              Kalorienüberschuss nötig.
+            </p>
+          )}
         </div>
 
-        {profile.goal !== 'maintain' && (
+        {(profile.goal === 'lose' || profile.goal === 'gain') && (
           <label className="flex flex-col gap-1">
             <span className="text-xs text-ink-soft">
               Tägliches {profile.goal === 'lose' ? 'Defizit' : 'Überschuss'} (kcal)

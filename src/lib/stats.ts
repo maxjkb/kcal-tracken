@@ -79,13 +79,27 @@ export function bucketByDay(startKey: string, endKey: string, kcalByDate: Map<st
     const key = toLocalDateKey(cur)
     buckets.push({
       key,
-      label: cur.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }),
+      // Day number only — the month is shown once as a heading above the chart instead.
+      label: String(cur.getDate()),
       kcal: kcalByDate.get(key) ?? 0,
     })
     cur = new Date(cur)
     cur.setDate(cur.getDate() + 1)
   }
   return buckets
+}
+
+const FULL_MONTH_LABELS = [
+  'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
+]
+
+/** "August" if the whole range falls in one month, "Juli/August" if it spans two (e.g. a week crossing a month boundary). */
+export function monthHeadingLabel(startKey: string, endKey: string): string {
+  const start = parseDateKey(startKey)
+  const end = parseDateKey(endKey)
+  const startLabel = FULL_MONTH_LABELS[start.getMonth()]
+  const endLabel = FULL_MONTH_LABELS[end.getMonth()]
+  return startLabel === endLabel ? startLabel : `${startLabel}/${endLabel}`
 }
 
 export interface MonthBucket {
