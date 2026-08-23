@@ -43,6 +43,11 @@ export default defineConfig({
       workbox: {
         // Never cache Gemini API calls
         navigateFallbackDenylist: [/^\/api\//],
+        // Purge stale precache entries from older deploys as soon as a new
+        // service worker activates, so an old tab can't keep serving a mix
+        // of new index.html + orphaned old chunk files (which 404 once a
+        // fresh GitHub Pages deploy has overwritten them).
+        cleanupOutdatedCaches: true,
       },
     }),
   ],

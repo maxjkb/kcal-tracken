@@ -3,8 +3,9 @@ import { Route, Routes } from 'react-router-dom'
 import { BottomNav } from './components/BottomNav'
 import { FeedPage } from './pages/FeedPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { lazyRetry } from './lib/lazyRetry'
 
-const StatsPage = lazy(() => import('./pages/StatsPage').then((m) => ({ default: m.StatsPage })))
+const StatsPage = lazy(lazyRetry(() => import('./pages/StatsPage').then((m) => ({ default: m.StatsPage }))))
 
 export default function App() {
   return (
