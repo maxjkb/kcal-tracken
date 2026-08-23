@@ -12,6 +12,7 @@ import {
 } from 'recharts'
 import { useMealsInRange } from '../hooks/useMeals'
 import { toLocalDateKey, type Meal } from '../lib/db'
+import { lazyRetry } from '../lib/lazyRetry'
 import {
   bucketByDay,
   bucketByMonth,
@@ -35,10 +36,12 @@ export function StatsPage() {
   const meals = useMealsInRange(startKey, endKey)
   const [exporting, setExporting] = useState(false)
 
+  const loadPdfModule = lazyRetry(() => import('../lib/pdf'))
+
   async function handleExportPdf(meals: Meal[]) {
     setExporting(true)
     try {
-      const { exportDiaryPdf } = await import('../lib/pdf')
+      const { exportDiaryPdf } = await loadPdfModule()
       exportDiaryPdf({ period, anchorKey, meals, startKey, endKey })
     } finally {
       setExporting(false)
