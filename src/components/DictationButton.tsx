@@ -55,7 +55,7 @@ export function DictationButton({
           listening ? 'bg-danger text-white shadow-lg shadow-danger/30 animate-pulse' : 'bg-bg text-ink-soft hover:bg-line'
         }`}
       >
-        <MicIcon />
+        {listening ? <CheckIcon /> : <MicIcon />}
       </button>
       {error && <span className="text-xs text-danger">{error}</span>}
     </div>
@@ -67,6 +67,14 @@ function MicIcon() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
       <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" />
       <path strokeLinecap="round" d="M19 11a7 7 0 0 1-14 0M12 18v3" />
+    </svg>
+  )
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} className="h-5 w-5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
     </svg>
   )
 }

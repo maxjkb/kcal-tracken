@@ -5,7 +5,7 @@ import { MealCard } from '../components/MealCard'
 import { MealEditor } from '../components/MealEditor'
 import { MealDetail } from '../components/MealDetail'
 import { ChevronIcon } from '../components/ChevronIcon'
-import { MacroIcon, type MacroType } from '../components/MacroIcon'
+import type { MacroType } from '../components/MacroIcon'
 import { computeDailyTargets, getBodyProfile, percentOfTarget } from '../lib/bodyProfile'
 
 function addDays(dateKey: string, delta: number): string {
@@ -28,20 +28,11 @@ function formatDateHeading(dateKey: string): string {
   })
 }
 
-/** A reasonable default meal type based on the time of day, for the single "Hinzufügen" tile. */
-function guessMealType(): MealType {
-  const hour = new Date().getHours()
-  if (hour < 11) return 'breakfast'
-  if (hour < 15) return 'lunch'
-  if (hour < 18) return 'snack'
-  return 'dinner'
-}
-
 export function FeedPage() {
   const [dateKey, setDateKey] = useState(() => toLocalDateKey(new Date()))
   const meals = useMealsForDate(dateKey)
   const [editorState, setEditorState] = useState<
-    { mode: 'closed' } | { mode: 'create'; mealType?: MealType } | { mode: 'edit'; meal: Meal } | { mode: 'view'; meal: Meal }
+    { mode: 'closed' } | { mode: 'edit'; meal: Meal } | { mode: 'view'; meal: Meal }
   >({ mode: 'closed' })
   const [collapsed, setCollapsed] = useState<Record<MealType, boolean>>({
     breakfast: false,
@@ -73,7 +64,7 @@ export function FeedPage() {
   )
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-32 pt-6">
+    <div className="mx-auto max-w-lg px-4 pb-40 pt-6">
       <div className="mb-4 flex items-center justify-between rounded-2xl border border-line bg-surface px-2 py-2 shadow-sm shadow-black/5">
         <button
           onClick={() => setDateKey((k) => addDays(k, -1))}
@@ -111,7 +102,7 @@ export function FeedPage() {
             </div>
           </div>
         </div>
-        <div className="mt-4 flex justify-center gap-2">
+        <div className="mt-4 flex gap-2">
           <SummaryMacroBadge type="protein" label="Protein" value={totals.protein} target={targets?.protein} />
           <SummaryMacroBadge type="carbs" label="Kohlenhydrate" value={totals.carbs} target={targets?.carbs} />
           <SummaryMacroBadge type="fat" label="Fett" value={totals.fat} target={targets?.fat} />
@@ -157,14 +148,6 @@ export function FeedPage() {
               </section>
             )
           })}
-
-          <button
-            onClick={() => setEditorState({ mode: 'create', mealType: guessMealType() })}
-            className="flex items-center justify-center gap-2 rounded-3xl bg-accent py-4 text-base font-semibold text-ink"
-          >
-            <PlusIcon className="h-5 w-5" />
-            Hinzufügen
-          </button>
         </div>
       )}
 
@@ -176,13 +159,8 @@ export function FeedPage() {
         />
       )}
 
-      {(editorState.mode === 'create' || editorState.mode === 'edit') && (
-        <MealEditor
-          date={dateKey}
-          initial={editorState.mode === 'edit' ? editorState.meal : undefined}
-          defaultMealType={editorState.mode === 'create' ? editorState.mealType : undefined}
-          onClose={() => setEditorState({ mode: 'closed' })}
-        />
+      {editorState.mode === 'edit' && (
+        <MealEditor date={dateKey} initial={editorState.meal} onClose={() => setEditorState({ mode: 'closed' })} />
       )}
     </div>
   )
@@ -207,21 +185,12 @@ function SummaryMacroBadge({
 }) {
   const pct = target ? percentOfTarget(value, target) : null
   return (
-    <div className={`rounded-full px-3 py-1.5 text-center ${SUMMARY_BADGE_BG[type]}`}>
+    <div className={`flex-1 rounded-full px-3 py-1.5 text-center ${SUMMARY_BADGE_BG[type]}`}>
       <div className="text-sm font-bold text-ink">{Math.round(value)}g</div>
-      <div className="flex items-center justify-center gap-1 text-[10px] font-medium text-ink-soft">
-        <MacroIcon type={type} className="h-2.5 w-2.5" />
+      <div className="text-[10px] font-medium text-ink-soft">
         {label}
         {pct !== null && ` · ${pct}%`}
       </div>
     </div>
-  )
-}
-
-function PlusIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} className={className}>
-      <path strokeLinecap="round" d="M12 5v14M5 12h14" />
-    </svg>
   )
 }

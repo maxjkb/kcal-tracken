@@ -11,14 +11,26 @@ export interface Nutrition {
 
 export interface Ingredient {
   name: string
-  /** Human-readable amount as estimated by the AI, e.g. "150 g" or "1 Stück". */
-  amount: string
+  /** Numeric quantity actually consumed (matches the nutrition values below), editable by the user. */
+  amount: number
+  /** Unit for `amount`, e.g. "g", "ml", "Stück", "EL". */
+  unit: string
   kcal: number
   protein: number
   carbs: number
   fat: number
   /** Optional AI remark about this specific ingredient (e.g. an assumption made), only when relevant. */
   note?: string
+}
+
+/**
+ * A saved meal's ingredient amount used to be a single free-text string
+ * (e.g. "150 g" or "1 Stück (ca. 120g)") before amount/unit were split into
+ * separate editable fields. Renders old records without crashing.
+ */
+export function formatIngredientAmount(ing: Pick<Ingredient, 'amount' | 'unit'>): string {
+  if (typeof ing.amount !== 'number') return String(ing.amount)
+  return `${ing.amount} ${ing.unit ?? ''}`.trim()
 }
 
 export interface Meal {

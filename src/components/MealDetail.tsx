@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MEAL_TYPE_LABELS, type Meal } from '../lib/db'
+import { formatIngredientAmount, MEAL_TYPE_LABELS, type Meal } from '../lib/db'
 import { MacroBadge } from './MacroBadge'
 
 export function MealDetail({
@@ -46,7 +46,7 @@ export function MealDetail({
                 <div key={i} className="rounded-2xl border border-line p-3">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium text-ink">{ing.name}</span>
-                    <span className="shrink-0 text-xs text-ink-soft">{ing.amount}</span>
+                    <span className="shrink-0 text-xs text-ink-soft">{formatIngredientAmount(ing)}</span>
                   </div>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     <span className="rounded-full bg-kcal/15 px-2 py-0.5 text-[11px] font-semibold text-ink">

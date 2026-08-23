@@ -78,7 +78,7 @@ export function StatsPage() {
       : []
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-32 pt-6">
+    <div className="mx-auto max-w-lg px-4 pb-40 pt-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-ink">Statistik</h1>
         <button
@@ -230,9 +230,9 @@ function MacroTile({
   return (
     <div className="flex h-24 flex-col items-center justify-center rounded-3xl bg-surface p-3 text-center shadow-sm shadow-black/5">
       <div className="flex flex-col items-center gap-1">
-        <MacroBadge type="protein" value={protein} size="sm" />
-        <MacroBadge type="carbs" value={carbs} size="sm" />
-        <MacroBadge type="fat" value={fat} size="sm" />
+        <MacroBadge type="protein" value={protein} size="sm" className="w-16" />
+        <MacroBadge type="carbs" value={carbs} size="sm" className="w-16" />
+        <MacroBadge type="fat" value={fat} size="sm" className="w-16" />
       </div>
       <div className="mt-1 text-[10px] text-ink-soft">{heading}</div>
     </div>

@@ -23,6 +23,22 @@ const EMPTY_NUTRITION: Nutrition = { kcal: 0, protein: 0, carbs: 0, fat: 0 }
 
 type Step = 'input' | 'review'
 
+function round1(value: number): number {
+  return Math.round(value * 10) / 10
+}
+
+function sumIngredients(ingredients: Ingredient[]): Nutrition {
+  return ingredients.reduce(
+    (acc, i) => ({
+      kcal: round1(acc.kcal + i.kcal),
+      protein: round1(acc.protein + i.protein),
+      carbs: round1(acc.carbs + i.carbs),
+      fat: round1(acc.fat + i.fat),
+    }),
+    { kcal: 0, protein: 0, carbs: 0, fat: 0 },
+  )
+}
+
 export function MealEditor({
   date,
   initial,
@@ -35,6 +51,7 @@ export function MealEditor({
   onClose: () => void
 }) {
   const [step, setStep] = useState<Step>(initial ? 'review' : 'input')
+  const [hasResult, setHasResult] = useState(Boolean(initial))
   const [description, setDescription] = useState(initial?.description ?? '')
   const [photo, setPhoto] = useState<string | undefined>(initial?.photo)
   const [mealType, setMealType] = useState<MealType>(initial?.mealType ?? defaultMealType ?? 'lunch')
@@ -79,12 +96,33 @@ export function MealEditor({
       setIngredients(result.ingredients)
       setNote(result.note)
       setManuallyEdited(false)
+      setHasResult(true)
       setStep('review')
     } catch (err) {
       setError(err instanceof GeminiError ? err.message : 'Unbekannter Fehler bei der Schätzung.')
     } finally {
       setEstimating(false)
     }
+  }
+
+  function handleIngredientAmountChange(index: number, newAmount: number) {
+    setIngredients((current) => {
+      if (!current) return current
+      const ing = current[index]
+      const ratio = ing.amount > 0 && newAmount >= 0 ? newAmount / ing.amount : 1
+      const scaled: Ingredient = {
+        ...ing,
+        amount: newAmount,
+        kcal: round1(ing.kcal * ratio),
+        protein: round1(ing.protein * ratio),
+        carbs: round1(ing.carbs * ratio),
+        fat: round1(ing.fat * ratio),
+      }
+      const next = current.map((item, i) => (i === index ? scaled : item))
+      setNutrition(sumIngredients(next))
+      setManuallyEdited(true)
+      return next
+    })
   }
 
   async function handleSave() {
@@ -112,7 +150,7 @@ export function MealEditor({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/30 backdrop-blur-sm sm:items-center">
       <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-surface sm:rounded-3xl">
-        <div className="flex items-center justify-between p-5 pb-4">
+        <div className="flex shrink-0 items-center justify-between p-5 pb-4">
           {step === 'review' ? (
             <button onClick={() => setStep('input')} className="text-ink-soft hover:text-ink" aria-label="Zurück">
               <BackIcon />
@@ -120,14 +158,25 @@ export function MealEditor({
           ) : (
             <h2 className="text-lg font-semibold text-ink">{initial ? 'Mahlzeit bearbeiten' : 'Mahlzeit hinzufügen'}</h2>
           )}
-          <button onClick={onClose} className="text-ink-soft hover:text-ink" aria-label="Schließen">
-            ✕
-          </button>
+          <div className="flex items-center gap-3">
+            {step === 'input' && hasResult && (
+              <button
+                onClick={() => setStep('review')}
+                className="text-ink-soft hover:text-ink"
+                aria-label="Weiter zu den Nährwerten"
+              >
+                <ForwardIcon />
+              </button>
+            )}
+            <button onClick={onClose} className="text-ink-soft hover:text-ink" aria-label="Schließen">
+              ✕
+            </button>
+          </div>
         </div>
 
-        <div className="overflow-hidden">
+        <div className="flex min-h-0 flex-1 overflow-hidden">
           <div
-            className="flex transition-transform duration-300 ease-out"
+            className="flex w-full shrink-0 transition-transform duration-300 ease-out"
             style={{ transform: `translateX(-${step === 'review' ? 100 : 0}%)` }}
           >
             {/* Step 1: input */}
@@ -232,7 +281,17 @@ export function MealEditor({
                         <div key={i} className="rounded-2xl border border-line p-3">
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-medium text-ink">{ing.name}</span>
-                            <span className="shrink-0 text-xs text-ink-soft">{ing.amount}</span>
+                            <div className="flex shrink-0 items-center gap-1">
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                min={0}
+                                value={ing.amount}
+                                onChange={(e) => handleIngredientAmountChange(i, Number(e.target.value) || 0)}
+                                className="w-16 rounded-lg border border-line bg-bg px-1.5 py-1 text-right text-xs text-ink focus:border-accent focus:outline-none"
+                              />
+                              <span className="text-xs text-ink-soft">{ing.unit}</span>
+                            </div>
                           </div>
                           <div className="mt-1.5 flex flex-wrap gap-1.5">
                             <span className="rounded-full bg-kcal/15 px-2 py-0.5 text-[11px] font-semibold text-ink">
@@ -246,6 +305,9 @@ export function MealEditor({
                         </div>
                       ))}
                     </div>
+                    <p className="mt-2 text-xs text-ink-faint">
+                      Menge ändern skaliert die Nährwerte dieser Zutat automatisch (keine neue Schätzung).
+                    </p>
                   </div>
                 )}
 
@@ -270,6 +332,14 @@ function BackIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+    </svg>
+  )
+}
+
+function ForwardIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
     </svg>
   )
 }
