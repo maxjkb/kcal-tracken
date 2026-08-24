@@ -265,8 +265,7 @@ export function SyncSettingsPage() {
 
       {config && user && (
         <p className="mb-6 px-1 text-xs text-ink-soft">
-          Synchronisiert werden Mahlzeiten, Rezepte sowie Körperwerte & Ziele. Der Gemini-API-Key bleibt
-          bewusst geräteweise lokal gespeichert und wird nicht synchronisiert.
+          Synchronisiert werden Mahlzeiten, Rezepte, Körperwerte & Ziele sowie der Gemini-API-Key.
         </p>
       )}
 
