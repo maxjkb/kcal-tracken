@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 
 const TABS = [
+  { to: '/recipes', label: 'Rezepte', icon: RecipesIcon, end: false },
   { to: '/', label: 'Feed', icon: FeedIcon, end: true },
   { to: '/stats', label: 'Statistik', icon: StatsIcon, end: false },
   { to: '/settings', label: 'Einstellungen', icon: SettingsIcon, end: false },
@@ -47,6 +48,14 @@ function PlusIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
       <path strokeLinecap="round" d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
+function RecipesIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.5c-1.5-1.3-3.6-2-6-2v13c2.4 0 4.5.7 6 2m0-13c1.5-1.3 3.6-2 6-2v13c-2.4 0-4.5.7-6 2m0-13v13" />
     </svg>
   )
 }

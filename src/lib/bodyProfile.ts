@@ -1,3 +1,5 @@
+import { pushProfileChange } from './sync'
+
 const STORAGE_KEY = 'kcal-tracker:body-profile'
 
 export type Sex = 'male' | 'female'
@@ -49,10 +51,12 @@ export function getBodyProfile(): BodyProfile | null {
 
 export function setBodyProfile(profile: BodyProfile): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(profile))
+  pushProfileChange(profile)
 }
 
 export function clearBodyProfile(): void {
   localStorage.removeItem(STORAGE_KEY)
+  pushProfileChange(null)
 }
 
 export interface DailyTargets {

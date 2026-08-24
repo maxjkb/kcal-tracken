@@ -7,8 +7,10 @@ import {
   type Meal,
   type MealType,
   type Nutrition,
+  type Recipe,
 } from '../lib/db'
 import { saveMeal } from '../hooks/useMeals'
+import { useAllRecipes } from '../hooks/useRecipes'
 import { estimateNutrition, cleanUpDictation, GeminiError } from '../lib/gemini'
 import { getApiKey } from '../lib/settings'
 import { DictationButton } from './DictationButton'
@@ -74,8 +76,21 @@ export function MealEditor({
   const [saving, setSaving] = useState(false)
   const [note, setNote] = useState<string | undefined>(initial?.note)
   const [manuallyEdited, setManuallyEdited] = useState(initial?.manuallyEdited ?? false)
+  const [pickingRecipe, setPickingRecipe] = useState(false)
 
   const hasApiKey = Boolean(getApiKey())
+  const recipes = useAllRecipes()
+
+  function handleSelectRecipe(recipe: Recipe) {
+    setTitle(recipe.title)
+    setNutrition(recipe.nutrition)
+    setIngredients(recipe.ingredients)
+    setNote(undefined)
+    setManuallyEdited(false)
+    setHasResult(true)
+    setPickingRecipe(false)
+    setStep('review')
+  }
 
   async function handleDictationDone(rawText: string) {
     setCleaningUp(true)
@@ -200,51 +215,103 @@ export function MealEditor({
           >
             {/* Step 1: input */}
             <div className="w-full shrink-0 overflow-y-auto px-5 pb-5">
-              <div className="flex flex-col gap-4">
-                <div>
-                  <span className="mb-1 block text-xs text-ink-soft">Was hast du gegessen?</span>
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1">
-                      <AutoGrowTextarea
-                        value={description}
-                        onChange={setDescription}
-                        disabled={cleaningUp}
-                        placeholder="z.B. 200g Hähnchenbrust, 150g Reis, etwas Brokkoli und 1 EL Olivenöl"
-                        className={`w-full rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none ${cleaningUp ? 'opacity-50' : ''}`}
-                      />
-                      {cleaningUp && (
-                        <p className="mt-1.5 flex items-center gap-2 text-xs text-ink-soft">
-                          <BouncingDots /> Diktat wird bereinigt…
-                        </p>
-                      )}
-                    </div>
-                    <DictationButton onRecordingDone={handleDictationDone} disabled={cleaningUp} />
-                  </div>
+              {pickingRecipe ? (
+                <div className="flex flex-col gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setPickingRecipe(false)}
+                    className="self-start text-xs font-medium text-ink-soft hover:text-ink"
+                  >
+                    ← Zurück zur Beschreibung
+                  </button>
+                  {recipes === undefined ? (
+                    <p className="py-6 text-center text-sm text-ink-soft">Lädt…</p>
+                  ) : recipes.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-ink-soft">
+                      Noch keine Rezepte gespeichert. Unter „Rezepte" in der Navigation anlegen.
+                    </p>
+                  ) : (
+                    MEAL_TYPE_ORDER.map((type) => {
+                      const typeRecipes = recipes.filter((r) => r.category === type)
+                      if (typeRecipes.length === 0) return null
+                      return (
+                        <div key={type}>
+                          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                            {MEAL_TYPE_LABELS[type]}
+                          </span>
+                          <div className="flex flex-col gap-1.5">
+                            {typeRecipes.map((r) => (
+                              <button
+                                key={r.id}
+                                type="button"
+                                onClick={() => handleSelectRecipe(r)}
+                                className="rounded-2xl border border-line px-3 py-2.5 text-left hover:bg-bg"
+                              >
+                                <span className="block text-sm font-medium text-ink">{r.title}</span>
+                                <span className="text-xs text-ink-soft">{Math.round(r.nutrition.kcal)} kcal</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
                 </div>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <span className="mb-1 block text-xs text-ink-soft">Was hast du gegessen?</span>
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1">
+                        <AutoGrowTextarea
+                          value={description}
+                          onChange={setDescription}
+                          disabled={cleaningUp}
+                          placeholder="z.B. 200g Hähnchenbrust, 150g Reis, etwas Brokkoli und 1 EL Olivenöl"
+                          className={`w-full rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none ${cleaningUp ? 'opacity-50' : ''}`}
+                        />
+                        {cleaningUp && (
+                          <p className="mt-1.5 flex items-center gap-2 text-xs text-ink-soft">
+                            <BouncingDots /> Diktat wird bereinigt…
+                          </p>
+                        )}
+                      </div>
+                      <DictationButton onRecordingDone={handleDictationDone} disabled={cleaningUp} />
+                    </div>
+                  </div>
 
-                <PhotoInput photo={photo} onChange={setPhoto} />
+                  <PhotoInput photo={photo} onChange={setPhoto} />
 
-                {!hasApiKey && (
-                  <p className="rounded-2xl bg-fat/15 px-3 py-2 text-xs text-ink">
-                    Kein API-Key hinterlegt.{' '}
-                    <Link to="/settings" onClick={onClose} className="font-semibold underline">
-                      Jetzt in den Einstellungen eintragen
-                    </Link>
-                    , um Nährwerte automatisch schätzen zu lassen.
-                  </p>
-                )}
+                  {!hasApiKey && (
+                    <p className="rounded-2xl bg-fat/15 px-3 py-2 text-xs text-ink">
+                      Kein API-Key hinterlegt.{' '}
+                      <Link to="/settings" onClick={onClose} className="font-semibold underline">
+                        Jetzt in den Einstellungen eintragen
+                      </Link>
+                      , um Nährwerte automatisch schätzen zu lassen.
+                    </p>
+                  )}
 
-                <button
-                  type="button"
-                  onClick={handleEstimate}
-                  disabled={estimating || cleaningUp || !hasApiKey}
-                  className="glass-accent flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {estimating ? <BouncingDots /> : 'Nährwerte schätzen'}
-                </button>
+                  <button
+                    type="button"
+                    onClick={handleEstimate}
+                    disabled={estimating || cleaningUp || !hasApiKey}
+                    className="glass-accent flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {estimating ? <BouncingDots /> : 'Nährwerte schätzen'}
+                  </button>
 
-                {error && <p className="text-sm font-medium text-danger">{error}</p>}
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => setPickingRecipe(true)}
+                    className="rounded-2xl bg-bg px-4 py-2.5 text-sm font-medium text-ink-soft transition hover:bg-line"
+                  >
+                    Rezept auswählen
+                  </button>
+
+                  {error && <p className="text-sm font-medium text-danger">{error}</p>}
+                </div>
+              )}
             </div>
 
             {/* Step 2: review */}

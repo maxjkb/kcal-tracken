@@ -54,6 +54,35 @@ export interface Meal {
   updatedAt: number
 }
 
+export interface RecipeStep {
+  order: number
+  text: string
+}
+
+/**
+ * A saved recipe — created similarly to a meal (free-text/dictated
+ * description → AI structures it), but without a photo, and split further
+ * into a "Zubereitung" (preparation steps) alongside the ingredient
+ * breakdown. Filed under one of the same four categories as meals
+ * (Frühstück/Mittag/Abend/Snack) so it slots into the existing Rezepte
+ * navigation, and can be picked as a meal's contents when logging a meal.
+ */
+export interface Recipe {
+  id: string
+  category: MealType
+  title: string
+  /** The raw text the user typed/dictated describing the recipe. */
+  description: string
+  ingredients: Ingredient[]
+  /** Preparation steps, in order — structured by the AI from free text, freely editable afterward. */
+  steps: RecipeStep[]
+  nutrition: Nutrition
+  /** Whether nutrition values were ever manually edited by the user. */
+  manuallyEdited: boolean
+  createdAt: number
+  updatedAt: number
+}
+
 export const MEAL_TYPE_LABELS: Record<MealType, string> = {
   breakfast: 'Frühstück',
   lunch: 'Mittagessen',
@@ -65,11 +94,16 @@ export const MEAL_TYPE_ORDER: MealType[] = ['breakfast', 'lunch', 'dinner', 'sna
 
 class KcalDatabase extends Dexie {
   meals!: EntityTable<Meal, 'id'>
+  recipes!: EntityTable<Recipe, 'id'>
 
   constructor() {
     super('kcal-tracker')
     this.version(1).stores({
       meals: 'id, date, mealType, createdAt',
+    })
+    this.version(2).stores({
+      meals: 'id, date, mealType, createdAt',
+      recipes: 'id, category, createdAt',
     })
   }
 }
@@ -77,6 +111,10 @@ class KcalDatabase extends Dexie {
 export const db = new KcalDatabase()
 
 export function newMealId(): string {
+  return crypto.randomUUID()
+}
+
+export function newRecipeId(): string {
   return crypto.randomUUID()
 }
 
