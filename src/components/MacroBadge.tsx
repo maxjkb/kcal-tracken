@@ -45,3 +45,41 @@ export function MacroBadge({
     </span>
   )
 }
+
+const RING_COLOR_VAR: Record<MacroType, string> = {
+  kcal: 'var(--color-kcal)',
+  protein: 'var(--color-protein)',
+  carbs: 'var(--color-carbs)',
+  fat: 'var(--color-fat)',
+}
+
+/**
+ * A small closed-circle badge — colored ring outline, icon + absolute value
+ * inside, no fill/progress (these aren't progress indicators, just compact
+ * value readouts). Replaces the oval MacroBadge for protein/carbs/fat
+ * wherever a meal's individual macros are listed (kcal keeps the oval).
+ */
+export function MacroRingBadge({
+  type,
+  value,
+  size = 'md',
+}: {
+  type: MacroType
+  value: number
+  size?: 'sm' | 'md'
+}) {
+  const box = size === 'sm' ? 34 : 42
+  const border = size === 'sm' ? 2.5 : 3
+  const icon = size === 'sm' ? 'h-2.5 w-2.5' : 'h-3 w-3'
+  const text = size === 'sm' ? 'text-[9px]' : 'text-[10px]'
+  const color = RING_COLOR_VAR[type]
+  return (
+    <span
+      className="inline-flex shrink-0 flex-col items-center justify-center gap-0.5 rounded-full"
+      style={{ width: box, height: box, border: `${border}px solid ${color}`, color }}
+    >
+      <MacroIcon type={type} className={icon} />
+      <span className={`font-bold text-ink leading-none ${text}`}>{Math.round(value)}</span>
+    </span>
+  )
+}

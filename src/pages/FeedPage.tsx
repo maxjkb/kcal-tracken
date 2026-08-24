@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useMealsForDate } from '../hooks/useMeals'
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, toLocalDateKey, type Meal, type MealType } from '../lib/db'
 import { MealCard } from '../components/MealCard'
@@ -29,7 +30,11 @@ function formatDateHeading(dateKey: string): string {
 }
 
 export function FeedPage() {
-  const [dateKey, setDateKey] = useState(() => toLocalDateKey(new Date()))
+  // Arriving here via a Stats drill-down (clicking a day in the Woche chart)
+  // passes the target day through router state — otherwise default to today.
+  const location = useLocation()
+  const drillDownDateKey = (location.state as { dateKey?: string } | null)?.dateKey
+  const [dateKey, setDateKey] = useState(() => drillDownDateKey ?? toLocalDateKey(new Date()))
   const meals = useMealsForDate(dateKey)
   const [editorState, setEditorState] = useState<
     { mode: 'closed' } | { mode: 'edit'; meal: Meal } | { mode: 'view'; meal: Meal }

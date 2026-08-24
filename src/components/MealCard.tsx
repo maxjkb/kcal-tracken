@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Meal } from '../lib/db'
 import { deleteMeal } from '../hooks/useMeals'
-import { MacroBadge } from './MacroBadge'
+import { MacroBadge, MacroRingBadge } from './MacroBadge'
 
 export function MealCard({ meal, onView }: { meal: Meal; onView: () => void }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -19,9 +19,9 @@ export function MealCard({ meal, onView }: { meal: Meal; onView: () => void }) {
           <div className="mt-1.5 flex items-center gap-1.5">
             <button className="flex min-w-0 flex-1 flex-wrap gap-1.5 text-left" onClick={onView}>
               <MacroBadge type="kcal" value={meal.nutrition.kcal} size="sm" />
-              <MacroBadge type="protein" value={meal.nutrition.protein} size="sm" />
-              <MacroBadge type="carbs" value={meal.nutrition.carbs} size="sm" />
-              <MacroBadge type="fat" value={meal.nutrition.fat} size="sm" />
+              <MacroRingBadge type="protein" value={meal.nutrition.protein} size="sm" />
+              <MacroRingBadge type="carbs" value={meal.nutrition.carbs} size="sm" />
+              <MacroRingBadge type="fat" value={meal.nutrition.fat} size="sm" />
             </button>
             {confirmingDelete ? (
               <div className="flex shrink-0 gap-1">

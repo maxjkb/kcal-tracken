@@ -16,7 +16,7 @@ import { PhotoInput } from './PhotoInput'
 import { NutritionFields } from './NutritionFields'
 import { AutoGrowTextarea } from './AutoGrowTextarea'
 import { BouncingDots } from './BouncingDots'
-import { MacroBadge } from './MacroBadge'
+import { MacroBadge, MacroRingBadge } from './MacroBadge'
 import { Link } from 'react-router-dom'
 
 const EMPTY_NUTRITION: Nutrition = { kcal: 0, protein: 0, carbs: 0, fat: 0 }
@@ -324,9 +324,9 @@ export function MealEditor({
                           </div>
                           <div className="mt-1.5 flex flex-wrap gap-1.5">
                             <MacroBadge type="kcal" value={ing.kcal} size="sm" />
-                            <MacroBadge type="protein" value={ing.protein} size="sm" />
-                            <MacroBadge type="carbs" value={ing.carbs} size="sm" />
-                            <MacroBadge type="fat" value={ing.fat} size="sm" />
+                            <MacroRingBadge type="protein" value={ing.protein} size="sm" />
+                            <MacroRingBadge type="carbs" value={ing.carbs} size="sm" />
+                            <MacroRingBadge type="fat" value={ing.fat} size="sm" />
                           </div>
                           {ing.note && <p className="mt-1.5 text-xs italic text-ink-soft">{ing.note}</p>}
                         </div>

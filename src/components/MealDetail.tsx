@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { formatIngredientAmount, MEAL_TYPE_LABELS, type Meal } from '../lib/db'
-import { MacroBadge } from './MacroBadge'
+import { MacroBadge, MacroRingBadge } from './MacroBadge'
 
 export function MealDetail({
   meal,
@@ -30,11 +30,11 @@ export function MealDetail({
 
         <h2 className="mb-3 text-xl font-semibold text-ink">{meal.title}</h2>
 
-        <div className="mb-5 flex flex-wrap gap-2">
+        <div className="mb-5 flex flex-wrap items-center gap-2.5">
           <MacroBadge type="kcal" value={meal.nutrition.kcal} />
-          <MacroBadge type="protein" value={meal.nutrition.protein} />
-          <MacroBadge type="carbs" value={meal.nutrition.carbs} />
-          <MacroBadge type="fat" value={meal.nutrition.fat} />
+          <MacroRingBadge type="protein" value={meal.nutrition.protein} />
+          <MacroRingBadge type="carbs" value={meal.nutrition.carbs} />
+          <MacroRingBadge type="fat" value={meal.nutrition.fat} />
         </div>
 
         {meal.description && (

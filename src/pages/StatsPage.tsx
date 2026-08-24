@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Bar,
   BarChart,
@@ -13,13 +14,13 @@ import {
 import { useMealsInRange } from '../hooks/useMeals'
 import { MEAL_TYPE_LABELS, toLocalDateKey, type Meal } from '../lib/db'
 import { lazyRetry } from '../lib/lazyRetry'
-import { MacroBadge } from '../components/MacroBadge'
 import { ChevronIcon } from '../components/ChevronIcon'
 import { ConcentricRings, NutrientRings } from '../components/NutrientRings'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import {
   bucketByDay,
   bucketByMonth,
+  bucketByWeek,
   computeDailyAverage,
   computeDailyMacroAverages,
   formatPeriodLabel,
@@ -37,6 +38,7 @@ const PERIODS: { key: Period; label: string }[] = [
 ]
 
 export function StatsPage() {
+  const navigate = useNavigate()
   const [period, setPeriod] = useState<Period>('week')
   const [anchorKey, setAnchorKey] = useState(() => toLocalDateKey(new Date()))
   const { startKey, endKey } = getPeriodRange(period, anchorKey)
@@ -81,14 +83,42 @@ export function StatsPage() {
   const bodyProfile = getBodyProfile()
   const dailyTargets = bodyProfile ? computeDailyTargets(bodyProfile) : null
 
-  const dayData = period === 'week' || period === 'month' ? bucketByDay(startKey, endKey, kcalByDate) : []
+  // Woche bars = days (click → that day's Tag view); Monat bars = weeks
+  // (click → that week's Woche view); Jahr points = months (click → that
+  // month's Monat view) — each period's chart drills into the next-finer one.
+  const dayData = period === 'week' ? bucketByDay(startKey, endKey, kcalByDate) : []
+  const weekData = period === 'month' ? bucketByWeek(startKey, endKey, kcalByDate) : []
   const monthData = period === 'year' ? bucketByMonth(Number(anchorKey.slice(0, 4)), kcalByDate) : []
+  const barData = period === 'week' ? dayData : period === 'month' ? weekData : []
   const perMealData =
     period === 'day'
       ? [...(meals ?? [])]
           .sort((a, b) => a.createdAt - b.createdAt)
           .map((m) => ({ key: m.id, label: MEAL_TYPE_LABELS[m.mealType], kcal: m.nutrition.kcal }))
       : []
+
+  // The 3rd tile's ring shows the day's absolute totals on Tag, and daily
+  // averages (vs. the same daily targets) on Woche/Monat/Jahr — comparing a
+  // multi-day sum directly against a one-day target wouldn't mean anything.
+  const ringValues =
+    period === 'day'
+      ? totals
+      : { kcal: dailyAverage, protein: macroAverages.protein, carbs: macroAverages.carbs, fat: macroAverages.fat }
+
+  function handleBarClick(payload: { key: string } | undefined) {
+    if (!payload) return
+    if (period === 'week') navigate('/', { state: { dateKey: payload.key } })
+    else if (period === 'month') {
+      setPeriod('week')
+      setAnchorKey(payload.key)
+    }
+  }
+
+  function handleMonthPointClick(monthKey: string | undefined) {
+    if (!monthKey) return
+    setPeriod('month')
+    setAnchorKey(`${monthKey}-01`)
+  }
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
@@ -136,17 +166,21 @@ export function StatsPage() {
         </button>
       </div>
 
-      {period === 'day' ? (
-        <div className="glass-subtle mb-6 rounded-3xl p-4 shadow-sm shadow-black/5">
-          <ConcentricRings kcal={totals.kcal} protein={totals.protein} carbs={totals.carbs} fat={totals.fat} targets={dailyTargets} />
-        </div>
-      ) : (
-        <div className="mb-6 grid grid-cols-3 gap-2">
-          <StatTile value={Math.round(totals.kcal).toLocaleString('de-DE')} label="kcal gesamt" />
-          <StatTile value={Math.round(dailyAverage).toLocaleString('de-DE')} label="Ø kcal / Tag" />
-          <MacroTile heading="Ø Nährwerte/Tag" protein={macroAverages.protein} carbs={macroAverages.carbs} fat={macroAverages.fat} />
-        </div>
-      )}
+      <div className="mb-6 grid grid-cols-3 gap-2">
+        <StatTile value={Math.round(totals.kcal).toLocaleString('de-DE')} label="kcal gesamt" />
+        <StatTile
+          value={Math.round(period === 'day' ? perMealAverages.kcal : dailyAverage).toLocaleString('de-DE')}
+          label={period === 'day' ? 'Ø kcal / Mahlzeit' : 'Ø kcal / Tag'}
+        />
+        <RingTile
+          kcal={ringValues.kcal}
+          protein={ringValues.protein}
+          carbs={ringValues.carbs}
+          fat={ringValues.fat}
+          targets={dailyTargets}
+          caption={period === 'day' ? 'Nährwerte' : 'Ø Nährwerte/Tag'}
+        />
+      </div>
 
       {period === 'day' ? (
         <div className="glass-subtle rounded-3xl p-5 shadow-sm shadow-black/5">
@@ -167,7 +201,7 @@ export function StatsPage() {
         </div>
       ) : (
       <div className="rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
-        {(period === 'week' || period === 'month') && meals !== undefined && dayData.length > 0 && (
+        {(period === 'week' || period === 'month') && meals !== undefined && barData.length > 0 && (
           <div className="mb-2 text-xs font-semibold text-ink-soft">{monthHeadingLabel(startKey, endKey)}</div>
         )}
         <div className="h-56">
@@ -175,7 +209,11 @@ export function StatsPage() {
             <p className="flex h-full items-center justify-center text-sm text-ink-soft">Lädt…</p>
           ) : period === 'year' ? (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={monthData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+              <LineChart
+                data={monthData}
+                margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
+                onClick={(state) => handleMonthPointClick(monthData.find((d) => d.label === state?.activeLabel)?.key)}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e5ea" vertical={false} />
                 <XAxis dataKey="label" stroke="#6e6e73" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="#6e6e73" fontSize={12} tickLine={false} axisLine={false} />
@@ -184,28 +222,35 @@ export function StatsPage() {
                   labelStyle={{ color: '#1d1d1f' }}
                   formatter={(v) => [`${Math.round(Number(v))} kcal`, 'Gesamt']}
                 />
-                <Line type="monotone" dataKey="kcal" stroke="#0a84ff" strokeWidth={2.5} dot={{ r: 3, fill: '#0a84ff' }} />
+                <Line
+                  type="monotone"
+                  dataKey="kcal"
+                  stroke="#0a84ff"
+                  strokeWidth={2.5}
+                  dot={{ r: 3, fill: '#0a84ff', cursor: 'pointer' }}
+                  activeDot={{ r: 5, cursor: 'pointer' }}
+                  cursor="pointer"
+                />
               </LineChart>
             </ResponsiveContainer>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dayData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+              <BarChart data={barData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e5ea" vertical={false} />
-                <XAxis
-                  dataKey="label"
-                  stroke="#6e6e73"
-                  fontSize={11}
-                  tickLine={false}
-                  axisLine={false}
-                  interval={period === 'month' ? 3 : 0}
-                />
+                <XAxis dataKey="label" stroke="#6e6e73" fontSize={11} tickLine={false} axisLine={false} interval={0} />
                 <YAxis stroke="#6e6e73" fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip
                   contentStyle={{ background: '#ffffff', border: '1px solid #e5e5ea', borderRadius: 12 }}
                   labelStyle={{ color: '#1d1d1f' }}
                   formatter={(v) => [`${Math.round(Number(v))} kcal`, 'Kalorien']}
                 />
-                <Bar dataKey="kcal" fill="#0a84ff" radius={[6, 6, 0, 0]} />
+                <Bar
+                  dataKey="kcal"
+                  fill="#0a84ff"
+                  radius={[6, 6, 0, 0]}
+                  cursor="pointer"
+                  onClick={(data) => handleBarClick((data as { payload?: { key: string } })?.payload)}
+                />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -225,25 +270,26 @@ function StatTile({ value, label }: { value: string; label: string }) {
   )
 }
 
-function MacroTile({
-  heading,
+/** The 3rd tile of the stat row — the compact concentric ring, the app's signature nutrient visualization, used identically across all four periods. */
+function RingTile({
+  kcal,
   protein,
   carbs,
   fat,
+  targets,
+  caption,
 }: {
-  heading: string
+  kcal: number
   protein: number
   carbs: number
   fat: number
+  targets: { kcal: number; protein: number; carbs: number; fat: number } | null
+  caption: string
 }) {
   return (
-    <div className="flex h-24 flex-col items-center justify-center rounded-3xl bg-surface p-3 text-center shadow-sm shadow-black/5">
-      <div className="flex flex-col items-center gap-1">
-        <MacroBadge type="protein" value={protein} size="sm" className="w-16" />
-        <MacroBadge type="carbs" value={carbs} size="sm" className="w-16" />
-        <MacroBadge type="fat" value={fat} size="sm" className="w-16" />
-      </div>
-      <div className="mt-1 text-[10px] text-ink-soft">{heading}</div>
+    <div className="flex h-24 flex-col items-center justify-center gap-1 rounded-3xl bg-surface p-2 text-center shadow-sm shadow-black/5">
+      <ConcentricRings kcal={kcal} protein={protein} carbs={carbs} fat={fat} targets={targets} size="compact" />
+      <div className="text-[10px] leading-tight text-ink-soft">{caption}</div>
     </div>
   )
 }
