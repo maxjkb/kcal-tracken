@@ -12,6 +12,7 @@ import {
 import {
   completeSignInFromLink,
   getStoredSignInEmail,
+  isRunningStandalone,
   isSignInLinkUrl,
   onAuthChange,
   sendSignInLink,
@@ -24,8 +25,14 @@ import { getSyncStatus, onSyncStatusChange, resyncNow, startSync, stopSync } fro
  * Gemini API key page: nothing here is Anthropic- or app-hosted, the user
  * creates their own free Firebase project and pastes its web config in.
  * Passwordless email-link sign-in; once signed in on two devices with the
- * same address, meals/recipes/body profile sync between them. The Gemini
- * API key intentionally stays device-local and is never synced.
+ * same address, meals/recipes/body profile/API key sync between them.
+ *
+ * iOS quirk this page works around: tapping the sign-in link in Mail always
+ * opens Safari, never an installed "Add to Home Screen" app directly — and
+ * Safari's storage is isolated from the installed app's, so completing
+ * sign-in in Safari never reaches the installed app. The fallback: paste the
+ * link's full address (copied from Safari's address bar) into the field
+ * below, completing sign-in from within the installed app itself instead.
  */
 export function SyncSettingsPage() {
   const [config, setConfig] = useState(getFirebaseConfig())
@@ -33,8 +40,12 @@ export function SyncSettingsPage() {
   const [user, setUser] = useState<User | null>(null)
   const [email, setEmail] = useState('')
   const [linkSent, setLinkSent] = useState(false)
-  const [completingLink, setCompletingLink] = useState(false)
+  // The sign-in link URL currently being completed — either this page's own
+  // URL (auto-detected on load) or one pasted in from another browsing
+  // context (see the iOS note above). Null when no link is being completed.
+  const [linkToComplete, setLinkToComplete] = useState<string | null>(null)
   const [confirmEmail, setConfirmEmail] = useState('')
+  const [pasteInput, setPasteInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [, forceUpdate] = useState(0)
@@ -43,24 +54,24 @@ export function SyncSettingsPage() {
   useEffect(() => onAuthChange(setUser), [config])
   useEffect(() => onSyncStatusChange(() => forceUpdate((n) => n + 1)), [])
   useEffect(() => {
-    if (config) void isSignInLinkUrl().then(setCompletingLink)
+    if (config) void isSignInLinkUrl().then((isLink) => isLink && setLinkToComplete(window.location.href))
   }, [config])
 
   // If we opened the app from the sign-in email link on the same device/browser
   // it was requested from, the address is still in localStorage — complete
   // sign-in automatically without asking again.
   useEffect(() => {
-    if (!completingLink) return
+    if (!linkToComplete) return
     const stored = getStoredSignInEmail()
     if (!stored) return
-    completeSignInFromLink(stored)
+    completeSignInFromLink(stored, linkToComplete)
       .then((signedInUser) => {
-        setCompletingLink(false)
+        setLinkToComplete(null)
         void startSync(signedInUser.uid)
         flash('Angemeldet.')
       })
       .catch(() => setError('Anmeldelink ungültig oder abgelaufen. Bitte einen neuen Link anfordern.'))
-  }, [completingLink, flash])
+  }, [linkToComplete, flash])
 
   function handleSaveConfig() {
     const parsed = parsePastedFirebaseConfig(configText)
@@ -102,12 +113,12 @@ export function SyncSettingsPage() {
   }
 
   async function handleConfirmEmail() {
-    if (!confirmEmail.trim()) return
+    if (!confirmEmail.trim() || !linkToComplete) return
     setBusy(true)
     setError(null)
     try {
-      const signedInUser = await completeSignInFromLink(confirmEmail.trim())
-      setCompletingLink(false)
+      const signedInUser = await completeSignInFromLink(confirmEmail.trim(), linkToComplete)
+      setLinkToComplete(null)
       void startSync(signedInUser.uid)
       flash('Angemeldet.')
     } catch {
@@ -115,6 +126,21 @@ export function SyncSettingsPage() {
     } finally {
       setBusy(false)
     }
+  }
+
+  async function handlePasteLink() {
+    const url = pasteInput.trim()
+    if (!url) return
+    setBusy(true)
+    setError(null)
+    const valid = await isSignInLinkUrl(url)
+    setBusy(false)
+    if (!valid) {
+      setError('Das sieht nicht nach einem gültigen Anmeldelink aus. Bitte die komplette Adresse aus der Adressleiste kopieren.')
+      return
+    }
+    setLinkToComplete(url)
+    setPasteInput('')
   }
 
   async function handleSignOut() {
@@ -129,6 +155,8 @@ export function SyncSettingsPage() {
     setBusy(false)
     flash('Synchronisiert.')
   }
+
+  const openedInSafariNotApp = linkToComplete !== null && !isRunningStandalone()
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
@@ -186,8 +214,16 @@ export function SyncSettingsPage() {
         <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
           <h2 className="mb-1 text-sm font-semibold text-ink">Anmeldung</h2>
 
-          {completingLink ? (
+          {linkToComplete ? (
             <>
+              {openedInSafariNotApp && (
+                <p className="mb-3 rounded-2xl bg-fat/15 px-3 py-2 text-xs text-ink">
+                  Dieser Link wurde in Safari geöffnet, nicht in deiner installierten App — iOS trennt
+                  deren Speicher, eine Anmeldung hier würde in der App nicht ankommen. Kopiere stattdessen
+                  die Adresse oben aus der Adressleiste, öffne die installierte App und füge sie dort unter
+                  "Link aus Safari einfügen" ein.
+                </p>
+              )}
               <p className="mb-3 text-xs text-ink-soft">
                 Anmeldelink erkannt. Zur Bestätigung bitte die E-Mail-Adresse eingeben, an die der Link
                 gesendet wurde.
@@ -231,31 +267,58 @@ export function SyncSettingsPage() {
                 </button>
               </div>
             </>
-          ) : linkSent ? (
-            <p className="text-sm text-ink">
-              Anmeldelink an <span className="font-medium">{email}</span> gesendet. E-Mail öffnen und den
-              Link auf diesem Gerät antippen, um die Anmeldung abzuschließen.
-            </p>
           ) : (
             <>
-              <p className="mb-3 text-xs text-ink-soft">
-                Anmeldung ohne Passwort per Link per E-Mail. Auf jedem Gerät, das synchronisieren soll, mit
-                derselben E-Mail-Adresse anmelden.
-              </p>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="deine@email.de"
-                className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
-              />
-              <button
-                onClick={handleSendLink}
-                disabled={busy}
-                className="glass-accent mt-3 w-full rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50"
-              >
-                Anmeldelink senden
-              </button>
+              {linkSent ? (
+                <p className="mb-4 text-sm text-ink">
+                  Anmeldelink an <span className="font-medium">{email}</span> gesendet. E-Mail öffnen und
+                  den Link antippen, um die Anmeldung abzuschließen.
+                </p>
+              ) : (
+                <>
+                  <p className="mb-3 text-xs text-ink-soft">
+                    Anmeldung ohne Passwort per Link per E-Mail. Auf jedem Gerät, das synchronisieren soll,
+                    mit derselben E-Mail-Adresse anmelden.
+                  </p>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="deine@email.de"
+                    className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+                  />
+                  <button
+                    onClick={handleSendLink}
+                    disabled={busy}
+                    className="glass-accent mt-3 mb-4 w-full rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50"
+                  >
+                    Anmeldelink senden
+                  </button>
+                </>
+              )}
+
+              <div className="border-t border-line pt-4">
+                <p className="mb-2 text-xs text-ink-soft">
+                  Link stattdessen in Safari geöffnet (z. B. als installierte "Zum Home-Bildschirm"-App)?
+                  Adresse aus der Safari-Adressleiste kopieren und hier einfügen:
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={pasteInput}
+                    onChange={(e) => setPasteInput(e.target.value)}
+                    placeholder="https://maxjkb.github.io/…"
+                    className="flex-1 rounded-xl border border-line bg-bg px-3 py-2 text-xs text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+                  />
+                  <button
+                    onClick={handlePasteLink}
+                    disabled={busy || !pasteInput.trim()}
+                    className="shrink-0 rounded-xl bg-bg px-4 text-sm font-medium text-ink-soft hover:bg-line disabled:opacity-50"
+                  >
+                    Bestätigen
+                  </button>
+                </div>
+              </div>
             </>
           )}
 
