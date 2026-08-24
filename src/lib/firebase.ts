@@ -24,13 +24,18 @@ export function getFirebaseServices(): Promise<{ auth: Auth; firestore: Firestor
   if (!servicesPromise || cachedConfigKey !== key) {
     cachedConfigKey = key
     servicesPromise = (async () => {
-      const [{ initializeApp }, { getAuth }, { getFirestore }] = await Promise.all([
+      const [{ initializeApp }, { getAuth }, { initializeFirestore }] = await Promise.all([
         import('firebase/app'),
         import('firebase/auth'),
         import('firebase/firestore'),
       ])
       const app: FirebaseApp = initializeApp(config, key) // unique name so re-pasting a config doesn't collide with the previous app instance
-      return { auth: getAuth(app), firestore: getFirestore(app) }
+      // ignoreUndefinedProperties: our local records (Meal.photo, Meal.note,
+      // Meal.ingredients, …) commonly carry an explicit `undefined` rather
+      // than omitting the key — Firestore otherwise rejects the entire write
+      // with "Unsupported field value: undefined", which silently aborted
+      // sync for any user with even one such meal/recipe.
+      return { auth: getAuth(app), firestore: initializeFirestore(app, { ignoreUndefinedProperties: true }) }
     })()
   }
   return servicesPromise

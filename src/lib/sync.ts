@@ -25,8 +25,9 @@ import type { BodyProfile } from './bodyProfile'
 let currentUid: string | null = null
 let unsubscribers: (() => void)[] = []
 let statusListeners: (() => void)[] = []
+let lastSyncError: string | null = null
 
-export type SyncStatus = 'inactive' | 'syncing'
+export type SyncStatus = 'inactive' | 'syncing' | 'error'
 
 function notifyStatus() {
   statusListeners.forEach((fn) => fn())
@@ -40,7 +41,13 @@ export function onSyncStatusChange(callback: () => void): () => void {
 }
 
 export function getSyncStatus(): SyncStatus {
-  return currentUid ? 'syncing' : 'inactive'
+  if (!currentUid) return 'inactive'
+  return lastSyncError ? 'error' : 'syncing'
+}
+
+/** Human-readable reason for the last sync failure, if getSyncStatus() is 'error'. */
+export function getSyncError(): string | null {
+  return lastSyncError
 }
 
 // Reads/writes the body profile's and API key's localStorage entries directly
@@ -203,43 +210,50 @@ export async function startSync(uid: string): Promise<void> {
   const [services, fsApi] = await Promise.all([getFirebaseServices(), getFirestoreApi()])
   if (!services || !fsApi) return
   currentUid = uid
+  lastSyncError = null
   notifyStatus()
 
   const fs = services.firestore
-  await Promise.all([
-    reconcileMeals(fsApi, fs, uid),
-    reconcileRecipes(fsApi, fs, uid),
-    reconcileProfile(fsApi, fs, uid),
-    reconcileApiKey(fsApi, fs, uid),
-  ])
+  try {
+    await Promise.all([
+      reconcileMeals(fsApi, fs, uid),
+      reconcileRecipes(fsApi, fs, uid),
+      reconcileProfile(fsApi, fs, uid),
+      reconcileApiKey(fsApi, fs, uid),
+    ])
 
-  const unsubMeals = fsApi.onSnapshot(fsApi.collection(fs, 'users', uid, 'meals'), (snap) => {
-    for (const change of snap.docChanges()) {
-      if (change.type === 'removed') {
-        void db.meals.delete(change.doc.id)
-        continue
+    const unsubMeals = fsApi.onSnapshot(fsApi.collection(fs, 'users', uid, 'meals'), (snap) => {
+      for (const change of snap.docChanges()) {
+        if (change.type === 'removed') {
+          void db.meals.delete(change.doc.id)
+          continue
+        }
+        const remote = change.doc.data() as Meal
+        void db.meals.get(remote.id).then((local) => {
+          if (!local || remote.updatedAt >= local.updatedAt) void db.meals.put(remote)
+        })
       }
-      const remote = change.doc.data() as Meal
-      void db.meals.get(remote.id).then((local) => {
-        if (!local || remote.updatedAt >= local.updatedAt) void db.meals.put(remote)
-      })
-    }
-  })
+    })
 
-  const unsubRecipes = fsApi.onSnapshot(fsApi.collection(fs, 'users', uid, 'recipes'), (snap) => {
-    for (const change of snap.docChanges()) {
-      if (change.type === 'removed') {
-        void db.recipes.delete(change.doc.id)
-        continue
+    const unsubRecipes = fsApi.onSnapshot(fsApi.collection(fs, 'users', uid, 'recipes'), (snap) => {
+      for (const change of snap.docChanges()) {
+        if (change.type === 'removed') {
+          void db.recipes.delete(change.doc.id)
+          continue
+        }
+        const remote = change.doc.data() as Recipe
+        void db.recipes.get(remote.id).then((local) => {
+          if (!local || remote.updatedAt >= local.updatedAt) void db.recipes.put(remote)
+        })
       }
-      const remote = change.doc.data() as Recipe
-      void db.recipes.get(remote.id).then((local) => {
-        if (!local || remote.updatedAt >= local.updatedAt) void db.recipes.put(remote)
-      })
-    }
-  })
+    })
 
-  unsubscribers = [unsubMeals, unsubRecipes]
+    unsubscribers = [unsubMeals, unsubRecipes]
+  } catch (err) {
+    lastSyncError = err instanceof Error ? err.message : String(err)
+    notifyStatus()
+    throw err
+  }
 }
 
 export function stopSync(): void {
@@ -254,18 +268,26 @@ export async function resyncNow(): Promise<void> {
   if (!currentUid) return
   const [services, fsApi] = await Promise.all([getFirebaseServices(), getFirestoreApi()])
   if (!services || !fsApi) return
-  await Promise.all([
-    reconcileMeals(fsApi, services.firestore, currentUid),
-    reconcileRecipes(fsApi, services.firestore, currentUid),
-    reconcileProfile(fsApi, services.firestore, currentUid),
-    reconcileApiKey(fsApi, services.firestore, currentUid),
-  ])
+  try {
+    await Promise.all([
+      reconcileMeals(fsApi, services.firestore, currentUid),
+      reconcileRecipes(fsApi, services.firestore, currentUid),
+      reconcileProfile(fsApi, services.firestore, currentUid),
+      reconcileApiKey(fsApi, services.firestore, currentUid),
+    ])
+    lastSyncError = null
+    notifyStatus()
+  } catch (err) {
+    lastSyncError = err instanceof Error ? err.message : String(err)
+    notifyStatus()
+    throw err
+  }
 }
 
 /** Resumes sync automatically if the user is already signed in from a previous visit (e.g. after a page reload). Call once at app startup. */
 export function initSyncIfSignedIn(): void {
   onAuthChange((user) => {
-    if (user && !currentUid) void startSync(user.uid)
+    if (user && !currentUid) startSync(user.uid).catch(() => {}) // failure already recorded in getSyncStatus()/getSyncError()
     else if (!user && currentUid) stopSync()
   })
 }

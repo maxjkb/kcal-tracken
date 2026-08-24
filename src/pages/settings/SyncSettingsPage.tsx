@@ -18,7 +18,7 @@ import {
   sendSignInLink,
   signOutSync,
 } from '../../lib/firebase'
-import { getSyncStatus, onSyncStatusChange, resyncNow, startSync, stopSync } from '../../lib/sync'
+import { getSyncError, getSyncStatus, onSyncStatusChange, resyncNow, startSync, stopSync } from '../../lib/sync'
 
 /**
  * "Bring your own Firebase project" sync setup — same trust model as the
@@ -65,10 +65,16 @@ export function SyncSettingsPage() {
     const stored = getStoredSignInEmail()
     if (!stored) return
     completeSignInFromLink(stored, linkToComplete)
-      .then((signedInUser) => {
+      .then(async (signedInUser) => {
         setLinkToComplete(null)
-        void startSync(signedInUser.uid)
-        flash('Angemeldet.')
+        try {
+          await startSync(signedInUser.uid)
+          flash('Angemeldet.')
+        } catch {
+          setError(
+            'Angemeldet, aber die erste Synchronisation ist fehlgeschlagen. Bitte "Jetzt synchronisieren" versuchen.',
+          )
+        }
       })
       .catch(() => setError('Anmeldelink ungültig oder abgelaufen. Bitte einen neuen Link anfordern.'))
   }, [linkToComplete, flash])
@@ -119,8 +125,14 @@ export function SyncSettingsPage() {
     try {
       const signedInUser = await completeSignInFromLink(confirmEmail.trim(), linkToComplete)
       setLinkToComplete(null)
-      void startSync(signedInUser.uid)
-      flash('Angemeldet.')
+      try {
+        await startSync(signedInUser.uid)
+        flash('Angemeldet.')
+      } catch {
+        setError(
+          'Angemeldet, aber die erste Synchronisation ist fehlgeschlagen. Bitte "Jetzt synchronisieren" versuchen.',
+        )
+      }
     } catch {
       setError('Anmeldelink ungültig oder abgelaufen. Bitte einen neuen Link anfordern.')
     } finally {
@@ -151,9 +163,15 @@ export function SyncSettingsPage() {
 
   async function handleResync() {
     setBusy(true)
-    await resyncNow().catch(() => {})
-    setBusy(false)
-    flash('Synchronisiert.')
+    setError(null)
+    try {
+      await resyncNow()
+      flash('Synchronisiert.')
+    } catch {
+      setError('Synchronisation fehlgeschlagen. Bitte später erneut versuchen.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   const openedInSafariNotApp = linkToComplete !== null && !isRunningStandalone()
@@ -247,8 +265,12 @@ export function SyncSettingsPage() {
             <>
               <p className="mb-3 text-sm text-ink">
                 Angemeldet als <span className="font-medium">{user.email}</span>.{' '}
-                <span className="text-xs text-ink-soft">
-                  {getSyncStatus() === 'syncing' ? 'Synchronisation aktiv.' : 'Wird verbunden…'}
+                <span className={`text-xs ${getSyncStatus() === 'error' ? 'text-red-500' : 'text-ink-soft'}`}>
+                  {getSyncStatus() === 'syncing'
+                    ? 'Synchronisation aktiv.'
+                    : getSyncStatus() === 'error'
+                      ? `Synchronisation fehlgeschlagen: ${getSyncError()}`
+                      : 'Wird verbunden…'}
                 </span>
               </p>
               <div className="flex gap-2">
