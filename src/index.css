@@ -3,6 +3,37 @@
 @theme {
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Inter, ui-sans-serif, system-ui, sans-serif;
 
+  /* Size-specific tracking and leading, the way Apple's system font ships its
+     own optical-size tables (WWDC20, "The Details of UI Typography"). Letters
+     read progressively too far apart as type grows, so tracking goes negative
+     with size and slightly positive at caption sizes; leading tightens as
+     size grows. One global letter-spacing would be wrong at both ends.
+     Font sizes themselves are Tailwind's untouched defaults — only the
+     tracking/leading pairs are tuned here. */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-xs--letter-spacing: 0.006em;
+
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
+  --text-sm--letter-spacing: 0em;
+
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-base--letter-spacing: -0.006em;
+
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.6rem;
+  --text-lg--letter-spacing: -0.014em;
+
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.7rem;
+  --text-xl--letter-spacing: -0.019em;
+
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 1.9rem;
+  --text-2xl--letter-spacing: -0.023em;
+
   /* Apple-inspired light palette */
   --color-bg: #f2f2f7;
   --color-surface: #ffffff;
@@ -48,6 +79,41 @@ body {
     --color-fat: #ffd60a;
     --color-danger: #ff453a;
   }
+}
+
+/* The caption sizes below text-xs are one-off arbitrary values (the ring
+   labels, the badge numbers), so they can't carry tracking through the theme
+   scale above. At these sizes the same rule applies — a little extra tracking
+   is what keeps them legible. Verified none of them also set a tracking-*
+   utility, so this can't silently override one. */
+.text-\[9px\],
+.text-\[10px\],
+.text-\[11px\] {
+  letter-spacing: 0.012em;
+}
+
+/* Instant press feedback (Apple: "respond on pointer-down, not release" —
+   WWDC18 Designing Fluid Interfaces). Deliberately has no transition of its
+   own: pressing in should be immediate, never eased. Releasing relies on
+   whatever transition each button's own classes already declare (most use
+   transition-colors, which doesn't cover transform, so release also snaps
+   back instantly) — this rule only ever adds a transform value, so it can
+   never override an existing transition-property elsewhere. */
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+/* A meal/recipe card isn't itself a button (it holds several — open, delete,
+   confirm), so pressing its title would otherwise shrink just that line of
+   text. Instead the whole card responds, but only for the presses that mean
+   "open this card" (.press-target) — pressing Löschen/Abbrechen keeps its own
+   button-level feedback, since those don't open anything. Big surfaces move
+   less than small controls, hence the gentler scale. */
+.press-card:has(.press-target:active) {
+  transform: scale(0.985);
+}
+.press-card .press-target:active {
+  transform: none;
 }
 
 /* Hide number input spinners for a cleaner nutrition-edit UI */
@@ -103,6 +169,62 @@ input[type="number"] {
   .glass-subtle {
     background: rgba(28, 28, 30, 0.55);
     border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* --- Accessibility preferences (Apple treats these as three independent
+       signals, not one "accessibility mode") --- */
+
+/* Reduced transparency: the frosted layers become solid. Blur is what costs
+   legibility here, so it goes entirely rather than being softened. The
+   decorative top gradient goes too — with nothing left to frost it's just a
+   colored wash behind text. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-subtle {
+    background: var(--color-surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .glass-accent {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .top-gradient {
+    display: none;
+  }
+}
+
+/* Increased contrast: near-solid surfaces with a defined border, so every
+   panel edge is unambiguous rather than implied by a soft translucency. */
+@media (prefers-contrast: more) {
+  .glass,
+  .glass-subtle {
+    background: var(--color-surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid var(--color-ink);
+  }
+}
+
+/* Reduced motion: the JS-driven springs already branch on this via Motion's
+   useReducedMotion(), so this only has to cover the CSS-only motion — the
+   press scale, the chevron rotations, the editors' step slide. Feedback
+   itself stays (colors, opacity); only the movement goes. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  button:not(:disabled):active,
+  .press-card:has(.press-target:active) {
+    transform: none;
   }
 }
 

@@ -1,4 +1,6 @@
 import { NavLink } from 'react-router-dom'
+import { motion, useReducedMotion } from 'motion/react'
+import { SPRING_SNAPPY } from '../lib/motionTokens'
 
 const TABS = [
   { to: '/recipes', label: 'Rezepte', icon: RecipesIcon, end: false },
@@ -8,6 +10,8 @@ const TABS = [
 ]
 
 export function BottomNav({ onAddMeal }: { onAddMeal: () => void }) {
+  const prefersReducedMotion = useReducedMotion()
+
   return (
     // pointer-events-none on the full-width wrapper + pointer-events-auto on the
     // visible pill: otherwise the transparent strip around the pill still
@@ -15,18 +19,26 @@ export function BottomNav({ onAddMeal }: { onAddMeal: () => void }) {
     <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pointer-events-none">
       <div className="glass pointer-events-auto mx-4 flex gap-1 rounded-full p-1.5">
         {TABS.map(({ to, label, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            aria-label={label}
-            className={({ isActive }) =>
-              `flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
-                isActive ? 'glass-accent' : 'text-ink-soft'
-              }`
-            }
-          >
-            <Icon />
+          <NavLink key={to} to={to} end={end} aria-label={label} className="relative flex h-11 w-11 items-center justify-center rounded-full">
+            {({ isActive }) => (
+              <>
+                {/* A single shared-layoutId pill slides between tabs instead of
+                    each tab getting its own independent background — the same
+                    "magnetic" tab-bar motion iOS uses, so switching tabs reads
+                    as one element moving, not one fading out while another
+                    fades in. */}
+                {isActive && (
+                  <motion.div
+                    layoutId="nav-active-pill"
+                    className="glass-accent absolute inset-0 rounded-full"
+                    transition={prefersReducedMotion ? { duration: 0 } : SPRING_SNAPPY}
+                  />
+                )}
+                <span className={`relative z-10 transition-colors ${isActive ? 'text-white' : 'text-ink-soft'}`}>
+                  <Icon />
+                </span>
+              </>
+            )}
           </NavLink>
         ))}
         {/* Adds a meal for "Heute" — an action, not a route, so unlike the

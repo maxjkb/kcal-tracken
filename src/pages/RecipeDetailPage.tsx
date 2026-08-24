@@ -6,6 +6,7 @@ import { RecipeEditor } from '../components/RecipeEditor'
 import { ChevronIcon } from '../components/ChevronIcon'
 import { MacroBadge, MacroRingBadge } from '../components/MacroBadge'
 import { SlideInPage } from '../components/SlideInPage'
+import { Collapse } from '../components/Collapse'
 
 function ChevronDown({ open }: { open: boolean }) {
   return (
@@ -68,7 +69,7 @@ export function RecipeDetailPage() {
               Zutaten
               <ChevronDown open={ingredientsOpen} />
             </button>
-            {ingredientsOpen && (
+            <Collapse open={ingredientsOpen}>
               <div className="mt-2 flex flex-col gap-2.5">
                 {recipe.ingredients.map((ing, i) => (
                   <div key={i}>
@@ -84,7 +85,7 @@ export function RecipeDetailPage() {
                   </div>
                 ))}
               </div>
-            )}
+            </Collapse>
           </div>
         )}
 
@@ -97,7 +98,7 @@ export function RecipeDetailPage() {
               Zubereitung
               <ChevronDown open={stepsOpen} />
             </button>
-            {stepsOpen && (
+            <Collapse open={stepsOpen}>
               <ol className="mt-2 flex flex-col gap-2">
                 {recipe.steps.map((s, i) => (
                   <li key={i} className="flex gap-2 text-sm text-ink">
@@ -106,7 +107,7 @@ export function RecipeDetailPage() {
                   </li>
                 ))}
               </ol>
-            )}
+            </Collapse>
           </div>
         )}
 

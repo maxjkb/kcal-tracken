@@ -20,7 +20,7 @@ export function TopGradient() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[28vh]"
+      className="top-gradient pointer-events-none fixed inset-x-0 top-0 -z-10 h-[28vh]"
       style={{
         background:
           'linear-gradient(to bottom, color-mix(in srgb, var(--color-accent) 45%, transparent), transparent)',

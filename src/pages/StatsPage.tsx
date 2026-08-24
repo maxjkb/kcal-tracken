@@ -31,6 +31,9 @@ import {
   type Period,
 } from '../lib/stats'
 
+import { motion, useReducedMotion } from 'motion/react'
+import { SPRING_SNAPPY } from '../lib/motionTokens'
+
 const PERIODS: { key: Period; label: string }[] = [
   { key: 'day', label: 'Tag' },
   { key: 'week', label: 'Woche' },
@@ -40,6 +43,7 @@ const PERIODS: { key: Period; label: string }[] = [
 
 export function StatsPage() {
   const navigate = useNavigate()
+  const prefersReducedMotion = useReducedMotion()
   const [period, setPeriod] = useState<Period>('week')
   const [anchorKey, setAnchorKey] = useState(() => toLocalDateKey(new Date()))
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -136,16 +140,27 @@ export function StatsPage() {
         </button>
       </div>
 
+      {/* One shared pill slides between the segments (Motion `layoutId`)
+          instead of each segment fading its own background in and out — the
+          segmented-control behavior iOS uses, where the selection reads as a
+          single object moving to the tapped option. */}
       <div className="glass-subtle mb-4 flex gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5">
         {PERIODS.map(({ key, label }) => (
           <button
             key={key}
             onClick={() => setPeriod(key)}
-            className={`flex-1 rounded-full py-2 text-sm font-medium transition ${
-              period === key ? 'bg-accent/20 text-ink' : 'text-ink-soft hover:text-ink'
+            className={`relative flex-1 rounded-full py-2 text-sm font-medium transition-colors ${
+              period === key ? 'text-ink' : 'text-ink-soft hover:text-ink'
             }`}
           >
-            {label}
+            {period === key && (
+              <motion.span
+                layoutId="stats-period-pill"
+                className="absolute inset-0 rounded-full bg-accent/20"
+                transition={prefersReducedMotion ? { duration: 0 } : SPRING_SNAPPY}
+              />
+            )}
+            <span className="relative z-10">{label}</span>
           </button>
         ))}
       </div>
