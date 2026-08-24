@@ -312,9 +312,7 @@ export function MealEditor({
                             </div>
                           </div>
                           <div className="mt-1.5 flex flex-wrap gap-1.5">
-                            <span className="rounded-full bg-kcal/15 px-2 py-0.5 text-[11px] font-semibold text-ink">
-                              {Math.round(ing.kcal)} kcal
-                            </span>
+                            <MacroBadge type="kcal" value={ing.kcal} size="sm" />
                             <MacroBadge type="protein" value={ing.protein} size="sm" />
                             <MacroBadge type="carbs" value={ing.carbs} size="sm" />
                             <MacroBadge type="fat" value={ing.fat} size="sm" />

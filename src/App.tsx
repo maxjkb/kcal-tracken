@@ -27,16 +27,7 @@ export default function App() {
         />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
-      <BottomNav />
-
-      {/* Freischwebender Plus-Button — auf jeder Seite sichtbar, fügt immer für "Heute" hinzu. */}
-      <button
-        onClick={() => setAddingMeal(true)}
-        aria-label="Mahlzeit hinzufügen"
-        className="glass-accent fixed bottom-[calc(env(safe-area-inset-bottom)+5.25rem)] right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full shadow-lg shadow-black/15"
-      >
-        <PlusIcon />
-      </button>
+      <BottomNav onAddMeal={() => setAddingMeal(true)} />
 
       {addingMeal && (
         <MealEditor
@@ -46,13 +37,5 @@ export default function App() {
         />
       )}
     </div>
-  )
-}
-
-function PlusIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} className="h-6 w-6">
-      <path strokeLinecap="round" d="M12 5v14M5 12h14" />
-    </svg>
   )
 }

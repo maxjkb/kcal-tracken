@@ -61,7 +61,7 @@ export function exportDiaryPdf(params: {
 
   autoTable(doc, {
     startY: 128,
-    head: [['Datum', 'Kalorien (kcal)', 'Protein (g)', 'Kohlenhydrate (g)', 'Fett (g)']],
+    head: [['Datum', 'Kalorien (kcal)', 'Protein (g)', 'Carbs (g)', 'Fett (g)']],
     body: sortedDates.map((date) => {
       const n = byDate.get(date)!
       return [

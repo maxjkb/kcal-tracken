@@ -15,7 +15,7 @@ import { MEAL_TYPE_LABELS, toLocalDateKey, type Meal } from '../lib/db'
 import { lazyRetry } from '../lib/lazyRetry'
 import { MacroBadge } from '../components/MacroBadge'
 import { ChevronIcon } from '../components/ChevronIcon'
-import { NutrientRings } from '../components/NutrientRings'
+import { ConcentricRings, NutrientRings } from '../components/NutrientRings'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import {
   bucketByDay,
@@ -66,9 +66,17 @@ export function StatsPage() {
   }
 
   const mealCount = meals?.length ?? 0
-  const avgKcalPerMeal = mealCount > 0 ? totals.kcal / mealCount : 0
   const dailyAverage = computeDailyAverage(startKey, endKey, totals.kcal)
   const macroAverages = computeDailyMacroAverages(startKey, endKey, totals)
+  const perMealAverages =
+    mealCount > 0
+      ? {
+          kcal: totals.kcal / mealCount,
+          protein: totals.protein / mealCount,
+          carbs: totals.carbs / mealCount,
+          fat: totals.fat / mealCount,
+        }
+      : { kcal: 0, protein: 0, carbs: 0, fat: 0 }
 
   const bodyProfile = getBodyProfile()
   const dailyTargets = bodyProfile ? computeDailyTargets(bodyProfile) : null
@@ -83,7 +91,7 @@ export function StatsPage() {
       : []
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-40 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
+    <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-ink">Statistik</h1>
         <button
@@ -113,7 +121,7 @@ export function StatsPage() {
       <div className="glass-subtle mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
         <button
           onClick={() => setAnchorKey((k) => shiftAnchor(period, k, -1))}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-ink"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-white"
           aria-label="Vorheriger Zeitraum"
         >
           <ChevronIcon direction="left" />
@@ -121,27 +129,24 @@ export function StatsPage() {
         <span className="text-sm font-medium text-ink">{formatPeriodLabel(period, anchorKey)}</span>
         <button
           onClick={() => setAnchorKey((k) => shiftAnchor(period, k, 1))}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-ink"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-white"
           aria-label="Nächster Zeitraum"
         >
           <ChevronIcon direction="right" />
         </button>
       </div>
 
-      <div className="mb-6 grid grid-cols-3 gap-2">
-        <StatTile value={Math.round(totals.kcal).toLocaleString('de-DE')} label="kcal gesamt" />
-        {period === 'day' ? (
-          <StatTile value={Math.round(avgKcalPerMeal).toLocaleString('de-DE')} label="Ø kcal / Mahlzeit" />
-        ) : (
+      {period === 'day' ? (
+        <div className="glass-subtle mb-6 rounded-3xl p-4 shadow-sm shadow-black/5">
+          <ConcentricRings kcal={totals.kcal} protein={totals.protein} carbs={totals.carbs} fat={totals.fat} targets={dailyTargets} />
+        </div>
+      ) : (
+        <div className="mb-6 grid grid-cols-3 gap-2">
+          <StatTile value={Math.round(totals.kcal).toLocaleString('de-DE')} label="kcal gesamt" />
           <StatTile value={Math.round(dailyAverage).toLocaleString('de-DE')} label="Ø kcal / Tag" />
-        )}
-        <MacroTile
-          heading={period === 'day' ? 'Nährwerte' : 'Ø Nährwerte/Tag'}
-          protein={period === 'day' ? totals.protein : macroAverages.protein}
-          carbs={period === 'day' ? totals.carbs : macroAverages.carbs}
-          fat={period === 'day' ? totals.fat : macroAverages.fat}
-        />
-      </div>
+          <MacroTile heading="Ø Nährwerte/Tag" protein={macroAverages.protein} carbs={macroAverages.carbs} fat={macroAverages.fat} />
+        </div>
+      )}
 
       {period === 'day' ? (
         <div className="glass-subtle rounded-3xl p-5 shadow-sm shadow-black/5">
@@ -150,7 +155,14 @@ export function StatsPage() {
           ) : perMealData.length === 0 ? (
             <p className="py-10 text-center text-sm text-ink-soft">Keine Mahlzeiten an diesem Tag.</p>
           ) : (
-            <NutrientRings kcal={totals.kcal} protein={totals.protein} carbs={totals.carbs} fat={totals.fat} targets={dailyTargets} />
+            <NutrientRings
+              kcal={totals.kcal}
+              protein={totals.protein}
+              carbs={totals.carbs}
+              fat={totals.fat}
+              targets={dailyTargets}
+              perMeal={perMealAverages}
+            />
           )}
         </div>
       ) : (
@@ -172,7 +184,7 @@ export function StatsPage() {
                   labelStyle={{ color: '#1d1d1f' }}
                   formatter={(v) => [`${Math.round(Number(v))} kcal`, 'Gesamt']}
                 />
-                <Line type="monotone" dataKey="kcal" stroke="#34c759" strokeWidth={2.5} dot={{ r: 3, fill: '#34c759' }} />
+                <Line type="monotone" dataKey="kcal" stroke="#0a84ff" strokeWidth={2.5} dot={{ r: 3, fill: '#0a84ff' }} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -193,7 +205,7 @@ export function StatsPage() {
                   labelStyle={{ color: '#1d1d1f' }}
                   formatter={(v) => [`${Math.round(Number(v))} kcal`, 'Kalorien']}
                 />
-                <Bar dataKey="kcal" fill="#34c759" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="kcal" fill="#0a84ff" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
