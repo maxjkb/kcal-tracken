@@ -4,6 +4,8 @@ import { ChevronIcon } from '../components/ChevronIcon'
 import { getApiKey } from '../lib/settings'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { isStoragePersisted } from '../lib/persistence'
+import { getFirebaseConfig } from '../lib/firebaseConfig'
+import { onAuthChange } from '../lib/firebase'
 
 /**
  * The Einstellungen root — a category menu (icon, title, current-status
@@ -24,6 +26,14 @@ export function SettingsPage() {
     isStoragePersisted().then(setPersisted)
   }, [])
   const storageSubtitle = persisted === true ? 'Aktiv' : persisted === false ? 'Nicht aktiv' : 'Wird geprüft…'
+
+  const firebaseConfig = getFirebaseConfig()
+  const [syncEmail, setSyncEmail] = useState<string | null>(null)
+  useEffect(() => {
+    if (!getFirebaseConfig()) return
+    return onAuthChange((user) => setSyncEmail(user?.email ?? null))
+  }, [])
+  const syncSubtitle = !firebaseConfig ? 'Nicht eingerichtet' : syncEmail ? `Angemeldet als ${syncEmail}` : 'Nicht angemeldet'
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
@@ -57,6 +67,13 @@ export function SettingsPage() {
           icon={<DataIcon />}
           title="Daten"
           subtitle="Backup & Zurücksetzen"
+        />
+        <SettingsRow
+          to="/settings/sync"
+          iconBg="bg-pink-500"
+          icon={<SyncIcon />}
+          title="Sync"
+          subtitle={syncSubtitle}
         />
       </div>
     </div>
@@ -115,6 +132,15 @@ function StorageIcon() {
       <rect x="3" y="14" width="18" height="6" rx="2" />
       <circle cx="7" cy="7" r="0.6" fill="currentColor" stroke="none" />
       <circle cx="7" cy="17" r="0.6" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+function SyncIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 12a8 8 0 0 1 13.66-5.66M20 12a8 8 0 0 1-13.66 5.66" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17.66 3v4h-4M6.34 21v-4h4" />
     </svg>
   )
 }
