@@ -78,24 +78,43 @@ export async function sendSignInLink(email: string): Promise<void> {
   window.localStorage.setItem(EMAIL_STORAGE_KEY, email)
 }
 
-export async function isSignInLinkUrl(): Promise<boolean> {
+/**
+ * Checks whether `url` (defaults to the current page's own URL) is a
+ * Firebase sign-in link. Accepts an explicit `url` so a link that arrived in
+ * a different browsing context — e.g. tapped from Mail, which iOS always
+ * opens in Safari, never directly in an installed "Add to Home Screen" app —
+ * can be pasted back in and completed from within the installed app itself,
+ * whose storage is otherwise completely isolated from Safari's on iOS.
+ */
+export async function isSignInLinkUrl(url: string = window.location.href): Promise<boolean> {
   const services = await getFirebaseServices()
   if (!services) return false
   const { isSignInWithEmailLink } = await import('firebase/auth')
-  return isSignInWithEmailLink(services.auth, window.location.href)
+  return isSignInWithEmailLink(services.auth, url)
 }
 
-export async function completeSignInFromLink(email: string): Promise<User> {
+export async function completeSignInFromLink(
+  email: string,
+  url: string = window.location.href,
+): Promise<User> {
   const services = await getFirebaseServices()
   if (!services) throw new Error('Kein Firebase-Projekt hinterlegt.')
   const { signInWithEmailLink } = await import('firebase/auth')
-  const credential = await signInWithEmailLink(services.auth, email, window.location.href)
+  const credential = await signInWithEmailLink(services.auth, email, url)
   window.localStorage.removeItem(EMAIL_STORAGE_KEY)
   return credential.user
 }
 
 export function getStoredSignInEmail(): string | null {
   return window.localStorage.getItem(EMAIL_STORAGE_KEY)
+}
+
+/** True when running as an installed "Add to Home Screen" app rather than a regular browser tab. */
+export function isRunningStandalone(): boolean {
+  return (
+    window.matchMedia?.('(display-mode: standalone)').matches ||
+    (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+  )
 }
 
 export async function signOutSync(): Promise<void> {
