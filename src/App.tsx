@@ -3,6 +3,10 @@ import { Route, Routes } from 'react-router-dom'
 import { BottomNav } from './components/BottomNav'
 import { FeedPage } from './pages/FeedPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { BodyProfilePage } from './pages/settings/BodyProfilePage'
+import { ApiSettingsPage } from './pages/settings/ApiSettingsPage'
+import { StorageSettingsPage } from './pages/settings/StorageSettingsPage'
+import { DataSettingsPage } from './pages/settings/DataSettingsPage'
 import { MealEditor } from './components/MealEditor'
 import { lazyRetry } from './lib/lazyRetry'
 import { toLocalDateKey } from './lib/db'
@@ -26,6 +30,10 @@ export default function App() {
           }
         />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/settings/koerperwerte" element={<BodyProfilePage />} />
+        <Route path="/settings/api" element={<ApiSettingsPage />} />
+        <Route path="/settings/speicher" element={<StorageSettingsPage />} />
+        <Route path="/settings/daten" element={<DataSettingsPage />} />
       </Routes>
       <BottomNav onAddMeal={() => setAddingMeal(true)} />
 
