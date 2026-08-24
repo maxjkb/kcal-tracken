@@ -3,6 +3,8 @@ import { searchFoodDatabaseMany, type FoodDatabaseMatch } from './foodDatabase'
 
 const DEFAULT_MODEL = 'gemini-3.6-flash'
 const MODEL_STORAGE_KEY = 'kcal-tracker:gemini-model'
+/** Tried automatically when the configured model's quota is exhausted (429) — same model suggested in Settings for its higher free quota. */
+const FALLBACK_MODEL = 'gemini-3.5-flash-lite'
 
 export function getModel(): string {
   try {
@@ -169,17 +171,48 @@ interface GeminiResponse {
   promptFeedback?: { blockReason?: string }
 }
 
+/**
+ * Wraps the raw call with an automatic one-time model fallback: if the
+ * configured model's quota is exhausted (429) and a higher-quota fallback
+ * model exists and isn't already the one configured, silently retry with
+ * that model. On success, it's persisted as the new default (setModel) so
+ * later calls go straight to the model that actually has quota left,
+ * instead of hitting the exhausted one every time until it resets. If the
+ * fallback also fails, the original rate-limit error is surfaced — it's
+ * more informative than the fallback's.
+ */
 async function callGemini(params: {
   systemPrompt: string
   parts: GeminiPart[]
   responseSchema: object
 }): Promise<Record<string, unknown>> {
+  const primaryModel = getModel()
+  try {
+    return await callGeminiRaw(primaryModel, params)
+  } catch (err) {
+    const isRateLimited = err instanceof GeminiError && err.status === 429
+    if (isRateLimited && primaryModel !== FALLBACK_MODEL) {
+      try {
+        const result = await callGeminiRaw(FALLBACK_MODEL, params)
+        setModel(FALLBACK_MODEL)
+        return result
+      } catch {
+        throw err
+      }
+    }
+    throw err
+  }
+}
+
+async function callGeminiRaw(
+  model: string,
+  params: { systemPrompt: string; parts: GeminiPart[]; responseSchema: object },
+): Promise<Record<string, unknown>> {
   const apiKey = getApiKey()
   if (!apiKey) {
     throw new GeminiError('Kein API-Key hinterlegt. Bitte in den Einstellungen eintragen.')
   }
 
-  const model = getModel()
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`
 
   let response: Response

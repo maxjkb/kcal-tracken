@@ -1,6 +1,7 @@
 import { Suspense, lazy, useState } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import { BottomNav } from './components/BottomNav'
+import { TopGradient } from './components/TopGradient'
 import { FeedPage } from './pages/FeedPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { BodyProfilePage } from './pages/settings/BodyProfilePage'
@@ -24,61 +25,76 @@ const RecipeDetailPage = lazy(
 
 const recipesFallback = <p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>
 
+// Only the three main-page roots get the decorative top gradient — not their
+// sub-pages (recipe category/detail, settings, …).
+const TOP_GRADIENT_PATHS = ['/', '/recipes', '/stats']
+
 export default function App() {
   const [addingMeal, setAddingMeal] = useState(false)
+  const location = useLocation()
 
   return (
-    <div className="min-h-screen bg-bg">
-      <Routes>
-        <Route path="/" element={<FeedPage />} />
-        <Route
-          path="/stats"
-          element={
-            <Suspense fallback={<p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>}>
-              <StatsPage />
-            </Suspense>
-          }
-        />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/settings/koerperwerte" element={<BodyProfilePage />} />
-        <Route path="/settings/api" element={<ApiSettingsPage />} />
-        <Route path="/settings/speicher" element={<StorageSettingsPage />} />
-        <Route path="/settings/daten" element={<DataSettingsPage />} />
-        <Route path="/settings/sync" element={<SyncSettingsPage />} />
-        <Route
-          path="/recipes"
-          element={
-            <Suspense fallback={recipesFallback}>
-              <RecipesPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="/recipes/:category"
-          element={
-            <Suspense fallback={recipesFallback}>
-              <RecipeCategoryPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="/recipes/:category/:id"
-          element={
-            <Suspense fallback={recipesFallback}>
-              <RecipeDetailPage />
-            </Suspense>
-          }
-        />
-      </Routes>
-      <BottomNav onAddMeal={() => setAddingMeal(true)} />
+    <>
+      {/* Rendered outside the min-h-screen wrapper below, and that wrapper's
+          own explicit bg-bg is dropped in favor of body's identical
+          background (see index.css) — an opaque sibling paints over a
+          negative-z-index fixed element regardless of z-index, since that's
+          a later, non-positioned paint step that simply covers whatever's
+          behind it; body's own canvas-level background doesn't have that
+          problem, it's always the bottom-most layer. */}
+      {TOP_GRADIENT_PATHS.includes(location.pathname) && <TopGradient />}
+      <div className="min-h-screen">
+        <Routes>
+          <Route path="/" element={<FeedPage />} />
+          <Route
+            path="/stats"
+            element={
+              <Suspense fallback={<p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>}>
+                <StatsPage />
+              </Suspense>
+            }
+          />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/settings/koerperwerte" element={<BodyProfilePage />} />
+          <Route path="/settings/api" element={<ApiSettingsPage />} />
+          <Route path="/settings/speicher" element={<StorageSettingsPage />} />
+          <Route path="/settings/daten" element={<DataSettingsPage />} />
+          <Route path="/settings/sync" element={<SyncSettingsPage />} />
+          <Route
+            path="/recipes"
+            element={
+              <Suspense fallback={recipesFallback}>
+                <RecipesPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/recipes/:category"
+            element={
+              <Suspense fallback={recipesFallback}>
+                <RecipeCategoryPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/recipes/:category/:id"
+            element={
+              <Suspense fallback={recipesFallback}>
+                <RecipeDetailPage />
+              </Suspense>
+            }
+          />
+        </Routes>
+        <BottomNav onAddMeal={() => setAddingMeal(true)} />
 
-      {addingMeal && (
-        <MealEditor
-          date={toLocalDateKey(new Date())}
-          defaultMealType={guessMealType()}
-          onClose={() => setAddingMeal(false)}
-        />
-      )}
-    </div>
+        {addingMeal && (
+          <MealEditor
+            date={toLocalDateKey(new Date())}
+            defaultMealType={guessMealType()}
+            onClose={() => setAddingMeal(false)}
+          />
+        )}
+      </div>
+    </>
   )
 }
