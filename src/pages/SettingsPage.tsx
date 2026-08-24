@@ -1,246 +1,129 @@
-import { useEffect, useState } from 'react'
-import { clearApiKey, getApiKey, setApiKey } from '../lib/settings'
-import { getModel, setModel } from '../lib/gemini'
-import { db } from '../lib/db'
-import { isStoragePersisted, requestPersistentStorage } from '../lib/persistence'
-import { BodyProfileSection } from '../components/BodyProfileSection'
+import { useEffect, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
+import { ChevronIcon } from '../components/ChevronIcon'
+import { getApiKey } from '../lib/settings'
+import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
+import { isStoragePersisted } from '../lib/persistence'
 
-const MODEL_SUGGESTIONS = [
-  { value: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash (empfohlen – gutes Gratis-Kontingent)' },
-  { value: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite (schneller, höheres Kontingent)' },
-]
-
+/**
+ * The Einstellungen root — a category menu (icon, title, current-status
+ * subtitle, chevron) instead of every section's full content at once,
+ * mirroring iOS's own Settings app: tap a category to drill into its
+ * detail screen (src/pages/settings/*).
+ */
 export function SettingsPage() {
-  const [apiKey, setApiKeyInput] = useState(getApiKey() ?? '')
-  const [showKey, setShowKey] = useState(false)
-  const [model, setModelInput] = useState(getModel())
-  const [savedMsg, setSavedMsg] = useState<string | null>(null)
-  const [confirmingReset, setConfirmingReset] = useState(false)
-  const [persisted, setPersisted] = useState<boolean | null>(null)
+  const bodyProfile = getBodyProfile()
+  const bodyProfileSubtitle = bodyProfile
+    ? `Ziel: ${computeDailyTargets(bodyProfile).kcal} kcal/Tag`
+    : 'Nicht eingerichtet'
 
+  const apiKeySubtitle = getApiKey() ? 'Konfiguriert' : 'Kein Key hinterlegt'
+
+  const [persisted, setPersisted] = useState<boolean | null>(null)
   useEffect(() => {
     isStoragePersisted().then(setPersisted)
   }, [])
-
-  function flashSaved(message: string) {
-    setSavedMsg(message)
-    setTimeout(() => setSavedMsg(null), 2500)
-  }
-
-  async function handleRequestPersistence() {
-    const granted = await requestPersistentStorage()
-    setPersisted(granted)
-    flashSaved(granted ? 'Dauerhafter Speicher aktiviert.' : 'Browser hat dauerhaften Speicher (noch) nicht gewährt.')
-  }
-
-  function handleSaveKey() {
-    if (apiKey.trim()) {
-      setApiKey(apiKey)
-      flashSaved('API-Key gespeichert.')
-    } else {
-      clearApiKey()
-      flashSaved('API-Key entfernt.')
-    }
-  }
-
-  function handleModelChange(value: string) {
-    setModelInput(value)
-    setModel(value)
-  }
-
-  async function handleExport() {
-    const meals = await db.meals.toArray()
-    const blob = new Blob([JSON.stringify(meals, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `kcal-tracker-export-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  async function handleImport(file: File | undefined) {
-    if (!file) return
-    const text = await file.text()
-    try {
-      const meals = JSON.parse(text)
-      if (!Array.isArray(meals)) throw new Error('invalid')
-      await db.meals.bulkPut(meals)
-      flashSaved(`${meals.length} Mahlzeiten importiert.`)
-    } catch {
-      flashSaved('Import fehlgeschlagen: ungültige Datei.')
-    }
-  }
-
-  async function handleResetAll() {
-    await db.meals.clear()
-    setConfirmingReset(false)
-    flashSaved('Alle Mahlzeiten gelöscht.')
-  }
+  const storageSubtitle = persisted === true ? 'Aktiv' : persisted === false ? 'Nicht aktiv' : 'Wird geprüft…'
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       <h1 className="mb-4 text-2xl font-bold tracking-tight text-ink">Einstellungen</h1>
 
-      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
-        <h2 className="mb-1 text-sm font-semibold text-ink">Google Gemini API-Key</h2>
-        <p className="mb-3 text-xs text-ink-soft">
-          Kostenlos im Rahmen des Gratis-Kontingents von Google. Wird nur lokal in deinem Browser
-          gespeichert – nie an einen Server außer die Gemini-API gesendet. Einen Key bekommst du
-          unter{' '}
-          <a
-            href="https://aistudio.google.com/apikey"
-            target="_blank"
-            rel="noreferrer"
-            className="font-medium text-accent underline"
-          >
-            aistudio.google.com/apikey
-          </a>{' '}
-          (Google-Konto nötig, kein Zahlungsmittel erforderlich). Das Gratis-Kontingent ist
-          rate-limitiert – bei "Rate-Limit erreicht" einfach kurz warten.
-        </p>
-        <div className="flex gap-2">
-          <input
-            type={showKey ? 'text' : 'password'}
-            value={apiKey}
-            onChange={(e) => setApiKeyInput(e.target.value)}
-            placeholder="AIza…"
-            className="flex-1 rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
-          />
-          <button
-            type="button"
-            onClick={() => setShowKey((v) => !v)}
-            className="rounded-xl bg-bg px-3 text-xs font-medium text-ink-soft hover:bg-line"
-          >
-            {showKey ? 'Verbergen' : 'Anzeigen'}
-          </button>
-        </div>
-        <button
-          onClick={handleSaveKey}
-          className="glass-accent mt-3 w-full rounded-xl py-2.5 text-sm font-semibold"
-        >
-          Speichern
-        </button>
-      </section>
-
-      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
-        <h2 className="mb-1 text-sm font-semibold text-ink">Modell für Nährwertschätzung</h2>
-        <p className="mb-3 text-xs text-ink-soft">
-          Google benennt Gemini-Modelle gelegentlich um oder schaltet alte Versionen ab. Falls die
-          Schätzung mit "Modell nicht gefunden" fehlschlägt, hier den aktuellen Modellnamen von{' '}
-          <a
-            href="https://ai.google.dev/gemini-api/docs/models"
-            target="_blank"
-            rel="noreferrer"
-            className="font-medium text-accent underline"
-          >
-            ai.google.dev/gemini-api/docs/models
-          </a>{' '}
-          eintragen.
-        </p>
-        <input
-          list="model-suggestions"
-          type="text"
-          value={model}
-          onChange={(e) => handleModelChange(e.target.value)}
-          className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+      <div className="divide-y divide-line overflow-hidden rounded-3xl bg-surface shadow-sm shadow-black/5">
+        <SettingsRow
+          to="/settings/koerperwerte"
+          iconBg="bg-blue-500"
+          icon={<BodyIcon />}
+          title="Körperwerte & Ziele"
+          subtitle={bodyProfileSubtitle}
         />
-        <datalist id="model-suggestions">
-          {MODEL_SUGGESTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </datalist>
-      </section>
-
-      <BodyProfileSection onSaved={() => flashSaved('Körperwerte gespeichert.')} />
-
-      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
-        <h2 className="mb-1 text-sm font-semibold text-ink">Dauerhafter Speicher</h2>
-        <p className="mb-3 text-xs text-ink-soft">
-          Bittet den Browser, API-Key und Mahlzeiten nicht automatisch aufzuräumen (kostenlose
-          Browser-Funktion, kein Backend). Auf iOS ist eine zum Homescreen hinzugefügte App ohnehin
-          von Safaris automatischer 7-Tage-Bereinigung ausgenommen.
-        </p>
-        {persisted === true ? (
-          <p className="rounded-xl bg-carbs/15 px-3 py-2 text-xs font-medium text-ink">
-            ✓ Dauerhafter Speicher aktiv.
-          </p>
-        ) : (
-          <div className="rounded-xl bg-fat/15 px-3 py-2 text-xs text-ink">
-            <p className="mb-2">
-              Dauerhafter Speicher noch nicht bestätigt
-              {persisted === null && ' — dein Browser unterstützt diese Funktion evtl. nicht'}.
-            </p>
-            <button
-              type="button"
-              onClick={handleRequestPersistence}
-              className="rounded-full bg-fat/30 px-3 py-1 font-semibold hover:bg-fat/40"
-            >
-              Jetzt aktivieren
-            </button>
-          </div>
-        )}
-      </section>
-
-      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
-        <h2 className="mb-1 text-sm font-semibold text-ink">Daten</h2>
-        <p className="mb-3 text-xs text-ink-soft">
-          Alle Mahlzeiten und dein API-Key liegen nur in diesem Browser. Exportiere regelmäßig ein
-          Backup, falls du den Browser wechselst oder Speicher leerst. Ein druckfertiges
-          Ernährungstagebuch als PDF exportierst du auf der Statistik-Seite für den dort gewählten
-          Zeitraum.
-        </p>
-
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={handleExport}
-            className="rounded-xl bg-bg py-2.5 text-sm font-medium text-ink hover:bg-line"
-          >
-            Backup exportieren (JSON)
-          </button>
-          <label className="cursor-pointer rounded-xl bg-bg py-2.5 text-center text-sm font-medium text-ink hover:bg-line">
-            Backup importieren
-            <input
-              type="file"
-              accept="application/json"
-              className="hidden"
-              onChange={(e) => handleImport(e.target.files?.[0])}
-            />
-          </label>
-
-          {confirmingReset ? (
-            <div className="flex gap-2">
-              <button
-                onClick={handleResetAll}
-                className="flex-1 rounded-xl bg-danger py-2.5 text-sm font-medium text-white hover:opacity-90"
-              >
-                Wirklich alles löschen
-              </button>
-              <button
-                onClick={() => setConfirmingReset(false)}
-                className="flex-1 rounded-xl bg-bg py-2.5 text-sm text-ink-soft hover:bg-line"
-              >
-                Abbrechen
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setConfirmingReset(true)}
-              className="rounded-xl py-2.5 text-sm font-medium text-danger hover:bg-danger/10"
-            >
-              Alle Mahlzeiten löschen
-            </button>
-          )}
-        </div>
-      </section>
-
-      {savedMsg && (
-        <p className="glass fixed bottom-24 left-1/2 -translate-x-1/2 rounded-full px-4 py-2 text-xs font-medium text-ink">
-          {savedMsg}
-        </p>
-      )}
+        <SettingsRow
+          to="/settings/api"
+          iconBg="bg-violet-500"
+          icon={<KeyIcon />}
+          title="Gemini API"
+          subtitle={apiKeySubtitle}
+        />
+        <SettingsRow
+          to="/settings/speicher"
+          iconBg="bg-teal-500"
+          icon={<StorageIcon />}
+          title="Speicher"
+          subtitle={storageSubtitle}
+        />
+        <SettingsRow
+          to="/settings/daten"
+          iconBg="bg-orange-500"
+          icon={<DataIcon />}
+          title="Daten"
+          subtitle="Backup & Zurücksetzen"
+        />
+      </div>
     </div>
+  )
+}
+
+function SettingsRow({
+  to,
+  icon,
+  iconBg,
+  title,
+  subtitle,
+}: {
+  to: string
+  icon: ReactNode
+  iconBg: string
+  title: string
+  subtitle: string
+}) {
+  return (
+    <Link to={to} className="flex items-center gap-3 px-4 py-3.5 active:bg-bg">
+      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white ${iconBg}`}>
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium text-ink">{title}</span>
+        <span className="block truncate text-xs text-ink-soft">{subtitle}</span>
+      </span>
+      <ChevronIcon direction="right" className="h-4 w-4 shrink-0 text-ink-faint" />
+    </Link>
+  )
+}
+
+function BodyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+      <circle cx="12" cy="6" r="3" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 21c0-4 2.7-6.5 6-6.5S18 17 18 21" />
+    </svg>
+  )
+}
+
+function KeyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+      <circle cx="8" cy="15" r="4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11 12l8-8m0 0h-4m4 0v4" />
+    </svg>
+  )
+}
+
+function StorageIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+      <rect x="3" y="4" width="18" height="6" rx="2" />
+      <rect x="3" y="14" width="18" height="6" rx="2" />
+      <circle cx="7" cy="7" r="0.6" fill="currentColor" stroke="none" />
+      <circle cx="7" cy="17" r="0.6" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+function DataIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15V4m0 0-3.5 3.5M12 4l3.5 3.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
+    </svg>
   )
 }

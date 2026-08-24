@@ -64,7 +64,6 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
 
   return (
     <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
-      <h2 className="mb-1 text-sm font-semibold text-ink">Körperwerte & Tagesbedarf</h2>
       <p className="mb-3 text-xs text-ink-soft">
         Wird genutzt, um deinen täglichen Kalorien- und Makrobedarf zu berechnen (Mifflin-St-Jeor-Formel)
         — dieser erscheint dann als Prozentangabe neben deinen absoluten Werten im Feed und in der
