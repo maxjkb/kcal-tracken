@@ -30,22 +30,48 @@ function describeArc(cx: number, cy: number, r: number, startAngle: number, endA
 }
 
 /**
+ * Shifts a color toward black (amount < 0) or white (amount > 0), where
+ * amount is a fraction of the way there. Deliberately a single, un-nested
+ * color-mix() so it stays valid wherever color-mix is supported at all.
+ */
+function shade(color: string, amount: number): string {
+  const pct = Math.abs(amount) * 100
+  if (pct < 0.5) return color
+  return `color-mix(in srgb, ${amount < 0 ? 'black' : 'white'} ${pct.toFixed(1)}%, ${color})`
+}
+
+/** Past this the ring stops wrapping — one full lap over itself is the most that still reads clearly. */
+const MAX_PERCENT = 200
+
+/** How dark the untouched track is, and the two ends of the progress gradient. */
+const TRACK_SHADE = -0.74
+const GRADIENT_START = -0.3
+const GRADIENT_END = 0.14
+
+/**
  * The actual ring drawing, reused at any radius by both the single-nutrient
- * cards and the concentric "Gesamtwerte" widget — modeled directly on
- * Apple's own Activity rings (per the user's reference screenshots):
- * - No target / 0%: one continuous ring in a dark, desaturated shade of the
- *   nutrient's color (its "track") — not a pale, low-opacity tint, which
- *   reads as washed-out rather than as a dim version of the same hue and
- *   looks inconsistent between light and dark backgrounds.
- * - Under 100%: a bright progress arc from 12 o'clock, the remainder in
- *   that same dark track shade — one continuous closed ring with no gap at
- *   either seam (the round line-caps abut directly), exactly like Apple's.
- * - 100% or over: the ring is fully closed in the bright color (no dark
- *   track left), and any amount past 100% is drawn as a second lap from the
- *   same start point, layered on top in a lighter tint of the same color
- *   with a drop shadow — reading as a distinct raised layer, matching how
- *   Apple's rings visibly wrap over themselves past a full lap instead of
- *   silently capping at "full".
+ * cards and the concentric "Gesamtwerte" widget — modeled on Apple's own
+ * Activity rings (per the user's reference screenshots):
+ *
+ * - 0% / no target: the *full* dark ring is still drawn, so an empty ring
+ *   reads as "this would fill up" rather than disappearing. (Drawing this
+ *   as an arc from 0° to 360° silently fails — both ends resolve to the
+ *   same point at 12 o'clock, SVG skips the zero-length arc, and all that
+ *   survives is the round line-cap: a stray dot. Hence the plain <circle>.)
+ *
+ * - Any progress: one continuous arc from 12 o'clock carrying an angular
+ *   gradient, dark at the start and brightest at the moving tip. The arc is
+ *   drawn as many short segments because SVG has no native conic gradient;
+ *   each segment is a little brighter than the last and painted over it, so
+ *   the round caps blend the steps into a smooth sweep.
+ *
+ * - Past 100%: the *same* arc simply keeps going past 360° onto a second
+ *   lap. Because the gradient is continuous and later segments paint over
+ *   earlier ones, the overlapping stretch is automatically brighter than
+ *   the lap beneath it — so it reads as one ring wrapping over itself,
+ *   not as a separate ring stacked on top. A drop shadow under the tip
+ *   (stronger once it is actually overlapping something) supplies the
+ *   depth cue that sells it.
  */
 function RingVisual({
   cx,
@@ -62,42 +88,63 @@ function RingVisual({
   color: string
   percent: number | null
 }) {
-  const trackColor = `color-mix(in srgb, ${color} 28%, black 72%)`
+  const trackColor = shade(color, TRACK_SHADE)
 
-  if (percent === null) {
+  if (percent === null || percent <= 0) {
     return <circle cx={cx} cy={cy} r={r} fill="none" stroke={trackColor} strokeWidth={strokeWidth} />
   }
 
-  if (percent < 100) {
-    const progressSpan = (percent / 100) * 360
-    return (
-      <>
-        <path d={describeArc(cx, cy, r, progressSpan, 360)} fill="none" stroke={trackColor} strokeWidth={strokeWidth} strokeLinecap="round" />
-        {progressSpan > 0 && (
-          <path d={describeArc(cx, cy, r, 0, progressSpan)} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
-        )}
-      </>
-    )
-  }
+  const sweep = (Math.min(percent, MAX_PERCENT) / 100) * 360
+  const overlapping = sweep > 360
 
-  // 100%+: closed ring, plus an overlapping second lap (capped at one extra
-  // full loop) for the part that exceeds the target — lighter + shadowed so
-  // the overlap is unmistakable, not just implied by the closed base ring.
-  const overSpan = (Math.min(percent - 100, 100) / 100) * 360
-  const wrapColor = `color-mix(in srgb, ${color} 65%, white 35%)`
+  // The round caps are what blend the steps together, so the segment size
+  // that still looks smooth depends on how far a cap reaches around this
+  // particular ring — much further on the tiny inner rings of the compact
+  // widget than on a big one. Sizing the step to that keeps every ring
+  // smooth without emitting hundreds of needless paths on the small ones.
+  const degreesPerCap = (strokeWidth / 2 / r) * (180 / Math.PI)
+  const step = Math.max(3, Math.min(24, degreesPerCap * 0.85))
+  const count = Math.max(2, Math.min(150, Math.ceil(sweep / step)))
+  const segments = Array.from({ length: count }, (_, i) => {
+    const t = i / (count - 1)
+    return {
+      from: (i * sweep) / count,
+      to: ((i + 1) * sweep) / count,
+      stroke: shade(color, GRADIENT_START + (GRADIENT_END - GRADIENT_START) * t),
+    }
+  })
+
+  // The tip is redrawn as one short arc so its shadow is a clean crescent
+  // rather than the sum of a dozen overlapping per-segment shadows.
+  const tipSpan = Math.min(16, sweep)
+
   return (
     <>
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={strokeWidth} />
-      {overSpan > 0 && (
+      {/* Under a full lap the untouched remainder still shows; past it the
+          progress covers the whole circle anyway. */}
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={trackColor} strokeWidth={strokeWidth} />
+      {segments.map((seg) => (
         <path
-          d={describeArc(cx, cy, r, 0, overSpan)}
+          key={seg.from}
+          d={describeArc(cx, cy, r, seg.from, seg.to)}
           fill="none"
-          stroke={wrapColor}
+          stroke={seg.stroke}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
-          style={{ filter: 'drop-shadow(0 2px 2.5px rgba(0,0,0,0.55))' }}
         />
-      )}
+      ))}
+      <path
+        d={describeArc(cx, cy, r, sweep - tipSpan, sweep)}
+        fill="none"
+        stroke={shade(color, GRADIENT_END)}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        style={{
+          filter: overlapping
+            ? 'drop-shadow(0 1.5px 2.5px rgba(0,0,0,0.55))'
+            : 'drop-shadow(0 1px 1.5px rgba(0,0,0,0.3))',
+        }}
+      />
     </>
   )
 }
