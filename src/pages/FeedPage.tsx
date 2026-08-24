@@ -7,6 +7,7 @@ import { MealEditor } from '../components/MealEditor'
 import { MealDetail } from '../components/MealDetail'
 import { ChevronIcon } from '../components/ChevronIcon'
 import { NutrientRings } from '../components/NutrientRings'
+import { DayPickerModal } from '../components/DatePickerModal'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 
 function addDays(dateKey: string, delta: number): string {
@@ -39,6 +40,7 @@ export function FeedPage() {
   const [editorState, setEditorState] = useState<
     { mode: 'closed' } | { mode: 'edit'; meal: Meal } | { mode: 'view'; meal: Meal }
   >({ mode: 'closed' })
+  const [pickerOpen, setPickerOpen] = useState(false)
   const [collapsed, setCollapsed] = useState<Record<MealType, boolean>>({
     breakfast: false,
     lunch: false,
@@ -79,7 +81,9 @@ export function FeedPage() {
           <ChevronIcon direction="left" />
         </button>
         <div className="text-center">
-          <h1 className="text-lg font-semibold text-ink">{formatDateHeading(dateKey)}</h1>
+          <button onClick={() => setPickerOpen(true)} className="text-lg font-semibold text-ink hover:opacity-70">
+            {formatDateHeading(dateKey)}
+          </button>
           {!isToday && (
             <button
               onClick={() => setDateKey(toLocalDateKey(new Date()))}
@@ -142,6 +146,17 @@ export function FeedPage() {
             )
           })}
         </div>
+      )}
+
+      {pickerOpen && (
+        <DayPickerModal
+          selectedDateKey={dateKey}
+          onSelect={(key) => {
+            setDateKey(key)
+            setPickerOpen(false)
+          }}
+          onClose={() => setPickerOpen(false)}
+        />
       )}
 
       {editorState.mode === 'view' && (
