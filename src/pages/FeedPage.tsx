@@ -8,6 +8,7 @@ import { MealDetail } from '../components/MealDetail'
 import { ChevronIcon } from '../components/ChevronIcon'
 import { MiniNutrientRings, NutrientRings } from '../components/NutrientRings'
 import { DayPickerModal } from '../components/DatePickerModal'
+import { Collapse } from '../components/Collapse'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 
 function sumNutrition(meals: Meal[]) {
@@ -147,20 +148,20 @@ export function FeedPage() {
                     </button>
                   )}
                 </div>
-                {isOpen && typeMeals.length > 0 && (
+                <Collapse open={isOpen && typeMeals.length > 0}>
                   <div className="flex flex-col gap-2">
                     {typeMeals.map((meal) => (
                       <MealCard key={meal.id} meal={meal} onView={() => setEditorState({ mode: 'view', meal })} />
                     ))}
                   </div>
-                )}
+                </Collapse>
                 {/* Collapsed sections still show at a glance what was logged, as a
                     compact ring row summing this category's totals for the day —
                     it disappears again once expanded, since the meal cards below
                     then show the same numbers. */}
-                {!isOpen && typeMeals.length > 0 && (
+                <Collapse open={!isOpen && typeMeals.length > 0}>
                   <MiniNutrientRings {...sumNutrition(typeMeals)} />
-                )}
+                </Collapse>
               </section>
             )
           })}

@@ -7,17 +7,17 @@ export function MealCard({ meal, onView }: { meal: Meal; onView: () => void }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   return (
-    <div className="rounded-2xl bg-surface p-3 shadow-sm shadow-black/5">
+    <div className="press-card rounded-2xl bg-surface p-3 shadow-sm shadow-black/5">
       <div className="flex gap-3">
         {meal.photo && (
           <img src={meal.photo} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
         )}
         <div className="min-w-0 flex-1">
-          <button className="block w-full text-left" onClick={onView}>
+          <button className="press-target block w-full text-left" onClick={onView}>
             <h3 className="font-medium text-ink">{meal.title}</h3>
           </button>
           <div className="mt-1.5 flex items-center gap-1.5">
-            <button className="flex min-w-0 flex-1 flex-wrap gap-1.5 text-left" onClick={onView}>
+            <button className="press-target flex min-w-0 flex-1 flex-wrap gap-1.5 text-left" onClick={onView}>
               <MacroBadge type="kcal" value={meal.nutrition.kcal} size="sm" />
               <MacroRingBadge type="protein" value={meal.nutrition.protein} size="sm" />
               <MacroRingBadge type="carbs" value={meal.nutrition.carbs} size="sm" />

@@ -10,6 +10,12 @@ import { initSyncIfSignedIn } from './lib/sync.ts'
 // meals) from automatic eviction. Safe to call on every load.
 void requestPersistentStorage()
 
+// A no-op touchstart listener is the standard trick to make iOS Safari
+// actually apply the :active pseudo-class on tap — without it, iOS treats
+// taps as plain clicks and never enters :active at all, silently dropping
+// every CSS press-feedback rule in the app on its main target platform.
+document.addEventListener('touchstart', () => {}, { passive: true })
+
 // Resumes sync automatically if a Firebase project is configured and this
 // device already has a signed-in session from a previous visit.
 initSyncIfSignedIn()

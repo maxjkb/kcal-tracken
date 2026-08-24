@@ -20,6 +20,8 @@ import { AutoGrowTextarea } from './AutoGrowTextarea'
 import { BouncingDots } from './BouncingDots'
 import { MacroBadge, MacroRingBadge } from './MacroBadge'
 import { Link } from 'react-router-dom'
+import { Sheet } from './Sheet'
+import { useSheetClose } from '../hooks/useSheetClose'
 
 const EMPTY_NUTRITION: Nutrition = { kcal: 0, protein: 0, carbs: 0, fat: 0 }
 
@@ -61,6 +63,29 @@ export function MealEditor({
   defaultMealType?: MealType
   onClose: () => void
 }) {
+  return (
+    <Sheet
+      onClose={onClose}
+      sheetClassName="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-surface sm:rounded-3xl"
+      closeOnBackdropClick={false}
+      closeOnDrag={false}
+    >
+      <MealEditorContent date={date} initial={initial} defaultMealType={defaultMealType} />
+    </Sheet>
+  )
+}
+
+/** Disables backdrop-click and drag-to-dismiss (unlike the read-only MealDetail/pickers): this form holds real typed input, so an accidental outside tap or swipe shouldn't be able to discard it. */
+function MealEditorContent({
+  date,
+  initial,
+  defaultMealType,
+}: {
+  date: string
+  initial?: Meal
+  defaultMealType?: MealType
+}) {
+  const requestClose = useSheetClose()
   const [step, setStep] = useState<Step>(initial ? 'review' : 'input')
   const [hasResult, setHasResult] = useState(Boolean(initial))
   const [mealDate, setMealDate] = useState(initial?.date ?? date)
@@ -170,7 +195,7 @@ export function MealEditor({
     }
     try {
       await saveMeal(meal)
-      onClose()
+      requestClose()
     } catch (err) {
       // Without this, a failed write (full storage, a browser/IndexedDB
       // hiccup, …) left the editor stuck on a disabled "Speichern…" button
@@ -182,245 +207,243 @@ export function MealEditor({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/30 backdrop-blur-sm sm:items-center">
-      <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-surface sm:rounded-3xl">
-        <div className="flex shrink-0 items-center justify-between p-5 pb-4">
-          {step === 'review' ? (
-            <button onClick={() => setStep('input')} className="text-ink-soft hover:text-ink" aria-label="Zurück">
-              <BackIcon />
+    <>
+      <div className="flex shrink-0 items-center justify-between p-5 pb-4">
+        {step === 'review' ? (
+          <button onClick={() => setStep('input')} className="text-ink-soft hover:text-ink" aria-label="Zurück">
+            <BackIcon />
+          </button>
+        ) : (
+          <h2 className="text-lg font-semibold text-ink">{initial ? 'Mahlzeit bearbeiten' : 'Mahlzeit hinzufügen'}</h2>
+        )}
+        <div className="flex items-center gap-3">
+          {step === 'input' && hasResult && (
+            <button
+              onClick={() => setStep('review')}
+              className="text-ink-soft hover:text-ink"
+              aria-label="Weiter zu den Nährwerten"
+            >
+              <ForwardIcon />
             </button>
-          ) : (
-            <h2 className="text-lg font-semibold text-ink">{initial ? 'Mahlzeit bearbeiten' : 'Mahlzeit hinzufügen'}</h2>
           )}
-          <div className="flex items-center gap-3">
-            {step === 'input' && hasResult && (
-              <button
-                onClick={() => setStep('review')}
-                className="text-ink-soft hover:text-ink"
-                aria-label="Weiter zu den Nährwerten"
-              >
-                <ForwardIcon />
-              </button>
-            )}
-            <button onClick={onClose} className="text-ink-soft hover:text-ink" aria-label="Schließen">
-              ✕
-            </button>
-          </div>
+          <button onClick={requestClose} className="text-ink-soft hover:text-ink" aria-label="Schließen">
+            ✕
+          </button>
         </div>
+      </div>
 
-        <div className="flex min-h-0 flex-1 overflow-hidden">
-          <div
-            className="flex w-full shrink-0 transition-transform duration-300 ease-out"
-            style={{ transform: `translateX(-${step === 'review' ? 100 : 0}%)` }}
-          >
-            {/* Step 1: input */}
-            <div className="w-full shrink-0 overflow-y-auto px-5 pb-5">
-              {pickingRecipe ? (
-                <div className="flex flex-col gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setPickingRecipe(false)}
-                    className="self-start text-xs font-medium text-ink-soft hover:text-ink"
-                  >
-                    ← Zurück zur Beschreibung
-                  </button>
-                  {recipes === undefined ? (
-                    <p className="py-6 text-center text-sm text-ink-soft">Lädt…</p>
-                  ) : recipes.length === 0 ? (
-                    <p className="py-6 text-center text-sm text-ink-soft">
-                      Noch keine Rezepte gespeichert. Unter „Rezepte" in der Navigation anlegen.
-                    </p>
-                  ) : (
-                    MEAL_TYPE_ORDER.map((type) => {
-                      const typeRecipes = recipes.filter((r) => r.category === type)
-                      if (typeRecipes.length === 0) return null
-                      return (
-                        <div key={type}>
-                          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft">
-                            {MEAL_TYPE_LABELS[type]}
-                          </span>
-                          <div className="flex flex-col gap-1.5">
-                            {typeRecipes.map((r) => (
-                              <button
-                                key={r.id}
-                                type="button"
-                                onClick={() => handleSelectRecipe(r)}
-                                className="rounded-2xl border border-line px-3 py-2.5 text-left hover:bg-bg"
-                              >
-                                <span className="block text-sm font-medium text-ink">{r.title}</span>
-                                <span className="text-xs text-ink-soft">{Math.round(r.nutrition.kcal)} kcal</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )
-                    })
-                  )}
-                </div>
-              ) : (
-                <div className="flex flex-col gap-4">
-                  <div>
-                    <span className="mb-1 block text-xs text-ink-soft">Was hast du gegessen?</span>
-                    <div className="flex items-start gap-2">
-                      <div className="flex-1">
-                        <AutoGrowTextarea
-                          value={description}
-                          onChange={setDescription}
-                          disabled={cleaningUp}
-                          placeholder="z.B. 200g Hähnchenbrust, 150g Reis, etwas Brokkoli und 1 EL Olivenöl"
-                          className={`w-full rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none ${cleaningUp ? 'opacity-50' : ''}`}
-                        />
-                        {cleaningUp && (
-                          <p className="mt-1.5 flex items-center gap-2 text-xs text-ink-soft">
-                            <BouncingDots /> Diktat wird bereinigt…
-                          </p>
-                        )}
-                      </div>
-                      <DictationButton onRecordingDone={handleDictationDone} disabled={cleaningUp} />
-                    </div>
-                  </div>
-
-                  <PhotoInput photo={photo} onChange={setPhoto} />
-
-                  {!hasApiKey && (
-                    <p className="rounded-2xl bg-fat/15 px-3 py-2 text-xs text-ink">
-                      Kein API-Key hinterlegt.{' '}
-                      <Link to="/settings" onClick={onClose} className="font-semibold underline">
-                        Jetzt in den Einstellungen eintragen
-                      </Link>
-                      , um Nährwerte automatisch schätzen zu lassen.
-                    </p>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={handleEstimate}
-                    disabled={estimating || cleaningUp || !hasApiKey}
-                    className="glass-accent flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {estimating ? <BouncingDots /> : 'Nährwerte schätzen'}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPickingRecipe(true)}
-                    className="rounded-2xl bg-bg px-4 py-2.5 text-sm font-medium text-ink-soft transition hover:bg-line"
-                  >
-                    Rezept auswählen
-                  </button>
-
-                  {error && <p className="text-sm font-medium text-danger">{error}</p>}
-                </div>
-              )}
-            </div>
-
-            {/* Step 2: review */}
-            <div className="w-full shrink-0 overflow-y-auto px-5 pb-5">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div
+          className="flex w-full shrink-0 transition-transform duration-300 ease-out"
+          style={{ transform: `translateX(-${step === 'review' ? 100 : 0}%)` }}
+        >
+          {/* Step 1: input */}
+          <div className="w-full shrink-0 overflow-y-auto px-5 pb-5">
+            {pickingRecipe ? (
               <div className="flex flex-col gap-4">
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs text-ink-soft">Datum</span>
-                  <input
-                    type="date"
-                    value={mealDate}
-                    onChange={(e) => e.target.value && setMealDate(e.target.value)}
-                    className="rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
-                  />
-                </label>
-
-                <div>
-                  <span className="mb-1 block text-xs text-ink-soft">Mahlzeit</span>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {MEAL_TYPE_ORDER.map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => setMealType(type)}
-                        className={`rounded-xl px-2 py-2 text-xs font-medium transition ${
-                          mealType === type ? 'bg-accent/20 text-ink' : 'bg-bg text-ink-soft hover:bg-line'
-                        }`}
-                      >
-                        {MEAL_TYPE_LABELS[type]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs text-ink-soft">Titel</span>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Titel des Gerichts"
-                    className="rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
-                  />
-                </label>
-
-                <div>
-                  <span className="mb-2 block text-xs text-ink-soft">
-                    Nährwerte {manuallyEdited && <span className="font-semibold text-accent">(manuell angepasst)</span>}
-                  </span>
-                  <NutritionFields
-                    value={nutrition}
-                    onChange={(next) => {
-                      setNutrition(next)
-                      setManuallyEdited(true)
-                    }}
-                  />
-                </div>
-
-                {ingredients && ingredients.length > 0 && (
-                  <div>
-                    <span className="mb-2 block text-xs text-ink-soft">Zutaten</span>
-                    <div className="flex flex-col gap-2">
-                      {ingredients.map((ing, i) => (
-                        <div key={i} className="rounded-2xl border border-line p-3">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-medium text-ink">{ing.name}</span>
-                            <div className="flex shrink-0 items-center gap-1">
-                              <input
-                                type="number"
-                                inputMode="decimal"
-                                min={0}
-                                value={ing.amount}
-                                onChange={(e) => handleIngredientAmountChange(i, Number(e.target.value) || 0)}
-                                className="w-16 rounded-lg border border-line bg-bg px-1.5 py-1 text-right text-xs text-ink focus:border-accent focus:outline-none"
-                              />
-                              <span className="text-xs text-ink-soft">{ing.unit}</span>
-                            </div>
-                          </div>
-                          <div className="mt-1.5 flex flex-wrap gap-1.5">
-                            <MacroBadge type="kcal" value={ing.kcal} size="sm" />
-                            <MacroRingBadge type="protein" value={ing.protein} size="sm" />
-                            <MacroRingBadge type="carbs" value={ing.carbs} size="sm" />
-                            <MacroRingBadge type="fat" value={ing.fat} size="sm" />
-                          </div>
-                          {ing.note && <p className="mt-1.5 text-xs italic text-ink-soft">{ing.note}</p>}
+                <button
+                  type="button"
+                  onClick={() => setPickingRecipe(false)}
+                  className="self-start text-xs font-medium text-ink-soft hover:text-ink"
+                >
+                  ← Zurück zur Beschreibung
+                </button>
+                {recipes === undefined ? (
+                  <p className="py-6 text-center text-sm text-ink-soft">Lädt…</p>
+                ) : recipes.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-ink-soft">
+                    Noch keine Rezepte gespeichert. Unter „Rezepte" in der Navigation anlegen.
+                  </p>
+                ) : (
+                  MEAL_TYPE_ORDER.map((type) => {
+                    const typeRecipes = recipes.filter((r) => r.category === type)
+                    if (typeRecipes.length === 0) return null
+                    return (
+                      <div key={type}>
+                        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                          {MEAL_TYPE_LABELS[type]}
+                        </span>
+                        <div className="flex flex-col gap-1.5">
+                          {typeRecipes.map((r) => (
+                            <button
+                              key={r.id}
+                              type="button"
+                              onClick={() => handleSelectRecipe(r)}
+                              className="rounded-2xl border border-line px-3 py-2.5 text-left hover:bg-bg"
+                            >
+                              <span className="block text-sm font-medium text-ink">{r.title}</span>
+                              <span className="text-xs text-ink-soft">{Math.round(r.nutrition.kcal)} kcal</span>
+                            </button>
+                          ))}
                         </div>
-                      ))}
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <div>
+                  <span className="mb-1 block text-xs text-ink-soft">Was hast du gegessen?</span>
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1">
+                      <AutoGrowTextarea
+                        value={description}
+                        onChange={setDescription}
+                        disabled={cleaningUp}
+                        placeholder="z.B. 200g Hähnchenbrust, 150g Reis, etwas Brokkoli und 1 EL Olivenöl"
+                        className={`w-full rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none ${cleaningUp ? 'opacity-50' : ''}`}
+                      />
+                      {cleaningUp && (
+                        <p className="mt-1.5 flex items-center gap-2 text-xs text-ink-soft">
+                          <BouncingDots /> Diktat wird bereinigt…
+                        </p>
+                      )}
                     </div>
-                    <p className="mt-2 text-xs text-ink-faint">
-                      Menge ändern skaliert die Nährwerte dieser Zutat automatisch (keine neue Schätzung).
-                    </p>
+                    <DictationButton onRecordingDone={handleDictationDone} disabled={cleaningUp} />
                   </div>
+                </div>
+
+                <PhotoInput photo={photo} onChange={setPhoto} />
+
+                {!hasApiKey && (
+                  <p className="rounded-2xl bg-fat/15 px-3 py-2 text-xs text-ink">
+                    Kein API-Key hinterlegt.{' '}
+                    <Link to="/settings" onClick={requestClose} className="font-semibold underline">
+                      Jetzt in den Einstellungen eintragen
+                    </Link>
+                    , um Nährwerte automatisch schätzen zu lassen.
+                  </p>
                 )}
 
                 <button
                   type="button"
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="mt-2 rounded-2xl bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                  onClick={handleEstimate}
+                  disabled={estimating || cleaningUp || !hasApiKey}
+                  className="glass-accent flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  {saving ? 'Speichern…' : 'Speichern'}
+                  {estimating ? <BouncingDots /> : 'Nährwerte schätzen'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPickingRecipe(true)}
+                  className="rounded-2xl bg-bg px-4 py-2.5 text-sm font-medium text-ink-soft transition hover:bg-line"
+                >
+                  Rezept auswählen
                 </button>
 
                 {error && <p className="text-sm font-medium text-danger">{error}</p>}
               </div>
+            )}
+          </div>
+
+          {/* Step 2: review */}
+          <div className="w-full shrink-0 overflow-y-auto px-5 pb-5">
+            <div className="flex flex-col gap-4">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-ink-soft">Datum</span>
+                <input
+                  type="date"
+                  value={mealDate}
+                  onChange={(e) => e.target.value && setMealDate(e.target.value)}
+                  className="rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+                />
+              </label>
+
+              <div>
+                <span className="mb-1 block text-xs text-ink-soft">Mahlzeit</span>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {MEAL_TYPE_ORDER.map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setMealType(type)}
+                      className={`rounded-xl px-2 py-2 text-xs font-medium transition ${
+                        mealType === type ? 'bg-accent/20 text-ink' : 'bg-bg text-ink-soft hover:bg-line'
+                      }`}
+                    >
+                      {MEAL_TYPE_LABELS[type]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-ink-soft">Titel</span>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Titel des Gerichts"
+                  className="rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+                />
+              </label>
+
+              <div>
+                <span className="mb-2 block text-xs text-ink-soft">
+                  Nährwerte {manuallyEdited && <span className="font-semibold text-accent">(manuell angepasst)</span>}
+                </span>
+                <NutritionFields
+                  value={nutrition}
+                  onChange={(next) => {
+                    setNutrition(next)
+                    setManuallyEdited(true)
+                  }}
+                />
+              </div>
+
+              {ingredients && ingredients.length > 0 && (
+                <div>
+                  <span className="mb-2 block text-xs text-ink-soft">Zutaten</span>
+                  <div className="flex flex-col gap-2">
+                    {ingredients.map((ing, i) => (
+                      <div key={i} className="rounded-2xl border border-line p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium text-ink">{ing.name}</span>
+                          <div className="flex shrink-0 items-center gap-1">
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              min={0}
+                              value={ing.amount}
+                              onChange={(e) => handleIngredientAmountChange(i, Number(e.target.value) || 0)}
+                              className="w-16 rounded-lg border border-line bg-bg px-1.5 py-1 text-right text-xs text-ink focus:border-accent focus:outline-none"
+                            />
+                            <span className="text-xs text-ink-soft">{ing.unit}</span>
+                          </div>
+                        </div>
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          <MacroBadge type="kcal" value={ing.kcal} size="sm" />
+                          <MacroRingBadge type="protein" value={ing.protein} size="sm" />
+                          <MacroRingBadge type="carbs" value={ing.carbs} size="sm" />
+                          <MacroRingBadge type="fat" value={ing.fat} size="sm" />
+                        </div>
+                        {ing.note && <p className="mt-1.5 text-xs italic text-ink-soft">{ing.note}</p>}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-ink-faint">
+                    Menge ändern skaliert die Nährwerte dieser Zutat automatisch (keine neue Schätzung).
+                  </p>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="mt-2 rounded-2xl bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+              >
+                {saving ? 'Speichern…' : 'Speichern'}
+              </button>
+
+              {error && <p className="text-sm font-medium text-danger">{error}</p>}
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 
