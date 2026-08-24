@@ -31,15 +31,21 @@ export function clearFirebaseConfig(): void {
 }
 
 /**
- * Firebase's console gives you a JS object literal to copy-paste, e.g.
- * `const firebaseConfig = { apiKey: "...", authDomain: "...", ... };` — not
- * valid JSON (unquoted keys). This turns the pasted text into a usable
- * config without eval()'ing it: pulls out the `{ ... }` block, quotes bare
- * identifier keys and normalizes single quotes to double, then parses it
- * as plain JSON.
+ * Firebase's console gives you a full code snippet to copy-paste — import
+ * statements, comments, `const firebaseConfig = { apiKey: "...", ... };`,
+ * then `initializeApp(...)`/`getAnalytics(...)` calls — not just the bare
+ * object literal, and not valid JSON (unquoted keys). This turns the pasted
+ * text into a usable config without eval()'ing it.
+ *
+ * Finds the smallest {...} block containing "apiKey" rather than grabbing
+ * from the very first "{" in the text to the very last "}" — a Firebase
+ * config object never nests braces, but the surrounding snippet does (e.g.
+ * `import { initializeApp } from "..."` has its own earlier "{"), so a
+ * first-to-last match would swallow the unrelated import/code lines too and
+ * fail to parse.
  */
 export function parsePastedFirebaseConfig(text: string): FirebaseWebConfig | null {
-  const match = text.match(/\{[\s\S]*\}/)
+  const match = text.match(/\{[^{}]*apiKey[^{}]*\}/)
   if (!match) return null
 
   let body = match[0]
