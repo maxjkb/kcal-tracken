@@ -11,13 +11,13 @@
   --color-ink-faint: #aeaeb2;
   --color-line: #e5e5ea;
 
-  /* Main accent (buttons, nav, "+", arrows) — solid, not pastel. */
-  --color-accent: #34c759;
-  /* Kcal badge reuses the accent hue, but at low opacity (pastel look) via bg-kcal/15 etc. */
-  --color-kcal: #34c759;
-  /* Macro badge colors — Apple Health-style, unchanged. */
+  /* Main accent (buttons, nav, "+", arrows) — solid, not pastel. Kcal reuses
+     the same hue since it's now one of the four equal nutrient rings. */
+  --color-accent: #0a84ff;
+  --color-kcal: #0a84ff;
+  /* Macro badge colors — Apple Health-style. */
   --color-protein: #ff375f;
-  --color-carbs: #0a84ff;
+  --color-carbs: #34c759;
   --color-fat: #ffcc00;
   --color-danger: #ff3b30;
 }
@@ -42,8 +42,9 @@ body {
     --color-ink-faint: #636366;
     --color-line: #38383a;
 
-    --color-accent: #30d158;
-    --color-kcal: #30d158;
+    --color-accent: #0a84ff;
+    --color-kcal: #0a84ff;
+    --color-carbs: #30d158;
     --color-fat: #ffd60a;
     --color-danger: #ff453a;
   }
@@ -78,7 +79,7 @@ input[type="number"] {
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid color-mix(in srgb, var(--color-accent) 55%, white 45%);
-  color: #000000;
+  color: #ffffff;
 }
 
 /* A lighter frosted-glass treatment for cards/tiles — visible but doesn't

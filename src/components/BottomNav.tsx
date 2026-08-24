@@ -6,7 +6,7 @@ const TABS = [
   { to: '/settings', label: 'Einstellungen', icon: SettingsIcon, end: false },
 ]
 
-export function BottomNav() {
+export function BottomNav({ onAddMeal }: { onAddMeal: () => void }) {
   return (
     // pointer-events-none on the full-width wrapper + pointer-events-auto on the
     // visible pill: otherwise the transparent strip around the pill still
@@ -28,8 +28,26 @@ export function BottomNav() {
             <Icon />
           </NavLink>
         ))}
+        {/* Adds a meal for "Heute" — an action, not a route, so unlike the
+            tabs above it never gets the active/selected highlight. */}
+        <button
+          type="button"
+          onClick={onAddMeal}
+          aria-label="Mahlzeit hinzufügen"
+          className="flex h-11 w-11 items-center justify-center rounded-full text-ink-soft transition-colors hover:text-ink"
+        >
+          <PlusIcon />
+        </button>
       </div>
     </nav>
+  )
+}
+
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
+      <path strokeLinecap="round" d="M12 5v14M5 12h14" />
+    </svg>
   )
 }
 

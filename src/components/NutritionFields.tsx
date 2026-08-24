@@ -1,10 +1,10 @@
 import type { Nutrition } from '../lib/db'
 import { MacroIcon, type MacroType } from './MacroIcon'
 
-const FIELDS: { key: keyof Nutrition; label: string; unit: string; icon?: MacroType }[] = [
-  { key: 'kcal', label: 'Kalorien', unit: 'kcal' },
+const FIELDS: { key: keyof Nutrition; label: string; unit: string; icon: MacroType }[] = [
+  { key: 'kcal', label: 'Kalorien', unit: 'kcal', icon: 'kcal' },
   { key: 'protein', label: 'Protein', unit: 'g', icon: 'protein' },
-  { key: 'carbs', label: 'Kohlenhydrate', unit: 'g', icon: 'carbs' },
+  { key: 'carbs', label: 'Carbs', unit: 'g', icon: 'carbs' },
   { key: 'fat', label: 'Fett', unit: 'g', icon: 'fat' },
 ]
 

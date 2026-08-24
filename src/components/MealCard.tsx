@@ -18,9 +18,7 @@ export function MealCard({ meal, onView }: { meal: Meal; onView: () => void }) {
           </button>
           <div className="mt-1.5 flex items-center gap-1.5">
             <button className="flex min-w-0 flex-1 flex-wrap gap-1.5 text-left" onClick={onView}>
-              <span className="rounded-full bg-kcal/15 px-2.5 py-0.5 text-[11px] font-bold text-ink">
-                {Math.round(meal.nutrition.kcal)} kcal
-              </span>
+              <MacroBadge type="kcal" value={meal.nutrition.kcal} size="sm" />
               <MacroBadge type="protein" value={meal.nutrition.protein} size="sm" />
               <MacroBadge type="carbs" value={meal.nutrition.carbs} size="sm" />
               <MacroBadge type="fat" value={meal.nutrition.fat} size="sm" />

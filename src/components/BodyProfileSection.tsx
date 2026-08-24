@@ -181,7 +181,7 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
             </div>
             <div>
               <div className="text-sm font-bold text-ink">{targets.carbs}g</div>
-              <div className="text-[10px] text-ink-soft">Kohlenh.</div>
+              <div className="text-[10px] text-ink-soft">Carbs</div>
             </div>
             <div>
               <div className="text-sm font-bold text-ink">{targets.fat}g</div>

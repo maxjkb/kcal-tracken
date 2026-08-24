@@ -5,8 +5,8 @@ import { MealCard } from '../components/MealCard'
 import { MealEditor } from '../components/MealEditor'
 import { MealDetail } from '../components/MealDetail'
 import { ChevronIcon } from '../components/ChevronIcon'
-import type { MacroType } from '../components/MacroIcon'
-import { computeDailyTargets, getBodyProfile, percentOfTarget } from '../lib/bodyProfile'
+import { NutrientRings } from '../components/NutrientRings'
+import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 
 function addDays(dateKey: string, delta: number): string {
   const [y, m, d] = dateKey.split('-').map(Number)
@@ -64,11 +64,11 @@ export function FeedPage() {
   )
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-40 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
+    <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       <div className="glass-subtle mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
         <button
           onClick={() => setDateKey((k) => addDays(k, -1))}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-ink"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-white"
           aria-label="Vorheriger Tag"
         >
           <ChevronIcon direction="left" />
@@ -86,27 +86,15 @@ export function FeedPage() {
         </div>
         <button
           onClick={() => setDateKey((k) => addDays(k, 1))}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-ink"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-white"
           aria-label="Nächster Tag"
         >
           <ChevronIcon direction="right" />
         </button>
       </div>
 
-      <div className="glass-subtle mb-6 rounded-3xl p-5 text-center shadow-sm shadow-black/5">
-        <div className="flex justify-center">
-          <div className="rounded-full bg-kcal/15 px-9 py-4 text-center">
-            <div className="text-4xl font-bold tracking-tight text-ink">{Math.round(totals.kcal)}</div>
-            <div className="text-xs font-medium text-ink-soft">
-              Kalorien{targets && ` · ${percentOfTarget(totals.kcal, targets.kcal)}%`}
-            </div>
-          </div>
-        </div>
-        <div className="mt-4 flex gap-2">
-          <SummaryMacroBadge type="protein" label="Protein" value={totals.protein} target={targets?.protein} />
-          <SummaryMacroBadge type="carbs" label="Kohlenhydrate" value={totals.carbs} target={targets?.carbs} />
-          <SummaryMacroBadge type="fat" label="Fett" value={totals.fat} target={targets?.fat} />
-        </div>
+      <div className="glass-subtle mb-6 rounded-3xl p-5 shadow-sm shadow-black/5">
+        <NutrientRings kcal={totals.kcal} protein={totals.protein} carbs={totals.carbs} fat={totals.fat} targets={targets} />
       </div>
 
       {meals === undefined ? (
@@ -162,35 +150,6 @@ export function FeedPage() {
       {editorState.mode === 'edit' && (
         <MealEditor date={dateKey} initial={editorState.meal} onClose={() => setEditorState({ mode: 'closed' })} />
       )}
-    </div>
-  )
-}
-
-const SUMMARY_BADGE_BG: Record<MacroType, string> = {
-  protein: 'bg-protein/15',
-  carbs: 'bg-carbs/15',
-  fat: 'bg-fat/15',
-}
-
-function SummaryMacroBadge({
-  type,
-  label,
-  value,
-  target,
-}: {
-  type: MacroType
-  label: string
-  value: number
-  target?: number
-}) {
-  const pct = target ? percentOfTarget(value, target) : null
-  return (
-    <div className={`flex-1 rounded-full px-3 py-1.5 text-center ${SUMMARY_BADGE_BG[type]}`}>
-      <div className="text-sm font-bold text-ink">{Math.round(value)}g</div>
-      <div className="text-[10px] font-medium text-ink-soft">
-        {label}
-        {pct !== null && ` · ${pct}%`}
-      </div>
     </div>
   )
 }

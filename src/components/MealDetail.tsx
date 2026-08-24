@@ -31,9 +31,7 @@ export function MealDetail({
         <h2 className="mb-3 text-xl font-semibold text-ink">{meal.title}</h2>
 
         <div className="mb-5 flex flex-wrap gap-2">
-          <span className="rounded-full bg-kcal/15 px-3 py-1.5 text-sm font-bold text-ink">
-            {Math.round(meal.nutrition.kcal)} kcal
-          </span>
+          <MacroBadge type="kcal" value={meal.nutrition.kcal} />
           <MacroBadge type="protein" value={meal.nutrition.protein} />
           <MacroBadge type="carbs" value={meal.nutrition.carbs} />
           <MacroBadge type="fat" value={meal.nutrition.fat} />
@@ -87,7 +85,7 @@ export function MealDetail({
                     </div>
                     <p className="text-xs text-ink-faint">
                       {Math.round(ing.kcal)} kcal · {Math.round(ing.protein)}g Protein ·{' '}
-                      {Math.round(ing.carbs)}g Kohlenh. · {Math.round(ing.fat)}g Fett
+                      {Math.round(ing.carbs)}g Carbs · {Math.round(ing.fat)}g Fett
                     </p>
                     {ing.note && <p className="mt-0.5 text-xs italic text-ink-soft">{ing.note}</p>}
                   </div>

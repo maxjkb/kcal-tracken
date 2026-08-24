@@ -1,6 +1,6 @@
 import { MacroIcon, type MacroType } from './MacroIcon'
 
-type Nutrient = MacroType | 'kcal'
+type Nutrient = MacroType
 
 const RING_COLORS: Record<Nutrient, string> = {
   kcal: 'var(--color-kcal)',
@@ -12,7 +12,7 @@ const RING_COLORS: Record<Nutrient, string> = {
 const RING_LABELS: Record<Nutrient, string> = {
   kcal: 'Kalorien',
   protein: 'Protein',
-  carbs: 'Kohlenh.',
+  carbs: 'Carbs',
   fat: 'Fett',
 }
 
@@ -30,66 +30,115 @@ function describeArc(cx: number, cy: number, r: number, startAngle: number, endA
 }
 
 /**
- * A single "progress donut" — one modern, Apple-style ring per nutrient
- * instead of a classic multi-category pie: the filled arc (percent of the
- * day's target) and the remaining track never touch, both ends rounded,
- * with a small gap on either side. Falls back to a flat, undifferentiated
- * ring (no fill) when there's no target to measure progress against.
+ * The actual ring drawing, reused at any radius by both the single-nutrient
+ * cards and the concentric "Gesamtwerte" widget:
+ * - No target: a flat, undifferentiated track (nothing to measure progress against).
+ * - Under 100%: a progress arc and the remaining track, both rounded, with a
+ *   small gap between them — so it's obvious at a glance whether the ring has
+ *   actually closed or not.
+ * - 100% or over: the ring is fully closed (no gap), and any amount past
+ *   100% is drawn as a second lap from the same start point, on top of the
+ *   closed ring with a drop shadow — it visibly wraps over itself instead of
+ *   silently capping at "full", the same way Apple's activity rings do.
  */
-function Ring({ type, value, percent }: { type: Nutrient; value: number; percent: number | null }) {
+function RingVisual({
+  cx,
+  cy,
+  r,
+  strokeWidth,
+  color,
+  percent,
+}: {
+  cx: number
+  cy: number
+  r: number
+  strokeWidth: number
+  color: string
+  percent: number | null
+}) {
+  const gapDeg = 7
+
+  if (percent === null) {
+    return <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeOpacity={0.18} strokeWidth={strokeWidth} />
+  }
+
+  if (percent < 100) {
+    const progressSpan = (percent / 100) * (360 - 2 * gapDeg)
+    const trackStart = progressSpan > 0 ? progressSpan + gapDeg : 0
+    return (
+      <>
+        <path
+          d={describeArc(cx, cy, r, trackStart, 360 - gapDeg)}
+          fill="none"
+          stroke={color}
+          strokeOpacity={0.18}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+        />
+        <path d={describeArc(cx, cy, r, 0, progressSpan)} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+      </>
+    )
+  }
+
+  // 100%+: closed ring, plus an overlapping second lap (capped at one extra
+  // full loop) for the part that exceeds the target.
+  const overSpan = (Math.min(percent - 100, 100) / 100) * 360
+  return (
+    <>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={strokeWidth} />
+      {overSpan > 0 && (
+        <path
+          d={describeArc(cx, cy, r, 0, overSpan)}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          style={{ filter: 'drop-shadow(0 1.5px 2px rgba(0,0,0,0.45))' }}
+        />
+      )}
+    </>
+  )
+}
+
+/** A single labeled nutrient ring — used both on the Feed summary and the Stats day view. */
+function Ring({
+  type,
+  value,
+  percent,
+  perMealValue,
+}: {
+  type: Nutrient
+  value: number
+  percent: number | null
+  /** When set, the label reads "<perMealValue> · Mahlzeit" instead of "<value> · <percent>%" — the ring itself still fills by percent. */
+  perMealValue?: number
+}) {
   const size = 88
   const r = 34
   const cx = size / 2
   const cy = size / 2
   const strokeWidth = 8
-  const gapDeg = 7
-
-  const clamped = percent === null ? 0 : Math.max(0, Math.min(percent, 100))
-  const progressSpan = percent === null ? 0 : (clamped / 100) * (360 - 2 * gapDeg)
-  const progressEnd = progressSpan
-  const trackStart = progressSpan > 0 ? progressEnd + gapDeg : 0
-  const trackEnd = 360 - gapDeg
-
   const color = RING_COLORS[type]
+  const displayValue = perMealValue ?? value
 
   return (
     <div className="flex flex-col items-center gap-1.5">
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-          {percent === null ? (
-            <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeOpacity={0.18} strokeWidth={strokeWidth} />
-          ) : (
-            <>
-              <path
-                d={describeArc(cx, cy, r, trackStart, trackEnd)}
-                fill="none"
-                stroke={color}
-                strokeOpacity={0.18}
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-              />
-              <path
-                d={describeArc(cx, cy, r, 0, progressEnd)}
-                fill="none"
-                stroke={color}
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-              />
-            </>
-          )}
+          <RingVisual cx={cx} cy={cy} r={r} strokeWidth={strokeWidth} color={color} percent={percent} />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center" style={{ color }}>
-          {type === 'kcal' ? <FlameIcon className="h-5 w-5" /> : <MacroIcon type={type} className="h-5 w-5" />}
+          <MacroIcon type={type} className="h-5 w-5" />
         </div>
       </div>
       <div className="text-center">
         <div className="text-sm font-bold text-ink">
-          {Math.round(value)}
+          {Math.round(displayValue)}
           {type !== 'kcal' && 'g'}
         </div>
         <div className="text-[10px] text-ink-soft">
           {RING_LABELS[type]}
-          {percent !== null && ` · ${percent}%`}
+          {perMealValue !== undefined ? ' · Mahlzeit' : percent !== null && ` · ${percent}%`}
         </div>
       </div>
     </div>
@@ -102,12 +151,15 @@ export function NutrientRings({
   carbs,
   fat,
   targets,
+  perMeal,
 }: {
   kcal: number
   protein: number
   carbs: number
   fat: number
   targets: { kcal: number; protein: number; carbs: number; fat: number } | null
+  /** Show these per-meal-average values (labeled "· Mahlzeit") instead of the totals + percent — the ring fill still reflects the totals vs. targets. */
+  perMeal?: { kcal: number; protein: number; carbs: number; fat: number }
 }) {
   function pct(value: number, target: number | undefined): number | null {
     if (!targets || !target) return null
@@ -117,10 +169,10 @@ export function NutrientRings({
   return (
     <div>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Ring type="kcal" value={kcal} percent={pct(kcal, targets?.kcal)} />
-        <Ring type="protein" value={protein} percent={pct(protein, targets?.protein)} />
-        <Ring type="carbs" value={carbs} percent={pct(carbs, targets?.carbs)} />
-        <Ring type="fat" value={fat} percent={pct(fat, targets?.fat)} />
+        <Ring type="kcal" value={kcal} percent={pct(kcal, targets?.kcal)} perMealValue={perMeal?.kcal} />
+        <Ring type="protein" value={protein} percent={pct(protein, targets?.protein)} perMealValue={perMeal?.protein} />
+        <Ring type="carbs" value={carbs} percent={pct(carbs, targets?.carbs)} perMealValue={perMeal?.carbs} />
+        <Ring type="fat" value={fat} percent={pct(fat, targets?.fat)} perMealValue={perMeal?.fat} />
       </div>
       {!targets && (
         <p className="mt-3 text-center text-[11px] text-ink-faint">
@@ -131,10 +183,60 @@ export function NutrientRings({
   )
 }
 
-function FlameIcon({ className }: { className: string }) {
+const CONCENTRIC_ORDER: Nutrient[] = ['kcal', 'protein', 'carbs', 'fat']
+
+/**
+ * The compact "Gesamtwerte" widget — one Apple-activity-ring-style graphic
+ * with all four nutrients nested (kcal outermost, fat innermost, matching
+ * the order they're always listed in elsewhere in the app), each ring's
+ * fill showing that nutrient's share of its daily target. Intentionally
+ * unlabeled beyond the "Nährwerte" caption — the fill level (and the
+ * wrap-over effect past 100%) is the whole point.
+ */
+export function ConcentricRings({
+  kcal,
+  protein,
+  carbs,
+  fat,
+  targets,
+}: {
+  kcal: number
+  protein: number
+  carbs: number
+  fat: number
+  targets: { kcal: number; protein: number; carbs: number; fat: number } | null
+}) {
+  const size = 128
+  const cx = size / 2
+  const cy = size / 2
+  const strokeWidth = 11
+  const gap = 3
+  const outerR = size / 2 - strokeWidth / 2
+
+  const values: Record<Nutrient, number> = { kcal, protein, carbs, fat }
+
+  function pct(type: Nutrient): number | null {
+    const target = targets?.[type]
+    if (!targets || !target) return null
+    return Math.round((values[type] / target) * 100)
+  }
+
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M12 2.5c1 3 .5 4.3-1 6c-1.7 2-2.5 3.6-2.5 5.5a5 5 0 0 0 10 0c0-1.7-.6-2.8-1.7-4c.2 1.6-.4 2.6-1.3 3c.3-2.3-.4-3.6-1.8-5c-1 1.2-1.3 2-1.1 3.2c-1-1-1.3-2.3-.6-3.7c-1.2.7-1.7 1.7-1.7 3C10 8 10.6 5 12 2.5Z" />
-    </svg>
+    <div className="flex flex-col items-center gap-2">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        {CONCENTRIC_ORDER.map((type, i) => (
+          <RingVisual
+            key={type}
+            cx={cx}
+            cy={cy}
+            r={outerR - i * (strokeWidth + gap)}
+            strokeWidth={strokeWidth}
+            color={RING_COLORS[type]}
+            percent={pct(type)}
+          />
+        ))}
+      </svg>
+      <span className="text-xs font-medium text-ink-soft">Nährwerte</span>
+    </div>
   )
 }
