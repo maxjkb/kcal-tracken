@@ -38,9 +38,9 @@ export function ApiSettingsPage() {
       <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
         <h2 className="mb-1 text-sm font-semibold text-ink">API-Key</h2>
         <p className="mb-3 text-xs text-ink-soft">
-          Kostenlos im Rahmen des Gratis-Kontingents von Google. Wird nur lokal in deinem Browser
-          gespeichert – nie an einen Server außer die Gemini-API gesendet. Einen Key bekommst du
-          unter{' '}
+          Kostenlos im Rahmen des Gratis-Kontingents von Google. Wird lokal in deinem Browser
+          gespeichert (und, falls unter Sync eingerichtet, mit deinen anderen Geräten synchronisiert)
+          – nie an einen Server außer die Gemini-API gesendet. Einen Key bekommst du unter{' '}
           <a
             href="https://aistudio.google.com/apikey"
             target="_blank"

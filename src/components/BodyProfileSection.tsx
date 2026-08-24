@@ -67,7 +67,7 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
       <p className="mb-3 text-xs text-ink-soft">
         Wird genutzt, um deinen täglichen Kalorien- und Makrobedarf zu berechnen (Mifflin-St-Jeor-Formel)
         — dieser erscheint dann als Prozentangabe neben deinen absoluten Werten im Feed und in der
-        Statistik. Bleibt komplett lokal, wie alles andere auch.
+        Statistik. Bleibt lokal auf deinem Gerät (und synct mit, falls unter Sync eingerichtet).
       </p>
 
       <div className="flex flex-col gap-3">

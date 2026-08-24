@@ -5,9 +5,8 @@ import type { BodyProfile } from './bodyProfile'
 
 /**
  * Cross-device sync (Firebase Auth + Firestore, "bring your own project" —
- * see firebaseConfig.ts). Meals, recipes and the body profile are mirrored
- * to `users/{uid}/…`; the Gemini API key deliberately stays local-only,
- * same as before sync existed.
+ * see firebaseConfig.ts). Meals, recipes, the body profile and the Gemini
+ * API key are all mirrored to `users/{uid}/…`.
  *
  * Local → remote pushes happen explicitly from saveMeal/deleteMeal/
  * saveRecipe/deleteRecipe/setBodyProfile (not via Dexie hooks) — so an
@@ -44,16 +43,25 @@ export function getSyncStatus(): SyncStatus {
   return currentUid ? 'syncing' : 'inactive'
 }
 
-// Reads/writes the body profile's localStorage entry directly (same key as
-// bodyProfile.ts) rather than importing its get/set functions — bodyProfile.ts
-// imports pushProfileChange from this module to push on every local save, so
-// importing back would create a circular module dependency.
+// Reads/writes the body profile's and API key's localStorage entries directly
+// (same keys as bodyProfile.ts/settings.ts) rather than importing their get/
+// set functions — both modules import push*Change from this module to push on
+// every local save, so importing back would create a circular dependency.
 const BODY_PROFILE_KEY = 'kcal-tracker:body-profile'
+const API_KEY_KEY = 'kcal-tracker:gemini-api-key'
 
 function readLocalBodyProfile(): BodyProfile | null {
   try {
     const raw = localStorage.getItem(BODY_PROFILE_KEY)
     return raw ? (JSON.parse(raw) as BodyProfile) : null
+  } catch {
+    return null
+  }
+}
+
+function readLocalApiKey(): string | null {
+  try {
+    return localStorage.getItem(API_KEY_KEY)
   } catch {
     return null
   }
@@ -93,6 +101,18 @@ export function pushProfileChange(profile: BodyProfile | null): void {
     const ref = fs.doc(services.firestore, 'users', uid, 'profile', 'main')
     const payload = profile ? { ...profile, updatedAt: Date.now() } : null
     await (payload ? fs.setDoc(ref, payload) : fs.deleteDoc(ref))
+  })().catch(() => {})
+}
+
+/** Called by setApiKey/clearApiKey right after the local write succeeds. No-op if sync isn't active. Fire-and-forget. */
+export function pushApiKeyChange(apiKey: string | null): void {
+  if (!currentUid) return
+  const uid = currentUid
+  void (async () => {
+    const [services, fs] = await Promise.all([getFirebaseServices(), getFirestoreApi()])
+    if (!services || !fs) return
+    const ref = fs.doc(services.firestore, 'users', uid, 'settings', 'geminiApiKey')
+    await (apiKey ? fs.setDoc(ref, { apiKey, updatedAt: Date.now() }) : fs.deleteDoc(ref))
   })().catch(() => {})
 }
 
@@ -163,6 +183,22 @@ async function reconcileProfile(fsApi: typeof import('firebase/firestore'), fs: 
   // the rarely-changing profile (see SyncSettingsPage's explanatory text).
 }
 
+async function reconcileApiKey(fsApi: typeof import('firebase/firestore'), fs: Firestore, uid: string) {
+  const ref = fsApi.doc(fs, 'users', uid, 'settings', 'geminiApiKey')
+  const snap = await fsApi.getDoc(ref)
+  const remote = snap.exists() ? (snap.data() as { apiKey: string; updatedAt: number }) : null
+  const local = readLocalApiKey()
+
+  if (remote && !local) {
+    localStorage.setItem(API_KEY_KEY, remote.apiKey)
+  } else if (local && !remote) {
+    pushApiKeyChange(local)
+  }
+  // Both present: same simplification as the body profile above — no local
+  // timestamp to compare, so an existing key on either side is left as-is
+  // rather than guessed at.
+}
+
 export async function startSync(uid: string): Promise<void> {
   const [services, fsApi] = await Promise.all([getFirebaseServices(), getFirestoreApi()])
   if (!services || !fsApi) return
@@ -174,6 +210,7 @@ export async function startSync(uid: string): Promise<void> {
     reconcileMeals(fsApi, fs, uid),
     reconcileRecipes(fsApi, fs, uid),
     reconcileProfile(fsApi, fs, uid),
+    reconcileApiKey(fsApi, fs, uid),
   ])
 
   const unsubMeals = fsApi.onSnapshot(fsApi.collection(fs, 'users', uid, 'meals'), (snap) => {
@@ -221,6 +258,7 @@ export async function resyncNow(): Promise<void> {
     reconcileMeals(fsApi, services.firestore, currentUid),
     reconcileRecipes(fsApi, services.firestore, currentUid),
     reconcileProfile(fsApi, services.firestore, currentUid),
+    reconcileApiKey(fsApi, services.firestore, currentUid),
   ])
 }
 

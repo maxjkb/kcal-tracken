@@ -1,3 +1,5 @@
+import { pushApiKeyChange } from './sync'
+
 const API_KEY_STORAGE_KEY = 'kcal-tracker:gemini-api-key'
 
 export function getApiKey(): string | null {
@@ -9,9 +11,12 @@ export function getApiKey(): string | null {
 }
 
 export function setApiKey(key: string): void {
-  localStorage.setItem(API_KEY_STORAGE_KEY, key.trim())
+  const trimmed = key.trim()
+  localStorage.setItem(API_KEY_STORAGE_KEY, trimmed)
+  pushApiKeyChange(trimmed)
 }
 
 export function clearApiKey(): void {
   localStorage.removeItem(API_KEY_STORAGE_KEY)
+  pushApiKeyChange(null)
 }
