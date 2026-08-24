@@ -61,6 +61,7 @@ export function MealEditor({
 }) {
   const [step, setStep] = useState<Step>(initial ? 'review' : 'input')
   const [hasResult, setHasResult] = useState(Boolean(initial))
+  const [mealDate, setMealDate] = useState(initial?.date ?? date)
   const [description, setDescription] = useState(initial?.description ?? '')
   const [photo, setPhoto] = useState<string | undefined>(initial?.photo)
   const [mealType, setMealType] = useState<MealType>(initial?.mealType ?? defaultMealType ?? 'lunch')
@@ -140,7 +141,7 @@ export function MealEditor({
     const now = Date.now()
     const meal: Meal = {
       id: initial?.id ?? newMealId(),
-      date,
+      date: mealDate,
       mealType,
       title: title.trim() || 'Mahlzeit',
       description,
@@ -249,6 +250,16 @@ export function MealEditor({
             {/* Step 2: review */}
             <div className="w-full shrink-0 overflow-y-auto px-5 pb-5">
               <div className="flex flex-col gap-4">
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs text-ink-soft">Datum</span>
+                  <input
+                    type="date"
+                    value={mealDate}
+                    onChange={(e) => e.target.value && setMealDate(e.target.value)}
+                    className="rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+                  />
+                </label>
+
                 <div>
                   <span className="mb-1 block text-xs text-ink-soft">Mahlzeit</span>
                   <div className="grid grid-cols-4 gap-1.5">
