@@ -31,19 +31,21 @@ function describeArc(cx: number, cy: number, r: number, startAngle: number, endA
 
 /**
  * The actual ring drawing, reused at any radius by both the single-nutrient
- * cards and the concentric "Gesamtwerte" widget:
- * - No target: a flat, undifferentiated track (nothing to measure progress against).
- * - Under 100%: a progress arc and the remaining track, both rounded, with a
- *   small gap between them — so it's obvious at a glance whether the ring has
- *   actually closed or not.
- * - 100% or over: the ring is fully closed (no gap), and any amount past
- *   100% is drawn as a second lap from the same start point, on top of the
- *   closed ring — the same way Apple's activity rings visibly wrap over
- *   themselves instead of silently capping at "full". To actually read at a
- *   glance (a same-color arc with only a faint shadow was too subtle to
- *   notice in practice), the wrap lap is drawn in a visibly lighter tint of
- *   the ring color plus a stronger drop shadow, so it reads as a distinct
- *   layer sitting on top of the base ring rather than blending into it.
+ * cards and the concentric "Gesamtwerte" widget — modeled directly on
+ * Apple's own Activity rings (per the user's reference screenshots):
+ * - No target / 0%: one continuous ring in a dark, desaturated shade of the
+ *   nutrient's color (its "track") — not a pale, low-opacity tint, which
+ *   reads as washed-out rather than as a dim version of the same hue and
+ *   looks inconsistent between light and dark backgrounds.
+ * - Under 100%: a bright progress arc from 12 o'clock, the remainder in
+ *   that same dark track shade — one continuous closed ring with no gap at
+ *   either seam (the round line-caps abut directly), exactly like Apple's.
+ * - 100% or over: the ring is fully closed in the bright color (no dark
+ *   track left), and any amount past 100% is drawn as a second lap from the
+ *   same start point, layered on top in a lighter tint of the same color
+ *   with a drop shadow — reading as a distinct raised layer, matching how
+ *   Apple's rings visibly wrap over themselves past a full lap instead of
+ *   silently capping at "full".
  */
 function RingVisual({
   cx,
@@ -60,26 +62,20 @@ function RingVisual({
   color: string
   percent: number | null
 }) {
-  const gapDeg = 7
+  const trackColor = `color-mix(in srgb, ${color} 28%, black 72%)`
 
   if (percent === null) {
-    return <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeOpacity={0.18} strokeWidth={strokeWidth} />
+    return <circle cx={cx} cy={cy} r={r} fill="none" stroke={trackColor} strokeWidth={strokeWidth} />
   }
 
   if (percent < 100) {
-    const progressSpan = (percent / 100) * (360 - 2 * gapDeg)
-    const trackStart = progressSpan > 0 ? progressSpan + gapDeg : 0
+    const progressSpan = (percent / 100) * 360
     return (
       <>
-        <path
-          d={describeArc(cx, cy, r, trackStart, 360 - gapDeg)}
-          fill="none"
-          stroke={color}
-          strokeOpacity={0.18}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-        />
-        <path d={describeArc(cx, cy, r, 0, progressSpan)} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+        <path d={describeArc(cx, cy, r, progressSpan, 360)} fill="none" stroke={trackColor} strokeWidth={strokeWidth} strokeLinecap="round" />
+        {progressSpan > 0 && (
+          <path d={describeArc(cx, cy, r, 0, progressSpan)} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+        )}
       </>
     )
   }
