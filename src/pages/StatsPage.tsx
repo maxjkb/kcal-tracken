@@ -16,6 +16,7 @@ import { MEAL_TYPE_LABELS, toLocalDateKey, type Meal } from '../lib/db'
 import { lazyRetry } from '../lib/lazyRetry'
 import { ChevronIcon } from '../components/ChevronIcon'
 import { ConcentricRings, NutrientRings } from '../components/NutrientRings'
+import { DayPickerModal, MonthPickerModal, YearPickerModal } from '../components/DatePickerModal'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import {
   bucketByDay,
@@ -41,6 +42,7 @@ export function StatsPage() {
   const navigate = useNavigate()
   const [period, setPeriod] = useState<Period>('week')
   const [anchorKey, setAnchorKey] = useState(() => toLocalDateKey(new Date()))
+  const [pickerOpen, setPickerOpen] = useState(false)
   const { startKey, endKey } = getPeriodRange(period, anchorKey)
   const meals = useMealsInRange(startKey, endKey)
   const [exporting, setExporting] = useState(false)
@@ -156,7 +158,9 @@ export function StatsPage() {
         >
           <ChevronIcon direction="left" />
         </button>
-        <span className="text-sm font-medium text-ink">{formatPeriodLabel(period, anchorKey)}</span>
+        <button onClick={() => setPickerOpen(true)} className="text-sm font-medium text-ink hover:opacity-70">
+          {formatPeriodLabel(period, anchorKey)}
+        </button>
         <button
           onClick={() => setAnchorKey((k) => shiftAnchor(period, k, 1))}
           className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-white"
@@ -256,6 +260,50 @@ export function StatsPage() {
           )}
         </div>
       </div>
+      )}
+
+      {pickerOpen && period === 'day' && (
+        <DayPickerModal
+          selectedDateKey={anchorKey}
+          onSelect={(key) => {
+            setAnchorKey(key)
+            setPickerOpen(false)
+          }}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
+      {pickerOpen && period === 'week' && (
+        <DayPickerModal
+          selectedDateKey={anchorKey}
+          onSelect={(key) => {
+            // Picking any day selects the week that contains it — the anchor
+            // just needs to be that day, getPeriodRange('week', …) does the rest.
+            setAnchorKey(key)
+            setPickerOpen(false)
+          }}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
+      {pickerOpen && period === 'month' && (
+        <MonthPickerModal
+          selectedYear={Number(anchorKey.slice(0, 4))}
+          selectedMonth={Number(anchorKey.slice(5, 7))}
+          onSelect={(year, month) => {
+            setAnchorKey(`${year}-${String(month).padStart(2, '0')}-01`)
+            setPickerOpen(false)
+          }}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
+      {pickerOpen && period === 'year' && (
+        <YearPickerModal
+          selectedYear={Number(anchorKey.slice(0, 4))}
+          onSelect={(year) => {
+            setAnchorKey(`${year}-01-01`)
+            setPickerOpen(false)
+          }}
+          onClose={() => setPickerOpen(false)}
+        />
       )}
     </div>
   )
