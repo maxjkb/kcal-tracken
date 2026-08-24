@@ -38,8 +38,12 @@ function describeArc(cx: number, cy: number, r: number, startAngle: number, endA
  *   actually closed or not.
  * - 100% or over: the ring is fully closed (no gap), and any amount past
  *   100% is drawn as a second lap from the same start point, on top of the
- *   closed ring with a drop shadow — it visibly wraps over itself instead of
- *   silently capping at "full", the same way Apple's activity rings do.
+ *   closed ring — the same way Apple's activity rings visibly wrap over
+ *   themselves instead of silently capping at "full". To actually read at a
+ *   glance (a same-color arc with only a faint shadow was too subtle to
+ *   notice in practice), the wrap lap is drawn in a visibly lighter tint of
+ *   the ring color plus a stronger drop shadow, so it reads as a distinct
+ *   layer sitting on top of the base ring rather than blending into it.
  */
 function RingVisual({
   cx,
@@ -81,8 +85,10 @@ function RingVisual({
   }
 
   // 100%+: closed ring, plus an overlapping second lap (capped at one extra
-  // full loop) for the part that exceeds the target.
+  // full loop) for the part that exceeds the target — lighter + shadowed so
+  // the overlap is unmistakable, not just implied by the closed base ring.
   const overSpan = (Math.min(percent - 100, 100) / 100) * 360
+  const wrapColor = `color-mix(in srgb, ${color} 65%, white 35%)`
   return (
     <>
       <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={strokeWidth} />
@@ -90,17 +96,25 @@ function RingVisual({
         <path
           d={describeArc(cx, cy, r, 0, overSpan)}
           fill="none"
-          stroke={color}
+          stroke={wrapColor}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
-          style={{ filter: 'drop-shadow(0 1.5px 2px rgba(0,0,0,0.45))' }}
+          style={{ filter: 'drop-shadow(0 2px 2.5px rgba(0,0,0,0.55))' }}
         />
       )}
     </>
   )
 }
 
-/** A single labeled nutrient ring — used both on the Feed summary and the Stats day view. */
+/**
+ * A single labeled nutrient ring — used both on the Feed summary and the
+ * Stats day view. Passing `perMealValue` switches it into the Stats-Tag
+ * per-meal-detail style: a permanently closed ring (no fill/progress at
+ * all, just the colored outline) with the icon AND the absolute number
+ * shown inside it, and only the label below — this style is scoped to
+ * that one view. Everywhere else the ring keeps its normal fill-based
+ * progress behavior with the value shown below.
+ */
 function Ring({
   type,
   value,
@@ -110,7 +124,7 @@ function Ring({
   type: Nutrient
   value: number
   percent: number | null
-  /** When set, the label reads "<perMealValue> · Mahlzeit" instead of "<value> · <percent>%" — the ring itself still fills by percent. */
+  /** When set, this is the Stats-Tag per-meal-detail ring: closed outline, icon + number inside, "· Mahlzeit" label below — the ring no longer shows fill/progress. */
   perMealValue?: number
 }) {
   const size = 88
@@ -119,26 +133,30 @@ function Ring({
   const cy = size / 2
   const strokeWidth = 8
   const color = RING_COLORS[type]
+  const closed = perMealValue !== undefined
   const displayValue = perMealValue ?? value
+  const numberText = `${Math.round(displayValue)}${type !== 'kcal' ? 'g' : ''}`
 
   return (
     <div className="flex flex-col items-center gap-1.5">
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-          <RingVisual cx={cx} cy={cy} r={r} strokeWidth={strokeWidth} color={color} percent={percent} />
+          {closed ? (
+            <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={strokeWidth} />
+          ) : (
+            <RingVisual cx={cx} cy={cy} r={r} strokeWidth={strokeWidth} color={color} percent={percent} />
+          )}
         </svg>
-        <div className="absolute inset-0 flex items-center justify-center" style={{ color }}>
-          <MacroIcon type={type} className="h-5 w-5" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5" style={{ color }}>
+          <MacroIcon type={type} className={closed ? 'h-4 w-4' : 'h-5 w-5'} />
+          {closed && <span className="text-xs font-bold text-ink">{numberText}</span>}
         </div>
       </div>
       <div className="text-center">
-        <div className="text-sm font-bold text-ink">
-          {Math.round(displayValue)}
-          {type !== 'kcal' && 'g'}
-        </div>
+        {!closed && <div className="text-sm font-bold text-ink">{numberText}</div>}
         <div className="text-[10px] text-ink-soft">
           {RING_LABELS[type]}
-          {perMealValue !== undefined ? ' · Mahlzeit' : percent !== null && ` · ${percent}%`}
+          {closed ? ' · Mahlzeit' : percent !== null && ` · ${percent}%`}
         </div>
       </div>
     </div>
@@ -186,12 +204,14 @@ export function NutrientRings({
 const CONCENTRIC_ORDER: Nutrient[] = ['kcal', 'protein', 'carbs', 'fat']
 
 /**
- * The compact "Gesamtwerte" widget — one Apple-activity-ring-style graphic
- * with all four nutrients nested (kcal outermost, fat innermost, matching
- * the order they're always listed in elsewhere in the app), each ring's
- * fill showing that nutrient's share of its daily target. Intentionally
- * unlabeled beyond the "Nährwerte" caption — the fill level (and the
- * wrap-over effect past 100%) is the whole point.
+ * The "Gesamtwerte" widget — one Apple-activity-ring-style graphic with all
+ * four nutrients nested (kcal outermost, fat innermost, matching the order
+ * they're always listed in elsewhere in the app), each ring's fill showing
+ * that nutrient's share of its daily target — the app's signature visual,
+ * reused everywhere a nutrient overview is shown. `size="compact"` renders
+ * it small enough to sit inside a stat tile (Stats page's 3-tile row, every
+ * period); the default size is used standalone. No caption of its own —
+ * callers that want a label render it alongside.
  */
 export function ConcentricRings({
   kcal,
@@ -199,19 +219,19 @@ export function ConcentricRings({
   carbs,
   fat,
   targets,
+  size = 'default',
 }: {
   kcal: number
   protein: number
   carbs: number
   fat: number
   targets: { kcal: number; protein: number; carbs: number; fat: number } | null
+  size?: 'default' | 'compact'
 }) {
-  const size = 128
-  const cx = size / 2
-  const cy = size / 2
-  const strokeWidth = 11
-  const gap = 3
-  const outerR = size / 2 - strokeWidth / 2
+  const dims = size === 'compact' ? { box: 60, strokeWidth: 5.5, gap: 1.5 } : { box: 128, strokeWidth: 11, gap: 3 }
+  const cx = dims.box / 2
+  const cy = dims.box / 2
+  const outerR = dims.box / 2 - dims.strokeWidth / 2
 
   const values: Record<Nutrient, number> = { kcal, protein, carbs, fat }
 
@@ -222,21 +242,18 @@ export function ConcentricRings({
   }
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {CONCENTRIC_ORDER.map((type, i) => (
-          <RingVisual
-            key={type}
-            cx={cx}
-            cy={cy}
-            r={outerR - i * (strokeWidth + gap)}
-            strokeWidth={strokeWidth}
-            color={RING_COLORS[type]}
-            percent={pct(type)}
-          />
-        ))}
-      </svg>
-      <span className="text-xs font-medium text-ink-soft">Nährwerte</span>
-    </div>
+    <svg width={dims.box} height={dims.box} viewBox={`0 0 ${dims.box} ${dims.box}`}>
+      {CONCENTRIC_ORDER.map((type, i) => (
+        <RingVisual
+          key={type}
+          cx={cx}
+          cy={cy}
+          r={outerR - i * (dims.strokeWidth + dims.gap)}
+          strokeWidth={dims.strokeWidth}
+          color={RING_COLORS[type]}
+          percent={pct(type)}
+        />
+      ))}
+    </svg>
   )
 }

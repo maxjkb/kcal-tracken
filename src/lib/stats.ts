@@ -8,7 +8,7 @@ function parseDateKey(key: string): Date {
 }
 
 /** Monday-based ISO week start. */
-function startOfWeek(date: Date): Date {
+export function startOfWeek(date: Date): Date {
   const d = new Date(date)
   const day = (d.getDay() + 6) % 7 // 0 = Monday
   d.setDate(d.getDate() - day)
@@ -119,6 +119,42 @@ export function bucketByMonth(year: number, kcalByDate: Map<string, number>): Mo
     if (y === year) sums[m - 1] += kcal
   }
   return sums.map((kcal, i) => ({ key: `${year}-${String(i + 1).padStart(2, '0')}`, label: MONTH_LABELS[i], kcal }))
+}
+
+export interface WeekBucket {
+  /** Monday date-key of this week — usable as the anchor when drilling into the Woche view. */
+  key: string
+  label: string
+  kcal: number
+}
+
+/** ISO-8601 week number (1–53) for a date, based on the Monday-start week containing it. */
+function isoWeekNumber(date: Date): number {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = (d.getUTCDay() + 6) % 7 // Monday = 0
+  d.setUTCDate(d.getUTCDate() - dayNum + 3) // nearest Thursday decides the ISO year/week
+  const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4))
+  const firstDayNum = (firstThursday.getUTCDay() + 6) % 7
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3)
+  return 1 + Math.round((d.getTime() - firstThursday.getTime()) / (7 * 86_400_000))
+}
+
+/** Buckets a range (typically a month) into calendar weeks (Monday-start) — used for the Monat chart, where each bar is a clickable week. Labeled "KW{n}" (short enough for ~5 bars to fit without overlapping, unlike a full date range). */
+export function bucketByWeek(startKey: string, endKey: string, kcalByDate: Map<string, number>): WeekBucket[] {
+  const buckets = new Map<string, WeekBucket>()
+  let cur = parseDateKey(startKey)
+  const end = parseDateKey(endKey)
+  while (cur <= end) {
+    const weekStart = startOfWeek(cur)
+    const weekKey = toLocalDateKey(weekStart)
+    if (!buckets.has(weekKey)) {
+      buckets.set(weekKey, { key: weekKey, label: `KW${isoWeekNumber(weekStart)}`, kcal: 0 })
+    }
+    buckets.get(weekKey)!.kcal += kcalByDate.get(toLocalDateKey(cur)) ?? 0
+    cur = new Date(cur)
+    cur.setDate(cur.getDate() + 1)
+  }
+  return [...buckets.values()].sort((a, b) => (a.key < b.key ? -1 : 1))
 }
 
 /** Average daily kcal over days that have already elapsed within the range (never counts future days). */
