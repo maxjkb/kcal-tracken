@@ -62,7 +62,7 @@ export function SupplementAdherenceCard({ startKey, endKey }: { startKey: string
           return (
             <div key={r.id} className="flex items-center justify-between gap-3 text-sm">
               <span className="min-w-0 truncate text-ink-soft">{r.name}</span>
-              <span className="shrink-0 text-xs text-ink-faint">
+              <span className="shrink-0 text-xs text-ink-soft">
                 {percent === null ? '–' : `${r.checkedSlots}/${r.totalSlots} · ${percent}%`}
               </span>
             </div>
