@@ -10,7 +10,30 @@ export interface FirebaseWebConfig {
   messagingSenderId?: string
 }
 
-export function getFirebaseConfig(): FirebaseWebConfig | null {
+/**
+ * Tracke's own Firebase project ("tracke-3d86d"), baked in as the built-in
+ * default so sync works out of the box on any fresh browser/device without
+ * re-pasting the config every time — the paste flow on the Sync settings
+ * page still exists underneath as an optional override, for anyone who'd
+ * rather point the app at a different Firebase project of their own.
+ *
+ * A Firebase web `apiKey` is an app identifier, not a secret — it's meant to
+ * ship in client-side bundles (Firebase's own docs are explicit about this);
+ * access is actually controlled server-side by Firestore Security Rules and
+ * the Authentication provider settings, not by hiding this value. It would
+ * already be visible in this app's deployed network requests either way, so
+ * committing it here adds no real exposure.
+ */
+const DEFAULT_FIREBASE_CONFIG: FirebaseWebConfig = {
+  apiKey: 'AIzaSyCXw2PeNjIRVvEfPGdz98D5tHCJyzBHfhk',
+  authDomain: 'tracke-3d86d.firebaseapp.com',
+  projectId: 'tracke-3d86d',
+  storageBucket: 'tracke-3d86d.firebasestorage.app',
+  messagingSenderId: '994616886488',
+  appId: '1:994616886488:web:549e630d64ab486be683ad',
+}
+
+function readStoredFirebaseConfig(): FirebaseWebConfig | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
@@ -20,6 +43,16 @@ export function getFirebaseConfig(): FirebaseWebConfig | null {
   } catch {
     return null
   }
+}
+
+/** The config actually in effect: a pasted override if one is stored, otherwise the built-in default above. Never null. */
+export function getFirebaseConfig(): FirebaseWebConfig {
+  return readStoredFirebaseConfig() ?? DEFAULT_FIREBASE_CONFIG
+}
+
+/** Whether the in-effect config is a user-pasted override rather than the built-in default — drives the Sync settings page's "Entfernen" vs. "Anderes Projekt" wording. */
+export function hasCustomFirebaseConfig(): boolean {
+  return readStoredFirebaseConfig() !== null
 }
 
 export function setFirebaseConfig(config: FirebaseWebConfig): void {
