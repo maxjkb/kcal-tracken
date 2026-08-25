@@ -388,3 +388,16 @@ input[type="number"] {
   background: currentColor;
   animation: dot-bounce 1.1s ease-in-out infinite;
 }
+
+/* Recharts makes its wrapper focusable for keyboard access, so tapping a data
+   point leaves Chromium's focus ring drawn as a hard rectangle around the plot
+   — which reads as a stray border on the card. Suppressed for pointer focus
+   only: keyboard users still get a visible, on-brand indicator. */
+.recharts-wrapper:focus {
+  outline: none;
+}
+.recharts-wrapper:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 0.75rem;
+}
