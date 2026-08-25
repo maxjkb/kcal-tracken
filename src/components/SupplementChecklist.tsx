@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import {
   SUPPLEMENT_TIME_LABELS,
   toLocalDateKey,
@@ -10,7 +10,7 @@ import {
 import { toggleSupplementCheck } from '../hooks/useSupplements'
 import { computeSlotState } from '../lib/supplementTiming'
 import { useNow } from '../hooks/useNow'
-import { SPRING_DEFAULT, SPRING_SNAPPY } from '../lib/motionTokens'
+import { REDUCED_MOTION_TRANSITION, SPRING_DEFAULT, SPRING_SNAPPY } from '../lib/motionTokens'
 
 /**
  * One supplement's row of time-of-day slots for a given day. Only the
@@ -46,7 +46,7 @@ export function SupplementChecklistRow({
         <p className="truncate text-sm font-medium text-ink">{supplement?.name ?? 'Supplement'}</p>
         {mySupplement.dosage && <p className="truncate text-xs text-ink-soft">{mySupplement.dosage}</p>}
       </button>
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-2">
         {mySupplement.timesOfDay.map((timeOfDay) => (
           <SlotButton
             key={timeOfDay}
@@ -80,12 +80,15 @@ function SlotButton({
 }) {
   const state = computeSlotState({ date, timeOfDay, checked, todayKey, now })
   const isCurrent = state === 'current'
+  const prefersReducedMotion = useReducedMotion()
+  const layoutTransition = prefersReducedMotion ? REDUCED_MOTION_TRANSITION : SPRING_DEFAULT
+  const glyphTransition = prefersReducedMotion ? REDUCED_MOTION_TRANSITION : SPRING_SNAPPY
 
   return (
     <motion.button
       type="button"
       layout
-      transition={SPRING_DEFAULT}
+      transition={layoutTransition}
       onClick={() => toggleSupplementCheck(mySupplementId, date, timeOfDay)}
       aria-label={`${SUPPLEMENT_TIME_LABELS[timeOfDay]}${checked ? ' — genommen, antippen zum Rückgängigmachen' : ' — als genommen markieren'}`}
       className={
@@ -93,17 +96,17 @@ function SlotButton({
           ? `flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors ${
               checked ? 'glass-accent' : 'bg-accent/12 text-accent'
             }`
-          : 'flex h-6 w-6 items-center justify-center rounded-full'
+          : 'flex h-8 w-8 items-center justify-center rounded-full'
       }
     >
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.span
           key={isCurrent ? `current-${state}` : state}
           layout
-          initial={{ opacity: 0, scale: 0.6 }}
+          initial={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.6 }}
           animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.6 }}
-          transition={SPRING_SNAPPY}
+          exit={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.6 }}
+          transition={glyphTransition}
           className="flex items-center gap-1.5"
         >
           {isCurrent ? (

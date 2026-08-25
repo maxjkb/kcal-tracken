@@ -69,7 +69,11 @@ export function SupplementsPage() {
       {tab === 'catalog' && <CatalogTab />}
       {tab === 'suggestions' && <SuggestionsTab />}
 
-      <p className="mt-8 text-center text-[11px] leading-relaxed text-ink-faint">
+      {/* text-ink-soft, not text-ink-faint: this is real content someone needs to
+          actually read, not a decorative icon — ink-faint only clears the 3:1
+          bar for non-text UI (3.26:1 in light mode), while body text needs 4.5:1
+          (apple-hig-review: Accessibility — minimum contrast). */}
+      <p className="mt-8 text-center text-[11px] leading-relaxed text-ink-soft">
         Diese Vorschläge basieren auf deinen geloggten Daten und allgemein bekannten Zusammenhängen — sie sind keine
         medizinische Beratung. Bei Vorerkrankungen, Medikamenten oder Schwangerschaft vorher ärztlich abklären.
       </p>
@@ -154,7 +158,7 @@ function CatalogTab() {
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-ink">{s.name}</p>
                         {s.description && <p className="mt-0.5 text-xs text-ink-soft">{s.description}</p>}
-                        <p className="mt-0.5 text-xs text-ink-faint">{s.typicalDosage}</p>
+                        <p className="mt-0.5 text-xs text-ink-soft">{s.typicalDosage}</p>
                       </div>
                       <span
                         className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -278,14 +282,14 @@ function SuggestionsTab() {
                 onClick={() => handleAdd(s)}
                 disabled={added}
                 className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                  added ? 'bg-bg text-ink-faint' : 'bg-accent/12 text-accent hover:bg-accent/20'
+                  added ? 'bg-bg text-ink-soft' : 'bg-accent/12 text-accent hover:bg-accent/20'
                 }`}
               >
                 {added ? 'Hinzugefügt' : 'Zur Liste hinzufügen'}
               </button>
             </div>
             <p className="text-sm text-ink-soft">{s.reasoning}</p>
-            <p className="text-xs text-ink-faint">
+            <p className="text-xs text-ink-soft">
               {s.suggestedDosage} · {s.suggestedTimesOfDay.map((t) => SUPPLEMENT_TIME_LABELS[t]).join(', ')}
             </p>
           </div>
