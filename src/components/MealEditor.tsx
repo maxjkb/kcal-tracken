@@ -68,14 +68,16 @@ export function MealEditor({
       onClose={onClose}
       sheetClassName="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-surface sm:rounded-3xl"
       closeOnBackdropClick={false}
-      closeOnDrag={false}
     >
       <MealEditorContent date={date} initial={initial} defaultMealType={defaultMealType} />
     </Sheet>
   )
 }
 
-/** Disables backdrop-click and drag-to-dismiss (unlike the read-only MealDetail/pickers): this form holds real typed input, so an accidental outside tap or swipe shouldn't be able to discard it. */
+/** Disables backdrop-click (unlike the read-only MealDetail/pickers): this form holds real
+  * typed input, so an accidental outside tap shouldn't be able to discard it. Drag-to-dismiss
+  * stays on — it only ever fires from a deliberate pull on the dedicated handle, never from a
+  * stray touch, so it doesn't carry that same accidental-loss risk. */
 function MealEditorContent({
   date,
   initial,
@@ -433,7 +435,7 @@ function MealEditorContent({
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="mt-2 rounded-2xl bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                className="glass-accent mt-2 flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {saving ? 'Speichern…' : 'Speichern'}
               </button>

@@ -69,7 +69,7 @@ export function MacroRingBadge({
   size?: 'sm' | 'md'
 }) {
   const box = size === 'sm' ? 34 : 42
-  const border = size === 'sm' ? 2.5 : 3
+  const border = size === 'sm' ? 3 : 3.5
   const icon = size === 'sm' ? 'h-2.5 w-2.5' : 'h-3 w-3'
   const text = size === 'sm' ? 'text-[9px]' : 'text-[10px]'
   const color = RING_COLOR_VAR[type]

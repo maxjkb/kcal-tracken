@@ -8,7 +8,7 @@ export function RecipeCard({ recipe, onView }: { recipe: Recipe; onView: () => v
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   return (
-    <div className="press-card rounded-2xl bg-surface p-3 shadow-sm shadow-black/5">
+    <div className="press-card glass-subtle rounded-2xl p-3 shadow-sm shadow-black/5">
       <button className="press-target block w-full text-left" onClick={onView}>
         <h3 className="font-medium text-ink">{recipe.title}</h3>
       </button>

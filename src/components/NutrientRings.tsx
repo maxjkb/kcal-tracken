@@ -174,7 +174,7 @@ function Ring({
   const r = 34
   const cx = size / 2
   const cy = size / 2
-  const strokeWidth = 8
+  const strokeWidth = 10
   const color = RING_COLORS[type]
   const closed = perMealValue !== undefined
   const displayValue = perMealValue ?? value
@@ -271,7 +271,7 @@ export function ConcentricRings({
   targets: { kcal: number; protein: number; carbs: number; fat: number } | null
   size?: 'default' | 'compact'
 }) {
-  const dims = size === 'compact' ? { box: 60, strokeWidth: 5.5, gap: 1.5 } : { box: 128, strokeWidth: 11, gap: 3 }
+  const dims = size === 'compact' ? { box: 60, strokeWidth: 6, gap: 1.5 } : { box: 128, strokeWidth: 13, gap: 3 }
   const cx = dims.box / 2
   const cy = dims.box / 2
   const outerR = dims.box / 2 - dims.strokeWidth / 2
@@ -326,7 +326,7 @@ export function MiniNutrientRings({
   const r = 22
   const cx = size / 2
   const cy = size / 2
-  const strokeWidth = 5
+  const strokeWidth = 6
 
   return (
     <div className="flex flex-wrap gap-2">

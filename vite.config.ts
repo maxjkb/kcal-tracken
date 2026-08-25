@@ -11,10 +11,10 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icon-512-maskable.png'],
       manifest: {
-        name: 'Kcal Tracker',
-        short_name: 'Kcal Tracker',
+        name: 'Tracke',
+        short_name: 'Tracke',
         description: 'Ernährungstracker mit KI-Nährwertschätzung',
         theme_color: '#f2f2f7',
         background_color: '#f2f2f7',
@@ -33,7 +33,7 @@ export default defineConfig({
             type: 'image/png',
           },
           {
-            src: 'icon-512.png',
+            src: 'icon-512-maskable.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',

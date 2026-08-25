@@ -7,7 +7,7 @@ export function MealCard({ meal, onView }: { meal: Meal; onView: () => void }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   return (
-    <div className="press-card rounded-2xl bg-surface p-3 shadow-sm shadow-black/5">
+    <div className="press-card glass-subtle rounded-2xl p-3 shadow-sm shadow-black/5">
       <div className="flex gap-3">
         {meal.photo && (
           <img src={meal.photo} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />

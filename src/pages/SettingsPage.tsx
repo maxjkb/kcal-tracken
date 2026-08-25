@@ -39,38 +39,38 @@ export function SettingsPage() {
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       <h1 className="mb-4 text-2xl font-bold tracking-tight text-ink">Einstellungen</h1>
 
-      <div className="divide-y divide-line overflow-hidden rounded-3xl bg-surface shadow-sm shadow-black/5">
+      <div className="glass-subtle divide-y divide-line/60 overflow-hidden rounded-3xl shadow-sm shadow-black/5">
         <SettingsRow
           to="/settings/koerperwerte"
-          iconBg="bg-blue-500"
+          iconBg="bg-accent"
           icon={<BodyIcon />}
           title="Körperwerte & Ziele"
           subtitle={bodyProfileSubtitle}
         />
         <SettingsRow
           to="/settings/api"
-          iconBg="bg-violet-500"
+          iconBg="bg-accent"
           icon={<KeyIcon />}
           title="Gemini API"
           subtitle={apiKeySubtitle}
         />
         <SettingsRow
           to="/settings/speicher"
-          iconBg="bg-teal-500"
+          iconBg="bg-accent"
           icon={<StorageIcon />}
           title="Speicher"
           subtitle={storageSubtitle}
         />
         <SettingsRow
           to="/settings/daten"
-          iconBg="bg-orange-500"
+          iconBg="bg-accent"
           icon={<DataIcon />}
           title="Daten"
           subtitle="Backup & Zurücksetzen"
         />
         <SettingsRow
           to="/settings/sync"
-          iconBg="bg-pink-500"
+          iconBg="bg-accent"
           icon={<SyncIcon />}
           title="Sync"
           subtitle={syncSubtitle}
