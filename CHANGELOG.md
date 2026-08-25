@@ -10,6 +10,28 @@ die vielen `0.x`-Schritte.
 
 Alle Versionen ab hier sind zusätzlich als Git-Tag (`vX.Y.Z`) auf dem jeweiligen Merge-Commit hinterlegt.
 
+## [1.9.0] - 2026-08-25
+
+### Einstellungen
+- Neuer Reiter „Version & Neues": zeigt die installierte Version und was jede
+  Version gebracht hat.
+- Neuer Reiter „Aktualisierung": fragt den Service Worker, ob eine neuere
+  Version bereitsteht, und installiert sie auf Knopfdruck.
+- Neuer Reiter „Kontingent": Balken pro Gemini-Modell und für Firebase-
+  Anmeldemails, blau bis 85%, danach rot. Ehrlich beschriftet — gezählt wird,
+  was dieses Gerät sendet, weil keine der beiden Schnittstellen den echten
+  Verbrauch herausgibt.
+- Gemini rotiert automatisch durch mehrere Modelle, wenn ein Tageskontingent
+  aufgebraucht ist, und merkt sich das bis zum Zurücksetzen. Die in den
+  Einstellungen gewählte Modell-Präferenz wird dabei nicht mehr überschrieben.
+
+### Design
+- Alle Trefferflächen auf mindestens 44pt.
+- Farben pro Mahlzeit-Typ, Apfel statt Stern für Snack.
+- Statistik: Punkt-Diagramm mit Trendlinie und Nährwert-Detail je Punkt.
+- Mahlzeit-Editor: Vorschläge mit Ring-Badges, Galerie-Button, breiteres
+  Textfeld, kein seitlicher Überlauf mehr.
+
 ## [1.4.3] - 2026-08-25
 
 ### Sonstiges

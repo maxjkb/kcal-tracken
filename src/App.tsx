@@ -13,6 +13,9 @@ import { ApiSettingsPage } from './pages/settings/ApiSettingsPage'
 import { StorageSettingsPage } from './pages/settings/StorageSettingsPage'
 import { DataSettingsPage } from './pages/settings/DataSettingsPage'
 import { SyncSettingsPage } from './pages/settings/SyncSettingsPage'
+import { AboutSettingsPage } from './pages/settings/AboutSettingsPage'
+import { UpdateSettingsPage } from './pages/settings/UpdateSettingsPage'
+import { QuotaSettingsPage } from './pages/settings/QuotaSettingsPage'
 import { MealEditor } from './components/MealEditor'
 import { lazyRetry } from './lib/lazyRetry'
 import { toLocalDateKey } from './lib/db'
@@ -97,6 +100,9 @@ export default function App() {
             <Route path="/settings/speicher" element={<StorageSettingsPage />} />
             <Route path="/settings/daten" element={<DataSettingsPage />} />
             <Route path="/settings/sync" element={<SyncSettingsPage />} />
+            <Route path="/settings/kontingent" element={<QuotaSettingsPage />} />
+            <Route path="/settings/aktualisierung" element={<UpdateSettingsPage />} />
+            <Route path="/settings/version" element={<AboutSettingsPage />} />
             <Route
               path="/recipes"
               element={
