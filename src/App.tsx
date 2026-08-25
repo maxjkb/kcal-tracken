@@ -2,7 +2,9 @@ import { Suspense, lazy, useLayoutEffect, useState } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { BottomNav } from './components/BottomNav'
 import { SwipeNavigator } from './components/SwipeNavigator'
+import { RecipesPage, StatsPage, SupplementsPage } from './components/SectionPreview'
 import { AddMealContext } from './hooks/useAddMeal'
+import { SwipeProgressProvider } from './lib/swipeProgress'
 import { TopGradient } from './components/TopGradient'
 import { FeedPage } from './pages/FeedPage'
 import { SettingsPage } from './pages/SettingsPage'
@@ -16,11 +18,6 @@ import { lazyRetry } from './lib/lazyRetry'
 import { toLocalDateKey } from './lib/db'
 import { guessMealType } from './lib/mealTypeGuess'
 
-const StatsPage = lazy(lazyRetry(() => import('./pages/StatsPage').then((m) => ({ default: m.StatsPage }))))
-const RecipesPage = lazy(lazyRetry(() => import('./pages/RecipesPage').then((m) => ({ default: m.RecipesPage }))))
-const SupplementsPage = lazy(
-  lazyRetry(() => import('./pages/SupplementsPage').then((m) => ({ default: m.SupplementsPage }))),
-)
 const RecipeCategoryPage = lazy(
   lazyRetry(() => import('./pages/RecipeCategoryPage').then((m) => ({ default: m.RecipeCategoryPage }))),
 )
@@ -73,6 +70,7 @@ export default function App() {
 
   return (
     <AddMealContext.Provider value={() => setAddingMeal(true)}>
+      <SwipeProgressProvider>
       {/* Rendered outside the min-h-screen wrapper below, and that wrapper's
           own explicit bg-bg is dropped in favor of body's identical
           background (see index.css) — an opaque sibling paints over a
@@ -143,6 +141,7 @@ export default function App() {
           />
         )}
       </div>
+      </SwipeProgressProvider>
     </AddMealContext.Provider>
   )
 }

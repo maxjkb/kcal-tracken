@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useRegisterBackSwipe } from '../lib/backSwipe'
 import { formatIngredientAmount } from '../lib/db'
 import { useRecipe } from '../hooks/useRecipes'
 import { RecipeEditor } from '../components/RecipeEditor'
@@ -24,7 +25,11 @@ function ChevronDown({ open }: { open: boolean }) {
 
 /** One recipe's detail — Zutaten and Zubereitung, matching MealDetail's read-only/collapsible pattern; "Bearbeiten" opens the recipe editor. */
 export function RecipeDetailPage() {
-  const { id } = useParams<{ category: string; id: string }>()
+  const { category, id } = useParams<{ category: string; id: string }>()
+  const navigate = useNavigate()
+  // Swiping right means what the back arrow above means. Registered rather
+  // than handled locally so it shares the app's one gesture recogniser.
+  useRegisterBackSwipe(() => navigate(`/recipes/${category}`))
   const recipe = useRecipe(id)
   const [ingredientsOpen, setIngredientsOpen] = useState(true)
   const [stepsOpen, setStepsOpen] = useState(false)

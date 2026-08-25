@@ -7,6 +7,7 @@ import { RecipeEditor } from '../components/RecipeEditor'
 import { ChevronIcon } from '../components/ChevronIcon'
 import { SlideInPage } from '../components/SlideInPage'
 import { MealTypeIcon } from '../components/MealTypeIcon'
+import { useRegisterBackSwipe } from '../lib/backSwipe'
 
 function isMealType(value: string | undefined): value is MealType {
   return !!value && (MEAL_TYPE_ORDER as string[]).includes(value)
@@ -16,6 +17,8 @@ function isMealType(value: string | undefined): value is MealType {
 export function RecipeCategoryPage() {
   const { category } = useParams<{ category: string }>()
   const navigate = useNavigate()
+  // Swiping right means what the back arrow above means.
+  useRegisterBackSwipe(() => navigate('/recipes'))
   const cat: MealType = isMealType(category) ? category : 'breakfast'
   const recipes = useRecipesForCategory(cat)
   const [adding, setAdding] = useState(false)

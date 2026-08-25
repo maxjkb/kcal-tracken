@@ -22,6 +22,7 @@ import { MacroBadge, MacroRingBadge } from './MacroBadge'
 import { Link } from 'react-router-dom'
 import { Sheet } from './Sheet'
 import { useSheetClose } from '../hooks/useSheetClose'
+import { useSwipeBack } from '../hooks/useSwipeBack'
 import { useDraftAutosave, useRestoredDraft } from '../hooks/useFormDraft'
 import { draftKey } from '../lib/drafts'
 import { DraftRestoredBanner } from './DraftRestoredBanner'
@@ -187,6 +188,10 @@ function RecipeEditorContent({
     draft.clear()
   }
 
+  // Swiping right does what the back control on this step does. Null while
+  // there is nothing to go back to, so the gesture stays inert on step one.
+  const swipeBack = useSwipeBack(step === 'review' ? () => setStep('input') : null)
+
   const hasApiKey = Boolean(getApiKey())
 
   async function handleDictationDone(rawText: string) {
@@ -345,7 +350,7 @@ function RecipeEditorContent({
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden" {...swipeBack}>
         <div
           className="flex w-full shrink-0 transition-transform duration-300 ease-out"
           style={{ transform: `translateX(-${step === 'review' ? 100 : 0}%)` }}

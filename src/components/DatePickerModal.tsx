@@ -4,6 +4,7 @@ import { toLocalDateKey } from '../lib/db'
 import { FULL_MONTH_LABELS, MONTH_LABELS, startOfWeek } from '../lib/stats'
 import { ChevronIcon } from './ChevronIcon'
 import { Sheet } from './Sheet'
+import { useSwipeBack } from '../hooks/useSwipeBack'
 
 const WEEKDAY_LABELS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 
@@ -104,9 +105,16 @@ export function DayPickerModal({
   }
 
   const grid = buildCalendarGrid(viewYear, viewMonth)
+  // The arrow pair above has an obvious gesture equivalent: swipe right for the
+  // previous month, left for the next.
+  const swipeMonth = useSwipeBack(
+    () => shiftMonth(-1),
+    () => shiftMonth(1),
+  )
 
   return (
     <PickerShell title="Datum wählen" onClose={onClose}>
+      <div {...swipeMonth}>
       <NavRow
         label={`${FULL_MONTH_LABELS[viewMonth - 1]} ${viewYear}`}
         onPrev={() => shiftMonth(-1)}
@@ -147,6 +155,7 @@ export function DayPickerModal({
             </button>
           )
         })}
+      </div>
       </div>
     </PickerShell>
   )
