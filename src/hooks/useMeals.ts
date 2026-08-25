@@ -18,6 +18,17 @@ export function useMealsInRange(startKey: string, endKey: string): Meal[] | unde
   }, [startKey, endKey])
 }
 
+/**
+ * The most recently LOGGED meals overall (any date/category), newest first —
+ * sorted by when they were entered (createdAt), not by which day they're
+ * assigned to (date), since a meal's date can be moved after the fact. Used
+ * by the Rezepte page's "Zuletzt" section as quick starting points for
+ * turning a real, already-logged meal into a reusable recipe.
+ */
+export function useRecentMeals(limit: number): Meal[] | undefined {
+  return useLiveQuery(() => db.meals.orderBy('createdAt').reverse().limit(limit).toArray(), [limit])
+}
+
 export async function deleteMeal(id: string): Promise<void> {
   await db.meals.delete(id)
   pushMealChange(null, id)

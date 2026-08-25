@@ -4,6 +4,7 @@ import {
   MEAL_TYPE_ORDER,
   newRecipeId,
   type Ingredient,
+  type Meal,
   type MealType,
   type Nutrition,
   type Recipe,
@@ -49,14 +50,32 @@ function describeSaveError(err: unknown): string {
   return `Rezept konnte nicht gespeichert werden (${message}). Bitte erneut versuchen.`
 }
 
+/** A recipe idea to seed the editor with — from an AI suggestion, not yet structured, so it
+  * opens on the input step with `description` prefilled, ready for the user to hit "Rezept
+  * schätzen" themselves (this app's one trusted path from free text to real nutrition numbers). */
+export interface RecipeSeed {
+  title: string
+  description: string
+  category: MealType
+}
+
 export function RecipeEditor({
   category,
   initial,
+  fromMeal,
+  seed,
   onClose,
 }: {
   /** Preselects the category — set when opened from a specific Rezepte category page. */
   category: MealType
   initial?: Recipe
+  /** Starts a NEW recipe pre-filled from an already-logged meal's real data (title/description/
+    * ingredients/nutrition) — opens straight on the review step, same as editing, but always
+    * saves as a new recipe (no `id`/`createdAt` carried over). */
+  fromMeal?: Meal
+  /** Starts a NEW recipe from an AI-suggested idea — opens on the input step so "Rezept
+    * schätzen" can turn the seed description into real structured data. */
+  seed?: RecipeSeed
   onClose: () => void
 }) {
   return (
@@ -65,7 +84,7 @@ export function RecipeEditor({
       sheetClassName="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-surface sm:rounded-3xl"
       closeOnBackdropClick={false}
     >
-      <RecipeEditorContent category={category} initial={initial} />
+      <RecipeEditorContent category={category} initial={initial} fromMeal={fromMeal} seed={seed} />
     </Sheet>
   )
 }
@@ -74,21 +93,33 @@ export function RecipeEditor({
   * typed input, so an accidental outside tap shouldn't be able to discard it. Drag-to-dismiss
   * stays on — it only ever fires from a deliberate pull on the dedicated handle, never from a
   * stray touch, so it doesn't carry that same accidental-loss risk. */
-function RecipeEditorContent({ category, initial }: { category: MealType; initial?: Recipe }) {
+function RecipeEditorContent({
+  category,
+  initial,
+  fromMeal,
+  seed,
+}: {
+  category: MealType
+  initial?: Recipe
+  fromMeal?: Meal
+  seed?: RecipeSeed
+}) {
   const requestClose = useSheetClose()
-  const [step, setStep] = useState<Step>(initial ? 'review' : 'input')
-  const [hasResult, setHasResult] = useState(Boolean(initial))
-  const [description, setDescription] = useState(initial?.description ?? '')
-  const [recipeCategory, setRecipeCategory] = useState<MealType>(initial?.category ?? category)
-  const [title, setTitle] = useState(initial?.title ?? '')
-  const [nutrition, setNutrition] = useState<Nutrition>(initial?.nutrition ?? EMPTY_NUTRITION)
-  const [ingredients, setIngredients] = useState<Ingredient[]>(initial?.ingredients ?? [])
+  const [step, setStep] = useState<Step>(initial || fromMeal ? 'review' : 'input')
+  const [hasResult, setHasResult] = useState(Boolean(initial || fromMeal))
+  const [description, setDescription] = useState(initial?.description ?? fromMeal?.description ?? seed?.description ?? '')
+  const [recipeCategory, setRecipeCategory] = useState<MealType>(
+    initial?.category ?? fromMeal?.mealType ?? seed?.category ?? category,
+  )
+  const [title, setTitle] = useState(initial?.title ?? fromMeal?.title ?? seed?.title ?? '')
+  const [nutrition, setNutrition] = useState<Nutrition>(initial?.nutrition ?? fromMeal?.nutrition ?? EMPTY_NUTRITION)
+  const [ingredients, setIngredients] = useState<Ingredient[]>(initial?.ingredients ?? fromMeal?.ingredients ?? [])
   const [steps, setSteps] = useState<RecipeStep[]>(initial?.steps ?? [])
   const [estimating, setEstimating] = useState(false)
   const [cleaningUp, setCleaningUp] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [manuallyEdited, setManuallyEdited] = useState(initial?.manuallyEdited ?? false)
+  const [manuallyEdited, setManuallyEdited] = useState(initial?.manuallyEdited ?? Boolean(fromMeal))
 
   const [addingIngredient, setAddingIngredient] = useState(false)
   const [newIngredientText, setNewIngredientText] = useState('')
@@ -229,7 +260,9 @@ function RecipeEditorContent({ category, initial }: { category: MealType; initia
             <BackIcon />
           </button>
         ) : (
-          <h2 className="text-lg font-semibold text-ink">{initial ? 'Rezept bearbeiten' : 'Rezept hinzufügen'}</h2>
+          <h2 className="text-lg font-semibold text-ink">
+            {initial ? 'Rezept bearbeiten' : fromMeal ? 'Rezept aus Mahlzeit' : 'Rezept hinzufügen'}
+          </h2>
         )}
         <div className="flex items-center gap-3">
           {step === 'input' && hasResult && (
