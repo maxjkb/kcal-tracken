@@ -6,6 +6,7 @@ import { useSavedToast } from '../../hooks/useSavedToast'
 import {
   clearFirebaseConfig,
   getFirebaseConfig,
+  hasCustomFirebaseConfig,
   parsePastedFirebaseConfig,
   setFirebaseConfig,
 } from '../../lib/firebaseConfig'
@@ -21,9 +22,13 @@ import {
 import { getSyncError, getSyncStatus, onSyncStatusChange, resyncNow, startSync, stopSync } from '../../lib/sync'
 
 /**
- * "Bring your own Firebase project" sync setup — same trust model as the
- * Gemini API key page: nothing here is Anthropic- or app-hosted, the user
- * creates their own free Firebase project and pastes its web config in.
+ * Sync setup. Tracke ships with its own Firebase project baked in
+ * (`lib/firebaseConfig.ts`'s built-in default), so sync works out of the
+ * box on any fresh browser/device — no config to paste, just sign in below.
+ * The "bring your own Firebase project" path from earlier still exists
+ * underneath as an optional override ("Anderes Projekt"), same trust model
+ * as the Gemini API key page: nothing there is Anthropic- or app-hosted,
+ * it's the user's own free Firebase project, config kept only locally.
  * Passwordless email-link sign-in; once signed in on two devices with the
  * same address, meals/recipes/body profile/API key sync between them.
  *
@@ -36,7 +41,10 @@ import { getSyncError, getSyncStatus, onSyncStatusChange, resyncNow, startSync, 
  */
 export function SyncSettingsPage() {
   const [config, setConfig] = useState(getFirebaseConfig())
+  const [isCustom, setIsCustom] = useState(hasCustomFirebaseConfig())
+  const [showOverrideForm, setShowOverrideForm] = useState(false)
   const [configText, setConfigText] = useState('')
+  const [configError, setConfigError] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [email, setEmail] = useState('')
   const [linkSent, setLinkSent] = useState(false)
@@ -82,24 +90,32 @@ export function SyncSettingsPage() {
   function handleSaveConfig() {
     const parsed = parsePastedFirebaseConfig(configText)
     if (!parsed) {
-      setError(
+      setConfigError(
         'Konnte die eingefügte Konfiguration nicht lesen. Bitte das komplette firebaseConfig-Objekt aus der Firebase-Konsole einfügen.',
       )
       return
     }
+    // Switching projects means switching backends — any session under the
+    // previous project (default or custom) no longer applies.
+    stopSync()
+    setUser(null)
     setFirebaseConfig(parsed)
     setConfig(parsed)
+    setIsCustom(true)
+    setShowOverrideForm(false)
     setConfigText('')
-    setError(null)
+    setConfigError(null)
     flash('Firebase-Projekt hinterlegt.')
   }
 
+  /** Drops the custom override and reverts to Tracke's own built-in Firebase project. */
   function handleRemoveConfig() {
     stopSync()
     clearFirebaseConfig()
-    setConfig(null)
+    setConfig(getFirebaseConfig())
+    setIsCustom(false)
     setUser(null)
-    flash('Firebase-Projekt entfernt.')
+    flash('Eigenes Projekt entfernt — Standardprojekt wieder aktiv.')
   }
 
   async function handleSendLink() {
@@ -183,33 +199,28 @@ export function SyncSettingsPage() {
       <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
         <h2 className="mb-1 text-sm font-semibold text-ink">Firebase-Projekt</h2>
         <p className="mb-3 text-xs text-ink-soft">
-          Kostenlose geräteübergreifende Synchronisation über dein eigenes Firebase-Projekt (Google,
-          Gratis-Kontingent). Erstelle unter{' '}
-          <a
-            href="https://console.firebase.google.com"
-            target="_blank"
-            rel="noreferrer"
-            className="font-medium text-accent underline"
-          >
-            console.firebase.google.com
-          </a>{' '}
-          ein neues Projekt, füge eine Web-App hinzu, aktiviere unter <strong>Authentication</strong> die
-          Anmeldemethode <strong>E-Mail-Link</strong> sowie eine <strong>Firestore Database</strong>, und füge
-          hier die Web-Konfiguration ein (Projekteinstellungen → deine Web-App → "SDK-Setup und
-          Konfiguration"). Wird nur lokal in deinem Browser gespeichert.
+          {isCustom
+            ? 'Kostenlose geräteübergreifende Synchronisation über dein eigenes Firebase-Projekt (Google, Gratis-Kontingent).'
+            : 'Kostenlose geräteübergreifende Synchronisation — läuft bereits über das in der App hinterlegte Firebase-Projekt, einfach unten anmelden.'}
         </p>
 
-        {config ? (
-          <div className="flex items-center justify-between rounded-xl bg-bg px-3 py-2.5">
-            <span className="text-sm text-ink">
-              Projekt: <span className="font-medium">{config.projectId}</span>
-            </span>
-            <button type="button" onClick={handleRemoveConfig} className="text-xs font-medium text-red-500">
-              Entfernen
-            </button>
-          </div>
-        ) : (
+        {showOverrideForm ? (
           <>
+            <p className="mb-2 text-xs text-ink-soft">
+              Eigenes Firebase-Projekt verwenden statt des hinterlegten: Erstelle unter{' '}
+              <a
+                href="https://console.firebase.google.com"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-accent underline"
+              >
+                console.firebase.google.com
+              </a>{' '}
+              ein neues Projekt, füge eine Web-App hinzu, aktiviere unter <strong>Authentication</strong> die
+              Anmeldemethode <strong>E-Mail-Link</strong> sowie eine <strong>Firestore Database</strong>, und füge
+              hier die Web-Konfiguration ein (Projekteinstellungen → deine Web-App → "SDK-Setup und
+              Konfiguration"). Wird nur lokal in deinem Browser gespeichert.
+            </p>
             <textarea
               value={configText}
               onChange={(e) => setConfigText(e.target.value)}
@@ -217,138 +228,161 @@ export function SyncSettingsPage() {
               rows={5}
               className="w-full resize-none rounded-xl border border-line bg-bg px-3 py-2 font-mono text-xs text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
             />
-            <button
-              onClick={handleSaveConfig}
-              className="glass-accent mt-3 w-full rounded-xl py-2.5 text-sm font-semibold"
-            >
-              Speichern
-            </button>
-            {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={handleSaveConfig}
+                className="glass-accent flex-1 rounded-xl py-2.5 text-sm font-semibold"
+              >
+                Speichern
+              </button>
+              <button
+                onClick={() => {
+                  setShowOverrideForm(false)
+                  setConfigText('')
+                  setConfigError(null)
+                }}
+                className="shrink-0 rounded-xl bg-bg px-4 text-sm font-medium text-ink-soft hover:bg-line"
+              >
+                Abbrechen
+              </button>
+            </div>
+            {configError && <p className="mt-3 text-xs text-red-500">{configError}</p>}
           </>
+        ) : (
+          <div className="flex items-center justify-between rounded-xl bg-bg px-3 py-2.5">
+            <span className="text-sm text-ink">
+              Projekt: <span className="font-medium">{config.projectId}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => (isCustom ? handleRemoveConfig() : setShowOverrideForm(true))}
+              className={`text-xs font-medium ${isCustom ? 'text-red-500' : 'text-accent'}`}
+            >
+              {isCustom ? 'Entfernen' : 'Anderes Projekt'}
+            </button>
+          </div>
         )}
       </section>
 
-      {config && (
-        <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
-          <h2 className="mb-1 text-sm font-semibold text-ink">Anmeldung</h2>
+      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+        <h2 className="mb-1 text-sm font-semibold text-ink">Anmeldung</h2>
 
-          {linkToComplete ? (
-            <>
-              {openedInSafariNotApp && (
-                <p className="mb-3 rounded-2xl bg-fat/15 px-3 py-2 text-xs text-ink">
-                  Dieser Link wurde in Safari geöffnet, nicht in deiner installierten App — iOS trennt
-                  deren Speicher, eine Anmeldung hier würde in der App nicht ankommen. Kopiere stattdessen
-                  die Adresse oben aus der Adressleiste, öffne die installierte App und füge sie dort unter
-                  "Link aus Safari einfügen" ein.
-                </p>
-              )}
-              <p className="mb-3 text-xs text-ink-soft">
-                Anmeldelink erkannt. Zur Bestätigung bitte die E-Mail-Adresse eingeben, an die der Link
-                gesendet wurde.
+        {linkToComplete ? (
+          <>
+            {openedInSafariNotApp && (
+              <p className="mb-3 rounded-2xl bg-fat/15 px-3 py-2 text-xs text-ink">
+                Dieser Link wurde in Safari geöffnet, nicht in deiner installierten App — iOS trennt
+                deren Speicher, eine Anmeldung hier würde in der App nicht ankommen. Kopiere stattdessen
+                die Adresse oben aus der Adressleiste, öffne die installierte App und füge sie dort unter
+                "Link aus Safari einfügen" ein.
               </p>
-              <input
-                type="email"
-                value={confirmEmail}
-                onChange={(e) => setConfirmEmail(e.target.value)}
-                placeholder="deine@email.de"
-                className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
-              />
+            )}
+            <p className="mb-3 text-xs text-ink-soft">
+              Anmeldelink erkannt. Zur Bestätigung bitte die E-Mail-Adresse eingeben, an die der Link
+              gesendet wurde.
+            </p>
+            <input
+              type="email"
+              value={confirmEmail}
+              onChange={(e) => setConfirmEmail(e.target.value)}
+              placeholder="deine@email.de"
+              className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+            />
+            <button
+              onClick={handleConfirmEmail}
+              disabled={busy}
+              className="glass-accent mt-3 w-full rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50"
+            >
+              Anmeldung abschließen
+            </button>
+          </>
+        ) : user ? (
+          <>
+            <p className="mb-3 text-sm text-ink">
+              Angemeldet als <span className="font-medium">{user.email}</span>.{' '}
+              <span className={`text-xs ${getSyncStatus() === 'error' ? 'text-red-500' : 'text-ink-soft'}`}>
+                {getSyncStatus() === 'syncing'
+                  ? 'Synchronisation aktiv.'
+                  : getSyncStatus() === 'error'
+                    ? `Synchronisation fehlgeschlagen: ${getSyncError()}`
+                    : 'Wird verbunden…'}
+              </span>
+            </p>
+            <div className="flex gap-2">
               <button
-                onClick={handleConfirmEmail}
+                onClick={handleResync}
                 disabled={busy}
-                className="glass-accent mt-3 w-full rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50"
+                className="flex-1 rounded-xl bg-bg py-2.5 text-sm font-medium text-ink-soft hover:bg-line disabled:opacity-50"
               >
-                Anmeldung abschließen
+                Jetzt synchronisieren
               </button>
-            </>
-          ) : user ? (
-            <>
-              <p className="mb-3 text-sm text-ink">
-                Angemeldet als <span className="font-medium">{user.email}</span>.{' '}
-                <span className={`text-xs ${getSyncStatus() === 'error' ? 'text-red-500' : 'text-ink-soft'}`}>
-                  {getSyncStatus() === 'syncing'
-                    ? 'Synchronisation aktiv.'
-                    : getSyncStatus() === 'error'
-                      ? `Synchronisation fehlgeschlagen: ${getSyncError()}`
-                      : 'Wird verbunden…'}
-                </span>
+              <button
+                onClick={handleSignOut}
+                className="flex-1 rounded-xl bg-bg py-2.5 text-sm font-medium text-red-500 hover:bg-line"
+              >
+                Abmelden
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            {linkSent ? (
+              <p className="mb-4 text-sm text-ink">
+                Anmeldelink an <span className="font-medium">{email}</span> gesendet. E-Mail öffnen und
+                den Link antippen, um die Anmeldung abzuschließen.
+              </p>
+            ) : (
+              <>
+                <p className="mb-3 text-xs text-ink-soft">
+                  Anmeldung ohne Passwort per Link per E-Mail. Auf jedem Gerät, das synchronisieren soll,
+                  mit derselben E-Mail-Adresse anmelden.
+                </p>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="deine@email.de"
+                  className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+                />
+                <button
+                  onClick={handleSendLink}
+                  disabled={busy}
+                  className="glass-accent mt-3 mb-4 w-full rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50"
+                >
+                  Anmeldelink senden
+                </button>
+              </>
+            )}
+
+            <div className="border-t border-line pt-4">
+              <p className="mb-2 text-xs text-ink-soft">
+                Link stattdessen in Safari geöffnet (z. B. als installierte "Zum Home-Bildschirm"-App)?
+                Adresse aus der Safari-Adressleiste kopieren und hier einfügen:
               </p>
               <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={pasteInput}
+                  onChange={(e) => setPasteInput(e.target.value)}
+                  placeholder="https://maxjkb.github.io/…"
+                  className="flex-1 rounded-xl border border-line bg-bg px-3 py-2 text-xs text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+                />
                 <button
-                  onClick={handleResync}
-                  disabled={busy}
-                  className="flex-1 rounded-xl bg-bg py-2.5 text-sm font-medium text-ink-soft hover:bg-line disabled:opacity-50"
+                  onClick={handlePasteLink}
+                  disabled={busy || !pasteInput.trim()}
+                  className="shrink-0 rounded-xl bg-bg px-4 text-sm font-medium text-ink-soft hover:bg-line disabled:opacity-50"
                 >
-                  Jetzt synchronisieren
-                </button>
-                <button
-                  onClick={handleSignOut}
-                  className="flex-1 rounded-xl bg-bg py-2.5 text-sm font-medium text-red-500 hover:bg-line"
-                >
-                  Abmelden
+                  Bestätigen
                 </button>
               </div>
-            </>
-          ) : (
-            <>
-              {linkSent ? (
-                <p className="mb-4 text-sm text-ink">
-                  Anmeldelink an <span className="font-medium">{email}</span> gesendet. E-Mail öffnen und
-                  den Link antippen, um die Anmeldung abzuschließen.
-                </p>
-              ) : (
-                <>
-                  <p className="mb-3 text-xs text-ink-soft">
-                    Anmeldung ohne Passwort per Link per E-Mail. Auf jedem Gerät, das synchronisieren soll,
-                    mit derselben E-Mail-Adresse anmelden.
-                  </p>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="deine@email.de"
-                    className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
-                  />
-                  <button
-                    onClick={handleSendLink}
-                    disabled={busy}
-                    className="glass-accent mt-3 mb-4 w-full rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50"
-                  >
-                    Anmeldelink senden
-                  </button>
-                </>
-              )}
+            </div>
+          </>
+        )}
 
-              <div className="border-t border-line pt-4">
-                <p className="mb-2 text-xs text-ink-soft">
-                  Link stattdessen in Safari geöffnet (z. B. als installierte "Zum Home-Bildschirm"-App)?
-                  Adresse aus der Safari-Adressleiste kopieren und hier einfügen:
-                </p>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={pasteInput}
-                    onChange={(e) => setPasteInput(e.target.value)}
-                    placeholder="https://maxjkb.github.io/…"
-                    className="flex-1 rounded-xl border border-line bg-bg px-3 py-2 text-xs text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
-                  />
-                  <button
-                    onClick={handlePasteLink}
-                    disabled={busy || !pasteInput.trim()}
-                    className="shrink-0 rounded-xl bg-bg px-4 text-sm font-medium text-ink-soft hover:bg-line disabled:opacity-50"
-                  >
-                    Bestätigen
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
+        {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
+      </section>
 
-          {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
-        </section>
-      )}
-
-      {config && user && (
+      {user && (
         <p className="mb-6 px-1 text-xs text-ink-soft">
           Synchronisiert werden Mahlzeiten, Rezepte, Körperwerte & Ziele sowie der Gemini-API-Key.
         </p>
