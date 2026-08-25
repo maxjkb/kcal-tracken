@@ -1,6 +1,6 @@
 import { getApiKey } from './settings'
 import { searchFoodDatabaseMany, type FoodDatabaseMatch } from './foodDatabase'
-import type { SupplementCategory, SupplementTimeOfDay } from './db'
+import type { MealType, SupplementCategory, SupplementTimeOfDay } from './db'
 
 const DEFAULT_MODEL = 'gemini-3.6-flash'
 const MODEL_STORAGE_KEY = 'kcal-tracker:gemini-model'
@@ -637,4 +637,88 @@ export async function estimateSupplementTiming(supplementName: string): Promise<
   const raw = Array.isArray(parsed.timesOfDay) ? parsed.timesOfDay : []
   const times = raw.filter((t: unknown): t is SupplementTimeOfDay => SUPPLEMENT_TIME_ENUM.includes(t as SupplementTimeOfDay))
   return times.length > 0 ? times : ['morning']
+}
+
+// --- Rezept-Vorschläge --------------------------------------------------
+
+const MEAL_TYPE_ENUM: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack']
+
+export interface RecipeSuggestion {
+  title: string
+  category: MealType
+  /** Short, concrete ingredients/preparation text — usable as-is as the recipe editor's input, ready for "Rezept schätzen". */
+  description: string
+  reasoning: string
+}
+
+const RECIPE_SUGGESTION_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    suggestions: {
+      type: 'ARRAY',
+      description: '2 bis 4 konkrete, unterschiedliche Rezept-Ideen, die zu den bisherigen Essgewohnheiten des Nutzers passen.',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          title: { type: 'STRING', description: 'Kurzer, prägnanter Titel des Rezepts auf Deutsch.' },
+          category: {
+            type: 'STRING',
+            enum: MEAL_TYPE_ENUM,
+            description: 'Zu welcher Mahlzeitenkategorie das Rezept am besten passt.',
+          },
+          description: {
+            type: 'STRING',
+            description:
+              'Kurze Beschreibung mit ungefähren Zutaten und Mengen auf Deutsch (2-4 Sätze), direkt geeignet als Ausgangstext für eine automatische Nährwert-Schätzung — z.B. "200g Hähnchenbrust, 150g Brokkoli, 100g Reis. Hähnchen anbraten, Brokkoli dämpfen, mit dem Reis servieren."',
+          },
+          reasoning: {
+            type: 'STRING',
+            description: 'Kurze Begründung auf Deutsch (1-2 Sätze), warum dieses Rezept zu den bisherigen Essgewohnheiten des Nutzers passt.',
+          },
+        },
+        required: ['title', 'category', 'description', 'reasoning'],
+      },
+    },
+  },
+  required: ['suggestions'],
+}
+
+const RECIPE_SUGGESTION_SYSTEM_PROMPT = `Du bist ein Ernährungsassistent, der Rezept-Ideen vorschlägt. Du bekommst eine Liste der zuletzt vom Nutzer geloggten Mahlzeiten (Kategorie/Titel) sowie die Titel bereits gespeicherter Rezepte. Schlage 2 bis 4 konkrete Rezept-Ideen vor, die zu den erkennbaren Essgewohnheiten des Nutzers passen (wiederkehrende Zutaten, Küchenstil, übliche Mahlzeitengröße) — keine bloße Wiederholung einer bereits geloggten Mahlzeit, sondern sinnvolle, leicht abgewandelte oder ergänzende Ideen im selben Stil. Schlage keine Rezepte vor, deren Titel bereits gespeicherten Rezepten sehr ähnlich sind. Die "description" muss eine kurze, konkrete Zutaten-/Zubereitungsbeschreibung sein, die sich direkt automatisch schätzen lässt, ähnlich wie ein Nutzer sie selbst eintippen würde — keine vage Umschreibung. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema, auf Deutsch.`
+
+/**
+ * Generates 2–4 recipe ideas grounded in the user's recently logged meals,
+ * refreshed only on explicit user request (same reasoning as the supplement
+ * suggestions above: respects the free API quota, and a list that reshuffles
+ * itself on its own would read as noise, not a considered recommendation).
+ * Each suggestion's `description` is meant to be dropped straight into the
+ * recipe editor's input step so the user's existing, trusted "Rezept
+ * schätzen" flow produces the structured ingredients/steps — this call only
+ * proposes the idea, it never invents nutrition numbers itself.
+ */
+export async function estimateRecipeSuggestions(input: {
+  recentMealSummaries: string[]
+  existingRecipeTitles: string[]
+}): Promise<RecipeSuggestion[]> {
+  const lines = [
+    input.recentMealSummaries.length > 0
+      ? `Zuletzt geloggte Mahlzeiten:\n${input.recentMealSummaries.map((s) => `- ${s}`).join('\n')}`
+      : 'Der Nutzer hat noch keine Mahlzeiten geloggt.',
+    input.existingRecipeTitles.length > 0
+      ? `Bereits gespeicherte Rezepte (nicht erneut vorschlagen): ${input.existingRecipeTitles.join(', ')}`
+      : 'Der Nutzer hat noch keine Rezepte gespeichert.',
+  ]
+
+  const parsed = await callGemini({
+    systemPrompt: RECIPE_SUGGESTION_SYSTEM_PROMPT,
+    parts: [{ text: lines.join('\n\n') }],
+    responseSchema: RECIPE_SUGGESTION_SCHEMA,
+  })
+
+  const raw = Array.isArray(parsed.suggestions) ? parsed.suggestions : []
+  return raw.map((s) => ({
+    title: String(s.title ?? 'Rezept'),
+    category: MEAL_TYPE_ENUM.includes(s.category) ? s.category : 'lunch',
+    description: String(s.description ?? ''),
+    reasoning: String(s.reasoning ?? ''),
+  }))
 }
