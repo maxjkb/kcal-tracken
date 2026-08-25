@@ -16,6 +16,7 @@ import { getApiKey } from '../lib/settings'
 import { describeSaveError } from '../lib/errors'
 import { DictationButton } from './DictationButton'
 import { NutritionFields } from './NutritionFields'
+import { NumberField } from './NumberField'
 import { AutoGrowTextarea } from './AutoGrowTextarea'
 import { BouncingDots } from './BouncingDots'
 import { MacroBadge, MacroRingBadge } from './MacroBadge'
@@ -455,12 +456,10 @@ function RecipeEditorContent({
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-medium text-ink">{ing.name}</span>
                           <div className="flex shrink-0 items-center gap-1">
-                            <input
-                              type="number"
-                              inputMode="decimal"
-                              min={0}
+                            <NumberField
                               value={ing.amount}
-                              onChange={(e) => handleIngredientAmountChange(i, Number(e.target.value) || 0)}
+                              onChange={(next: number) => handleIngredientAmountChange(i, next)}
+                              ariaLabel={`Menge für ${ing.name}`}
                               className="w-16 rounded-lg border border-line bg-bg px-1.5 py-1 text-right text-xs text-ink focus:border-accent focus:outline-none"
                             />
                             <span className="text-xs text-ink-soft">{ing.unit}</span>

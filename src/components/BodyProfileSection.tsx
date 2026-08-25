@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { NumberField } from './NumberField'
 import {
   ACTIVITY_LABELS,
   clearBodyProfile,
@@ -92,28 +93,25 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
         <div className="grid grid-cols-3 gap-2">
           <label className="flex flex-col gap-1">
             <span className="text-xs text-ink-soft">Größe (cm)</span>
-            <input
-              type="number"
+            <NumberField
               value={profile.heightCm}
-              onChange={(e) => update('heightCm', Number(e.target.value) || 0)}
+              onChange={(next: number) => update('heightCm', next)}
               className="rounded-xl border border-line bg-bg px-2 py-2 text-sm text-ink focus:border-accent focus:outline-none"
             />
           </label>
           <label className="flex flex-col gap-1">
             <span className="text-xs text-ink-soft">Gewicht (kg)</span>
-            <input
-              type="number"
+            <NumberField
               value={profile.weightKg}
-              onChange={(e) => update('weightKg', Number(e.target.value) || 0)}
+              onChange={(next: number) => update('weightKg', next)}
               className="rounded-xl border border-line bg-bg px-2 py-2 text-sm text-ink focus:border-accent focus:outline-none"
             />
           </label>
           <label className="flex flex-col gap-1">
             <span className="text-xs text-ink-soft">Alter</span>
-            <input
-              type="number"
+            <NumberField
               value={profile.age}
-              onChange={(e) => update('age', Number(e.target.value) || 0)}
+              onChange={(next: number) => update('age', next)}
               className="rounded-xl border border-line bg-bg px-2 py-2 text-sm text-ink focus:border-accent focus:outline-none"
             />
           </label>

@@ -146,8 +146,3 @@ export function computeDailyTargets(profile: BodyProfile): DailyTargets {
   }
 }
 
-/** Percentage of a target reached, clamped to a sane display range. */
-export function percentOfTarget(value: number, target: number): number | null {
-  if (!target || target <= 0) return null
-  return Math.round((value / target) * 100)
-}

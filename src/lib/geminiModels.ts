@@ -22,9 +22,6 @@ export const GEMINI_MODELS: GeminiModelSpec[] = [
 
 export const DEFAULT_MODEL = GEMINI_MODELS[0].id
 
-export function modelLabel(id: string): string {
-  return GEMINI_MODELS.find((m) => m.id === id)?.label ?? id
-}
 
 const EXHAUSTED_KEY = 'kcal-tracker:gemini-exhausted'
 

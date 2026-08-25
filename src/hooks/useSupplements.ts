@@ -41,9 +41,24 @@ export function useMySupplements(): MySupplement[] | undefined {
   return useLiveQuery(() => db.mySupplements.orderBy('createdAt').toArray(), [])
 }
 
+/**
+ * Adds a catalog entry to the routine, or updates it if it is already there.
+ *
+ * Nothing used to stop the same supplement being added twice: the catalog row
+ * showed "Auf Liste" but still opened the add sheet, and accepting the same AI
+ * suggestion after a reload added a second row. The result was two identical
+ * rows in the daily checklist and a doubled denominator in the adherence
+ * figure. Updating the existing row is also what the user means by adding
+ * something already on the list — they are changing its dosage or times.
+ */
 export async function addMySupplement(
   fields: Pick<MySupplement, 'supplementId' | 'timesOfDay' | 'dosage'>,
 ): Promise<void> {
+  const existing = await db.mySupplements.where('supplementId').equals(fields.supplementId).first()
+  if (existing) {
+    await db.mySupplements.put({ ...existing, ...fields })
+    return
+  }
   const entry: MySupplement = { ...fields, id: newMySupplementId(), createdAt: Date.now() }
   await db.mySupplements.put(entry)
 }
@@ -118,13 +133,21 @@ export async function toggleSupplementCheck(
   date: string,
   timeOfDay: SupplementTimeOfDay,
 ): Promise<void> {
-  const existing = await db.supplementLog
-    .where('[mySupplementId+date+timeOfDay]')
-    .equals([mySupplementId, date, timeOfDay])
-    .first()
-  if (existing) {
-    await db.supplementLog.delete(existing.id)
-  } else {
-    await db.supplementLog.add({ id: newSupplementLogId(), mySupplementId, date, timeOfDay, checkedAt: Date.now() })
-  }
+  // In a transaction, and deleting *all* matches rather than the first.
+  // Read-then-write outside one let two taps ~100ms apart both see "not
+  // checked" and both insert — the compound index isn't declared unique — so a
+  // once-daily supplement reported 2/1 slots, i.e. 200% adherence, and needed
+  // two taps to clear again. The transaction serialises the pair; deleting all
+  // matches also repairs any duplicate a previous version already wrote.
+  await db.transaction('rw', db.supplementLog, async () => {
+    const existing = await db.supplementLog
+      .where('[mySupplementId+date+timeOfDay]')
+      .equals([mySupplementId, date, timeOfDay])
+      .toArray()
+    if (existing.length > 0) {
+      await db.supplementLog.bulkDelete(existing.map((e) => e.id))
+    } else {
+      await db.supplementLog.add({ id: newSupplementLogId(), mySupplementId, date, timeOfDay, checkedAt: Date.now() })
+    }
+  })
 }

@@ -4,11 +4,8 @@ import { SavedToast } from '../../components/SavedToast'
 import { useSavedToast } from '../../hooks/useSavedToast'
 import { clearApiKey, getApiKey, setApiKey } from '../../lib/settings'
 import { getModel, setModel } from '../../lib/gemini'
+import { GEMINI_MODELS } from '../../lib/geminiModels'
 
-const MODEL_SUGGESTIONS = [
-  { value: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash (empfohlen – gutes Gratis-Kontingent)' },
-  { value: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite (schneller, höheres Kontingent)' },
-]
 
 export function ApiSettingsPage() {
   const [apiKey, setApiKeyInput] = useState(getApiKey() ?? '')
@@ -98,10 +95,14 @@ export function ApiSettingsPage() {
           onChange={(e) => handleModelChange(e.target.value)}
           className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
         />
+        {/* Driven by GEMINI_MODELS rather than its own copy of the list. The
+            two had already drifted: the rotation, the exhaustion markers and
+            the quota bars all knew about a third model that the one screen
+            where a model is chosen never offered. */}
         <datalist id="model-suggestions">
-          {MODEL_SUGGESTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
+          {GEMINI_MODELS.map((model) => (
+            <option key={model.id} value={model.id}>
+              {model.label}
             </option>
           ))}
         </datalist>

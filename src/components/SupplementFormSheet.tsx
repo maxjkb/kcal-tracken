@@ -69,7 +69,12 @@ function SupplementFormContent({
   editing?: { mySupplement: MySupplement; supplement: Supplement | undefined }
 }) {
   const requestClose = useSheetClose()
-  const isCustomEntry = !supplement && !editing
+  // Also true when editing an entry whose catalog row has gone (a restored
+  // backup, a deleted catalog item). Without this the name rendered as
+  // read-only empty text while handleSave still rejected the blank name — a
+  // form that could neither be filled in nor saved, and no way out but
+  // closing it.
+  const isCustomEntry = !supplement
   const hasApiKey = Boolean(getApiKey())
 
   const baseline: SupplementDraft = {

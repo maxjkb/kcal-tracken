@@ -4,7 +4,7 @@ import { SavedToast } from '../../components/SavedToast'
 import { useSavedToast } from '../../hooks/useSavedToast'
 import { db } from '../../lib/db'
 import { getBodyProfile, setBodyProfile, type BodyProfile } from '../../lib/bodyProfile'
-import { deleteMeal } from '../../hooks/useMeals'
+import { pushMealDeletions, resyncNow } from '../../lib/sync'
 
 /**
  * Everything a backup has to carry to actually restore this app.
@@ -89,6 +89,12 @@ export function DataSettingsPage() {
       ])
       if (backup.bodyProfile) setBodyProfile(backup.bodyProfile)
 
+      // bulkPut writes straight to Dexie, so none of the per-write pushes fire
+      // and Firestore never hears about any of this. resyncNow's own comment
+      // names exactly this case; it just was never called. Without it the
+      // import is visibly present here and silently absent everywhere else.
+      await resyncNow()
+
       const counts = [
         `${backup.meals.length} Mahlzeiten`,
         Array.isArray(backup.recipes) && backup.recipes.length > 0 ? `${backup.recipes.length} Rezepte` : null,
@@ -110,7 +116,13 @@ export function DataSettingsPage() {
     // signed-in one. deleteMeal writes the tombstone that carries the deletion
     // across.
     const ids = await db.meals.toCollection().primaryKeys()
-    for (const id of ids) await deleteMeal(id)
+    // One local bulk delete plus one batched tombstone push, rather than a
+    // thousand sequential deletes each firing its own unbatched write. The
+    // tombstones are what make the deletion stick: clearing the table alone
+    // leaves the server holding every meal, and the next reconcile puts them
+    // all back — on this device and on every other one.
+    await db.meals.bulkDelete(ids)
+    pushMealDeletions(ids)
     setConfirmingReset(false)
     flash(`${ids.length} Mahlzeiten gelöscht.`)
   }

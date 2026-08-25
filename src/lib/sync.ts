@@ -110,6 +110,37 @@ export function pushMealChange(meal: Meal | null, id: string): void {
   })().catch(() => {})
 }
 
+/**
+ * Tombstones many meals at once — the bulk counterpart to pushMealChange.
+ *
+ * "Alle Mahlzeiten löschen" used to call deleteMeal per record, which meant a
+ * thousand sequential local deletes each firing its own unbatched Firestore
+ * write. Batching is the obvious fix, but it has to write *tombstones*, not
+ * just clear the local table: deleting locally and reconciling would find
+ * remote documents with no local match and put every one of them straight
+ * back. Chunked to Firestore's 500-write batch limit.
+ */
+export function pushMealDeletions(ids: string[]): void {
+  if (!currentUid || ids.length === 0) return
+  const uid = currentUid
+  void (async () => {
+    const [services, fs] = await Promise.all([getFirebaseServices(), getFirestoreApi()])
+    if (!services || !fs) return
+    const now = Date.now()
+    for (let i = 0; i < ids.length; i += 500) {
+      const batch = fs.writeBatch(services.firestore)
+      for (const id of ids.slice(i, i + 500)) {
+        batch.set(fs.doc(services.firestore, 'users', uid, 'meals', id), {
+          id,
+          deleted: true,
+          updatedAt: now,
+        } satisfies Tombstone)
+      }
+      await batch.commit()
+    }
+  })().catch(() => {})
+}
+
 /** Called by saveRecipe/deleteRecipe right after the local write succeeds. No-op if sync isn't active. Fire-and-forget. */
 export function pushRecipeChange(recipe: Recipe | null, id: string): void {
   if (!currentUid) return
@@ -147,61 +178,77 @@ export function pushApiKeyChange(apiKey: string | null): void {
   })().catch(() => {})
 }
 
-async function reconcileMeals(fsApi: typeof import('firebase/firestore'), fs: Firestore, uid: string) {
-  const col = fsApi.collection(fs, 'users', uid, 'meals')
-  const [localItems, remoteSnap] = await Promise.all([db.meals.toArray(), fsApi.getDocs(col)])
-  const remoteById = new Map(remoteSnap.docs.map((d) => [d.id, d.data() as Meal | Tombstone]))
+/**
+ * Firestore rejects a batch of more than 500 writes outright, and rejects the
+ * whole batch, not the excess. A first-time sync of a few hundred meals
+ * therefore failed completely and identically on every launch, leaving sync
+ * permanently broken with nothing but a raw error string to explain it.
+ */
+const MAX_BATCH_WRITES = 500
+
+interface SyncedRecord {
+  id: string
+  updatedAt: number
+}
+
+/**
+ * Two-way last-write-wins reconciliation for one collection.
+ *
+ * Written once and used for both meals and recipes rather than copied per
+ * collection. The copies had already drifted: tombstone handling was added to
+ * the meals version and silently missed on the recipes one, so every deleted
+ * recipe's tombstone was cast to a Recipe and written into the local table as
+ * a row with no title and no nutrition — which then crashed the detail page,
+ * rode along into JSON backups, and never went away.
+ */
+async function reconcileCollection<T extends SyncedRecord>(
+  fsApi: typeof import('firebase/firestore'),
+  fs: Firestore,
+  uid: string,
+  collectionName: 'meals' | 'recipes',
+  table: { toArray: () => Promise<T[]>; put: (item: T) => Promise<unknown>; delete: (id: string) => Promise<void> },
+) {
+  const col = fsApi.collection(fs, 'users', uid, collectionName)
+  const [localItems, remoteSnap] = await Promise.all([table.toArray(), fsApi.getDocs(col)])
+  const remoteById = new Map(remoteSnap.docs.map((d) => [d.id, d.data() as T | Tombstone]))
   const localById = new Map(localItems.map((item) => [item.id, item]))
 
-  const batch = fsApi.writeBatch(fs)
-  let hasWrites = false
-  for (const local of localItems) {
+  // --- local → remote ---
+  const toUpload = localItems.filter((local) => {
     const remote = remoteById.get(local.id)
-    // A tombstone that is at least as new as the local copy wins: this device
-    // simply hadn't heard about the delete yet.
-    if (isTombstone(remote) && remote.updatedAt >= local.updatedAt) continue
-    if (!remote || local.updatedAt > remote.updatedAt) {
-      batch.set(fsApi.doc(col, local.id), local)
-      hasWrites = true
-    }
-  }
-  if (hasWrites) await batch.commit()
+    // A tombstone at least as new as the local copy wins: this device simply
+    // hadn't heard about the delete yet.
+    if (isTombstone(remote) && remote.updatedAt >= local.updatedAt) return false
+    return !remote || local.updatedAt > remote.updatedAt
+  })
 
+  for (let i = 0; i < toUpload.length; i += MAX_BATCH_WRITES) {
+    const batch = fsApi.writeBatch(fs)
+    for (const local of toUpload.slice(i, i + MAX_BATCH_WRITES)) {
+      batch.set(fsApi.doc(col, local.id), local)
+    }
+    await batch.commit()
+  }
+
+  // --- remote → local ---
   for (const [id, remote] of remoteById) {
     const local = localById.get(id)
     if (isTombstone(remote)) {
-      if (local && remote.updatedAt >= local.updatedAt) await db.meals.delete(id)
+      if (local && remote.updatedAt >= local.updatedAt) await table.delete(id)
       continue
     }
     if (!local || remote.updatedAt > local.updatedAt) {
-      await db.meals.put(remote)
+      await table.put(remote)
     }
   }
 }
 
-async function reconcileRecipes(fsApi: typeof import('firebase/firestore'), fs: Firestore, uid: string) {
-  const col = fsApi.collection(fs, 'users', uid, 'recipes')
-  const [localItems, remoteSnap] = await Promise.all([db.recipes.toArray(), fsApi.getDocs(col)])
-  const remoteById = new Map(remoteSnap.docs.map((d) => [d.id, d.data() as Recipe]))
-  const localById = new Map(localItems.map((r) => [r.id, r]))
+function reconcileMeals(fsApi: typeof import('firebase/firestore'), fs: Firestore, uid: string) {
+  return reconcileCollection<Meal>(fsApi, fs, uid, 'meals', db.meals)
+}
 
-  const batch = fsApi.writeBatch(fs)
-  let hasWrites = false
-  for (const local of localItems) {
-    const remote = remoteById.get(local.id)
-    if (!remote || local.updatedAt > remote.updatedAt) {
-      batch.set(fsApi.doc(col, local.id), local)
-      hasWrites = true
-    }
-  }
-  if (hasWrites) await batch.commit()
-
-  for (const [id, remote] of remoteById) {
-    const local = localById.get(id)
-    if (!local || remote.updatedAt > local.updatedAt) {
-      await db.recipes.put(remote)
-    }
-  }
+function reconcileRecipes(fsApi: typeof import('firebase/firestore'), fs: Firestore, uid: string) {
+  return reconcileCollection<Recipe>(fsApi, fs, uid, 'recipes', db.recipes)
 }
 
 async function reconcileProfile(fsApi: typeof import('firebase/firestore'), fs: Firestore, uid: string) {
@@ -253,7 +300,6 @@ export async function startSync(uid: string): Promise<void> {
     startingUid = null
     return
   }
-  currentUid = uid
   lastSyncError = null
   notifyStatus()
 
@@ -303,6 +349,14 @@ export async function startSync(uid: string): Promise<void> {
     })
 
     unsubscribers = [unsubMeals, unsubRecipes]
+    // Only now. `currentUid` is what every push function gates on, so setting
+    // it before this point meant a failed reconcile left sync half-enabled:
+    // local edits kept uploading, remote edits never arrived, and nothing
+    // could retry — initSyncIfSignedIn skips a set uid, a second startSync
+    // returns early on it, and resyncNow never registers listeners. Only a
+    // reload recovered. Set last, so it is true exactly when sync really runs.
+    currentUid = uid
+    notifyStatus()
   } catch (err) {
     lastSyncError = err instanceof Error ? err.message : String(err)
     notifyStatus()
