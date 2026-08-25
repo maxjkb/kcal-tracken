@@ -1,4 +1,4 @@
-# Kcal Tracker
+# Tracke
 
 Ein Ernährungstracker: Mahlzeiten per Text, Diktat oder Foto beschreiben – eine KI (Google
 Gemini, kostenloses Kontingent) schätzt daraus die Nährwerte. Läuft komplett im Browser (als

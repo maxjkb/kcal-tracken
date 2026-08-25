@@ -9,6 +9,7 @@ import { ChevronIcon } from '../components/ChevronIcon'
 import { MiniNutrientRings, NutrientRings } from '../components/NutrientRings'
 import { DayPickerModal } from '../components/DatePickerModal'
 import { Collapse } from '../components/Collapse'
+import { MealTypeIcon } from '../components/MealTypeIcon'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 
 function sumNutrition(meals: Meal[]) {
@@ -128,13 +129,16 @@ export function FeedPage() {
             const isOpen = !collapsed[type]
             return (
               <section key={type}>
-                <div className="mb-2 flex items-center gap-1.5">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/12 text-accent">
+                    <MealTypeIcon type={type} className="h-3.5 w-3.5" />
+                  </span>
                   <h2 className="text-lg font-semibold text-ink">{MEAL_TYPE_LABELS[type]}</h2>
                   {typeMeals.length > 0 && (
                     <button
                       onClick={() => setCollapsed((c) => ({ ...c, [type]: !c[type] }))}
                       aria-label={isOpen ? `${MEAL_TYPE_LABELS[type]} einklappen` : `${MEAL_TYPE_LABELS[type]} ausklappen`}
-                      className="flex h-6 w-6 items-center justify-center rounded-full text-ink-soft hover:bg-bg"
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-ink-soft hover:bg-bg"
                     >
                       <svg
                         viewBox="0 0 24 24"

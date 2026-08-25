@@ -39,7 +39,14 @@
   --color-surface: #ffffff;
   --color-ink: #1d1d1f;
   --color-ink-soft: #6e6e73;
-  --color-ink-faint: #aeaeb2;
+  /* Darkened from the original #aeaeb2 (1.98:1 on --color-bg — fails even
+     the loosest 3:1 non-text bar) to comfortably clear 3:1 against both
+     --color-bg and --color-surface (apple-hig-review: Accessibility —
+     minimum contrast). Still deliberately lighter than --color-ink-soft,
+     preserving the ink > ink-soft > ink-faint hierarchy — this is the
+     tertiary tier (dots, hairline icons, the faintest captions), not
+     meant to carry primary reading contrast. */
+  --color-ink-faint: #868686;
   --color-line: #e5e5ea;
 
   /* Main accent (buttons, nav, "+", arrows) — solid, not pastel. Kcal reuses
@@ -63,6 +70,25 @@ body {
   color: var(--color-ink);
 }
 
+/* TopGradient's own sizing. `vh` in real mobile Safari is measured against
+   the LARGEST possible viewport (address bar hidden) while what's actually
+   on screen is smaller whenever the address bar/toolbar is showing — a
+   mismatch that can leave the fixed, viewport-pinned gradient not quite
+   flush with the real visible top edge. `dvh` tracks the viewport that's
+   actually visible right now, so it's the correct unit here; the plain
+   `vh` line stays first as a fallback for engines that don't parse `dvh`
+   (an unsupported unit makes the whole declaration invalid, so it's simply
+   skipped, leaving the fallback in place). A small negative top offset plus
+   matching extra height extends the gradient a bit past the true viewport
+   top as a safety margin against exactly this class of mismatch, so a few
+   px of discrepancy can't expose a hard seam between it and the page
+   background. */
+.top-gradient {
+  top: -2rem;
+  height: 28vh;
+  height: calc(28dvh + 2rem);
+}
+
 /* --- Dark mode — follows the device setting only (no in-app toggle) --- */
 @media (prefers-color-scheme: dark) {
   :root {
@@ -70,7 +96,8 @@ body {
     --color-surface: #1c1c1e;
     --color-ink: #ffffff;
     --color-ink-soft: #98989d;
-    --color-ink-faint: #636366;
+    /* Same fix as the light value above, mirrored for the dark palette. */
+    --color-ink-faint: #767676;
     --color-line: #38383a;
 
     --color-accent: #0a84ff;
