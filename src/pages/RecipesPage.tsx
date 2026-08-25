@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, toLocalDateKey, type Meal } from '../lib/db'
 import { ChevronIcon } from '../components/ChevronIcon'
 import { PageHeader } from '../components/PageHeader'
-import { MealTypeIcon } from '../components/MealTypeIcon'
+import { MealTypeBadge } from '../components/MealTypeBadge'
 import { MacroBadge } from '../components/MacroBadge'
 import { BouncingDots } from '../components/BouncingDots'
 import { RecipeEditor, type RecipeSeed } from '../components/RecipeEditor'
@@ -44,9 +44,7 @@ export function RecipesPage() {
               to={`/recipes/${type}`}
               className="flex items-center gap-3 px-4 py-3.5 active:bg-bg/60"
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-section-12 text-section">
-                <MealTypeIcon type={type} />
-              </span>
+              <MealTypeBadge type={type} />
               <span className="flex-1 text-sm font-medium text-ink">{MEAL_TYPE_LABELS[type]}</span>
               <ChevronIcon direction="right" className="h-4 w-4 shrink-0 text-ink-faint" />
             </Link>
@@ -64,9 +62,7 @@ export function RecipesPage() {
                   onClick={() => setEditorRequest({ kind: 'meal', meal })}
                   className="flex items-center gap-3 px-4 py-3 text-left"
                 >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-section-12 text-section">
-                    <MealTypeIcon type={meal.mealType} />
-                  </span>
+                  <MealTypeBadge type={meal.mealType} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-ink">{meal.title}</p>
                     <p className="text-xs text-ink-soft">{MEAL_TYPE_LABELS[meal.mealType]}</p>
@@ -132,7 +128,7 @@ function SuggestionsSection({ onPick }: { onPick: (seed: RecipeSeed) => void }) 
           type="button"
           onClick={handleRefresh}
           disabled={loading || !hasApiKey}
-          className="flex items-center gap-1 text-xs font-medium text-accent disabled:cursor-not-allowed disabled:opacity-40"
+          className="-my-3.5 flex items-center gap-1 py-3.5 text-xs font-medium text-accent disabled:cursor-not-allowed disabled:opacity-40"
         >
           {loading ? <BouncingDots /> : suggestions ? 'Aktualisieren' : 'Ideen abrufen'}
         </button>

@@ -79,7 +79,7 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
                 key={sex}
                 type="button"
                 onClick={() => update('sex', sex)}
-                className={`rounded-xl px-2 py-2 text-xs font-medium transition ${
+                className={`rounded-xl px-2 py-3.5 text-xs font-medium transition ${
                   profile.sex === sex ? 'bg-accent/20 text-ink' : 'bg-bg text-ink-soft hover:bg-line'
                 }`}
               >
@@ -142,7 +142,7 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
                 key={goal}
                 type="button"
                 onClick={() => update('goal', goal)}
-                className={`rounded-xl px-2 py-2 text-xs font-medium transition ${
+                className={`rounded-xl px-2 py-3.5 text-xs font-medium transition ${
                   profile.goal === goal ? 'bg-accent/20 text-ink' : 'bg-bg text-ink-soft hover:bg-line'
                 }`}
               >
@@ -192,7 +192,7 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
         <div className="flex gap-2">
           <button
             onClick={handleSave}
-            className="glass-accent flex-1 rounded-xl py-2.5 text-sm font-semibold"
+            className="glass-accent flex-1 rounded-xl py-3 text-sm font-semibold"
           >
             Speichern
           </button>

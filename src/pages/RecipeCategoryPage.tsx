@@ -6,7 +6,7 @@ import { RecipeCard } from '../components/RecipeCard'
 import { RecipeEditor } from '../components/RecipeEditor'
 import { ChevronIcon } from '../components/ChevronIcon'
 import { SlideInPage } from '../components/SlideInPage'
-import { MealTypeIcon } from '../components/MealTypeIcon'
+import { MealTypeBadge } from '../components/MealTypeBadge'
 import { useRegisterBackSwipe } from '../lib/backSwipe'
 
 function isMealType(value: string | undefined): value is MealType {
@@ -34,9 +34,7 @@ export function RecipeCategoryPage() {
           >
             <ChevronIcon direction="left" />
           </Link>
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-section-12 text-section">
-            <MealTypeIcon type={cat} className="h-4 w-4" />
-          </span>
+          <MealTypeBadge type={cat} />
           <h1 className="text-2xl font-bold tracking-tight text-ink">{MEAL_TYPE_LABELS[cat]}</h1>
         </div>
 
@@ -44,9 +42,7 @@ export function RecipeCategoryPage() {
           <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
         ) : recipes.length === 0 ? (
           <div className="glass-subtle glass-subtle-themed flex flex-col items-center gap-3 rounded-3xl px-6 py-10 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-section-12 text-section">
-              <MealTypeIcon type={cat} className="h-6 w-6" />
-            </span>
+            <MealTypeBadge type={cat} size="lg" />
             <p className="text-sm text-ink-soft">Noch keine Rezepte in dieser Kategorie.</p>
           </div>
         ) : (
@@ -57,7 +53,7 @@ export function RecipeCategoryPage() {
           </div>
         )}
 
-        <button onClick={() => setAdding(true)} className="glass-accent w-full rounded-2xl px-4 py-2.5 text-sm font-semibold">
+        <button onClick={() => setAdding(true)} className="glass-accent w-full rounded-2xl px-4 py-3 text-sm font-semibold">
           Hinzufügen
         </button>
       </div>

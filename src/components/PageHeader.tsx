@@ -118,7 +118,7 @@ export function HeaderButton({
   to?: string
 }) {
   const className =
-    'glass-subtle glass-subtle-themed flex h-10 w-10 items-center justify-center rounded-full text-section shadow-sm shadow-black/5 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40'
+    'glass-subtle glass-subtle-themed flex h-11 w-11 items-center justify-center rounded-full text-section shadow-sm shadow-black/5 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40'
 
   if (as && to) {
     return (

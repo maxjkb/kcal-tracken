@@ -13,7 +13,7 @@ export function MealCard({ meal, onView }: { meal: Meal; onView: () => void }) {
           <img src={meal.photo} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
         )}
         <div className="min-w-0 flex-1">
-          <button className="press-target block w-full text-left" onClick={onView}>
+          <button className="press-target block w-full py-1 text-left" onClick={onView}>
             <h3 className="font-medium text-ink">{meal.title}</h3>
           </button>
           <div className="mt-1.5 flex items-center gap-1.5">
@@ -42,7 +42,11 @@ export function MealCard({ meal, onView }: { meal: Meal; onView: () => void }) {
               <button
                 onClick={() => setConfirmingDelete(true)}
                 aria-label="Mahlzeit löschen"
-                className="shrink-0 text-ink-faint hover:text-danger"
+                // -m-3 p-3 grows the target to 44px without moving the icon or
+                // taking any extra room in the row: the padding reaches out,
+                // the negative margin pulls the box back. At 20x20 this was the
+                // smallest target in the app.
+                className="-m-3 shrink-0 p-3 text-ink-faint hover:text-danger"
               >
                 <TrashIcon />
               </button>

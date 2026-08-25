@@ -132,7 +132,7 @@ export function RecipeDetailPage() {
           </div>
         )}
 
-        <button onClick={() => setEditing(true)} className="glass-accent rounded-2xl px-4 py-2.5 text-sm font-semibold transition">
+        <button onClick={() => setEditing(true)} className="glass-accent rounded-2xl px-4 py-3 text-sm font-semibold transition">
           Bearbeiten
         </button>
       </div>

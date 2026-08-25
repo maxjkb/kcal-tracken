@@ -230,7 +230,7 @@ export function SyncSettingsPage() {
             <div className="mt-3 flex gap-2">
               <button
                 onClick={handleSaveConfig}
-                className="glass-accent flex-1 rounded-xl py-2.5 text-sm font-semibold"
+                className="glass-accent flex-1 rounded-xl py-3 text-sm font-semibold"
               >
                 Speichern
               </button>
@@ -255,7 +255,7 @@ export function SyncSettingsPage() {
             <button
               type="button"
               onClick={() => (isCustom ? handleRemoveConfig() : setShowOverrideForm(true))}
-              className={`text-xs font-medium ${isCustom ? 'text-red-500' : 'text-accent'}`}
+              className={`-my-3.5 py-3.5 text-xs font-medium ${isCustom ? 'text-red-500' : 'text-accent'}`}
             >
               {isCustom ? 'Entfernen' : 'Anderes Projekt'}
             </button>
@@ -290,7 +290,7 @@ export function SyncSettingsPage() {
             <button
               onClick={handleConfirmEmail}
               disabled={busy}
-              className="glass-accent mt-3 w-full rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50"
+              className="glass-accent mt-3 w-full rounded-xl py-3 text-sm font-semibold disabled:opacity-50"
             >
               Anmeldung abschließen
             </button>
@@ -346,7 +346,7 @@ export function SyncSettingsPage() {
                 <button
                   onClick={handleSendLink}
                   disabled={busy}
-                  className="glass-accent mt-3 mb-4 w-full rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50"
+                  className="glass-accent mt-3 mb-4 w-full rounded-xl py-3 text-sm font-semibold disabled:opacity-50"
                 >
                   Anmeldelink senden
                 </button>
@@ -369,7 +369,7 @@ export function SyncSettingsPage() {
                 <button
                   onClick={handlePasteLink}
                   disabled={busy || !pasteInput.trim()}
-                  className="shrink-0 rounded-xl bg-bg px-4 text-sm font-medium text-ink-soft hover:bg-line disabled:opacity-50"
+                  className="h-11 shrink-0 rounded-xl bg-bg px-4 text-sm font-medium text-ink-soft hover:bg-line disabled:opacity-50"
                 >
                   Bestätigen
                 </button>
