@@ -13,6 +13,7 @@ import { saveMeal } from '../hooks/useMeals'
 import { useAllRecipes } from '../hooks/useRecipes'
 import { estimateNutrition, cleanUpDictation, GeminiError } from '../lib/gemini'
 import { getApiKey } from '../lib/settings'
+import { describeSaveError } from '../lib/errors'
 import { DictationButton } from './DictationButton'
 import { PhotoInput } from './PhotoInput'
 import { NutritionFields } from './NutritionFields'
@@ -41,15 +42,6 @@ function sumIngredients(ingredients: Ingredient[]): Nutrition {
     }),
     { kcal: 0, protein: 0, carbs: 0, fat: 0 },
   )
-}
-
-/** Turns a failed IndexedDB write into an actionable German message instead of a silent no-op. */
-function describeSaveError(err: unknown): string {
-  if (err instanceof DOMException && err.name === 'QuotaExceededError') {
-    return 'Speicherplatz auf dem Gerät ist voll. Lösche alte Fotos/Mahlzeiten oder gib Speicher frei und versuche es erneut.'
-  }
-  const message = err instanceof Error ? err.message : String(err)
-  return `Mahlzeit konnte nicht gespeichert werden (${message}). Bitte erneut versuchen.`
 }
 
 export function MealEditor({
@@ -202,7 +194,7 @@ function MealEditorContent({
       // Without this, a failed write (full storage, a browser/IndexedDB
       // hiccup, …) left the editor stuck on a disabled "Speichern…" button
       // with no explanation — the meal silently never made it into the feed.
-      setError(describeSaveError(err))
+      setError(describeSaveError(err, 'Mahlzeit'))
     } finally {
       setSaving(false)
     }

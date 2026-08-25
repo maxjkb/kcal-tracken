@@ -18,6 +18,7 @@ import {
 } from '../hooks/useSupplements'
 import { estimateSupplementTiming, GeminiError } from '../lib/gemini'
 import { getApiKey } from '../lib/settings'
+import { describeSaveError } from '../lib/errors'
 import { Sheet } from './Sheet'
 import { useSheetClose } from '../hooks/useSheetClose'
 import { BouncingDots } from './BouncingDots'
@@ -111,8 +112,7 @@ function SupplementFormContent({
       }
       requestClose()
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      setError(`Konnte nicht gespeichert werden (${message}). Bitte erneut versuchen.`)
+      setError(describeSaveError(err, 'Supplement'))
     } finally {
       setSaving(false)
     }

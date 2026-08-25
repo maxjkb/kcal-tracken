@@ -43,6 +43,24 @@ export interface DictationSession {
 }
 
 /**
+ * The Web Speech API's `SpeechRecognitionErrorEvent.error` is a bare code
+ * ("not-allowed", "audio-capture", ...) — translates the handful anyone
+ * actually hits in practice into something a non-technical user can act
+ * on, instead of showing the raw code as-is.
+ */
+const SPEECH_ERROR_HINTS: Record<string, string> = {
+  'not-allowed': 'Kein Mikrofonzugriff erlaubt. In den iOS-Einstellungen unter Safari/dieser App den Mikrofon-Zugriff erlauben.',
+  'service-not-allowed': 'Kein Mikrofonzugriff erlaubt. In den iOS-Einstellungen unter Safari/dieser App den Mikrofon-Zugriff erlauben.',
+  'audio-capture': 'Kein Mikrofon gefunden. Ist eines angeschlossen/aktiv?',
+  network: 'Netzwerkfehler bei der Spracherkennung. Internetverbindung prüfen.',
+  'language-not-supported': 'Deutsch wird von der Spracherkennung dieses Geräts nicht unterstützt.',
+}
+
+function describeSpeechError(code: string): string {
+  return SPEECH_ERROR_HINTS[code] ?? `Diktierfehler: ${code}`
+}
+
+/**
  * Starts speech recognition and calls `onDone` exactly once, with the final
  * transcript, when recording stops (either via `.stop()` or the browser
  * ending recognition on its own). Deliberately does NOT use interim results
@@ -80,7 +98,7 @@ export function startDictation(opts: {
 
   recognition.onerror = (event) => {
     if (event.error === 'no-speech' || event.error === 'aborted') return
-    opts.onError?.(`Diktierfehler: ${event.error}`)
+    opts.onError?.(describeSpeechError(event.error))
   }
 
   recognition.onend = () => {
