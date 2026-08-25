@@ -1,16 +1,17 @@
 import { NavLink } from 'react-router-dom'
 import { motion, useReducedMotion } from 'motion/react'
 import { SPRING_SNAPPY } from '../lib/motionTokens'
+import { SECTION_TABS } from '../lib/sections'
 
-const TABS = [
-  { to: '/recipes', label: 'Rezepte', icon: RecipesIcon, end: false },
-  { to: '/', label: 'Feed', icon: FeedIcon, end: true },
-  { to: '/supplements', label: 'Supplements', icon: SupplementsIcon, end: false },
-  { to: '/stats', label: 'Statistik', icon: StatsIcon, end: false },
-  { to: '/settings', label: 'Einstellungen', icon: SettingsIcon, end: false },
-]
+/** Icons live here rather than in lib/sections.ts so that module stays free of JSX and rendering concerns. */
+const TAB_ICONS: Record<string, () => React.JSX.Element> = {
+  '/recipes': RecipesIcon,
+  '/supplements': SupplementsIcon,
+  '/': FeedIcon,
+  '/stats': StatsIcon,
+}
 
-export function BottomNav({ onAddMeal }: { onAddMeal: () => void }) {
+export function BottomNav() {
   const prefersReducedMotion = useReducedMotion()
 
   return (
@@ -18,11 +19,13 @@ export function BottomNav({ onAddMeal }: { onAddMeal: () => void }) {
     // visible pill: otherwise the transparent strip around the pill still
     // intercepts taps on whatever page content happens to sit behind it.
     <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pointer-events-none">
-      {/* mx-2/gap-0.5 instead of the earlier mx-4/gap-1 — six nav tabs plus the
-          "+" button need the extra breathing room to still fit a 375px-wide
-          iPhone SE without overflowing; the icons themselves stay full-size. */}
-      <div className="glass pointer-events-auto mx-2 flex gap-0.5 rounded-full p-1.5">
-        {TABS.map(({ to, label, icon: Icon, end }) => (
+      {/* Back to a roomier mx-4/gap-1 now that it's four tabs rather than six
+          plus a "+" — the pill no longer has to fight for width on a 375px
+          iPhone SE, so the targets can breathe. */}
+      <div className="glass pointer-events-auto mx-4 flex gap-1 rounded-full p-1.5">
+        {SECTION_TABS.map(({ to, label, end }) => {
+          const Icon = TAB_ICONS[to]
+          return (
           <NavLink key={to} to={to} end={end} aria-label={label} className="relative flex h-11 w-11 items-center justify-center rounded-full">
             {({ isActive }) => (
               <>
@@ -44,27 +47,10 @@ export function BottomNav({ onAddMeal }: { onAddMeal: () => void }) {
               </>
             )}
           </NavLink>
-        ))}
-        {/* Adds a meal for "Heute" — an action, not a route, so unlike the
-            tabs above it never gets the active/selected highlight. */}
-        <button
-          type="button"
-          onClick={onAddMeal}
-          aria-label="Mahlzeit hinzufügen"
-          className="flex h-11 w-11 items-center justify-center rounded-full text-ink-soft transition-colors hover:text-ink"
-        >
-          <PlusIcon />
-        </button>
+          )
+        })}
       </div>
     </nav>
-  )
-}
-
-function PlusIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
-      <path strokeLinecap="round" d="M12 5v14M5 12h14" />
-    </svg>
   )
 }
 
@@ -102,11 +88,3 @@ function StatsIcon() {
   )
 }
 
-function SettingsIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 0 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 0 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 0 1 4 0v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 0 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15Z" />
-    </svg>
-  )
-}

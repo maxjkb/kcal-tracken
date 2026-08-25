@@ -19,6 +19,8 @@ import { ConcentricRings, NutrientRings } from '../components/NutrientRings'
 import { DayPickerModal, MonthPickerModal, YearPickerModal } from '../components/DatePickerModal'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { SupplementAdherenceCard } from '../components/SupplementAdherenceCard'
+import { PageHeader, HeaderButton } from '../components/PageHeader'
+import { BouncingDots } from '../components/BouncingDots'
 import {
   bucketByDay,
   bucketByMonth,
@@ -129,17 +131,23 @@ export function StatsPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight text-ink">Statistik</h1>
-        <button
-          onClick={() => meals && handleExportPdf(meals)}
-          disabled={!meals || meals.length === 0 || exporting}
-          className="flex items-center gap-1.5 rounded-full bg-kcal/15 px-3 py-1.5 text-xs font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <PdfIcon />
-          {exporting ? 'Erstelle PDF…' : 'Als PDF exportieren'}
-        </button>
-      </div>
+      {/* PDF export folds into the header's round-button cluster rather than
+          keeping its own labelled pill — three round buttons plus the title
+          still fit a 375px screen, two of them plus a wide pill would not.
+          The label survives as the accessible name and the tooltip. */}
+      <PageHeader
+        title="Statistik"
+        className="mb-4"
+        actions={
+          <HeaderButton
+            onClick={() => meals && handleExportPdf(meals)}
+            disabled={!meals || meals.length === 0 || exporting}
+            label={exporting ? 'Erstelle PDF…' : 'Als PDF exportieren'}
+          >
+            {exporting ? <BouncingDots /> : <PdfIcon />}
+          </HeaderButton>
+        }
+      />
 
       {/* One shared pill slides between the segments (Motion `layoutId`)
           instead of each segment fading its own background in and out — the

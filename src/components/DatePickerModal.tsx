@@ -4,7 +4,6 @@ import { toLocalDateKey } from '../lib/db'
 import { FULL_MONTH_LABELS, MONTH_LABELS, startOfWeek } from '../lib/stats'
 import { ChevronIcon } from './ChevronIcon'
 import { Sheet } from './Sheet'
-import { useSheetClose } from '../hooks/useSheetClose'
 
 const WEEKDAY_LABELS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 
@@ -19,21 +18,17 @@ function PickerShell({
   children: React.ReactNode
 }) {
   return (
-    <Sheet onClose={onClose} sheetClassName="glass flex w-full max-w-sm flex-col rounded-t-3xl p-5 sm:rounded-3xl">
+    <Sheet onClose={onClose} sheetClassName="glass flex w-full max-w-sm flex-col rounded-t-3xl p-5 pt-7 sm:rounded-3xl">
       <PickerShellContent title={title}>{children}</PickerShellContent>
     </Sheet>
   )
 }
 
 function PickerShellContent({ title, children }: { title: string; children: React.ReactNode }) {
-  const requestClose = useSheetClose()
   return (
     <>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4">
         <h2 className="text-base font-semibold text-ink">{title}</h2>
-        <button onClick={requestClose} className="text-ink-soft hover:text-ink" aria-label="Schließen">
-          ✕
-        </button>
       </div>
       {children}
     </>

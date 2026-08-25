@@ -23,6 +23,9 @@ import { MacroBadge, MacroRingBadge } from './MacroBadge'
 import { Link } from 'react-router-dom'
 import { Sheet } from './Sheet'
 import { useSheetClose } from '../hooks/useSheetClose'
+import { useDraftAutosave, useRestoredDraft } from '../hooks/useFormDraft'
+import { draftKey } from '../lib/drafts'
+import { DraftRestoredBanner } from './DraftRestoredBanner'
 
 const EMPTY_NUTRITION: Nutrition = { kcal: 0, protein: 0, carbs: 0, fat: 0 }
 
@@ -30,6 +33,31 @@ type Step = 'input' | 'review'
 
 function round1(value: number): number {
   return Math.round(value * 10) / 10
+}
+
+/** Everything in this form worth carrying across an accidental close. */
+interface MealDraft {
+  step: Step
+  hasResult: boolean
+  mealDate: string
+  description: string
+  photo: string | undefined
+  mealType: MealType
+  title: string
+  nutrition: Nutrition
+  ingredients: Ingredient[] | undefined
+  note: string | undefined
+  manuallyEdited: boolean
+}
+
+/** Structural equality is enough here — every field is a plain JSON value, in a fixed key order. */
+function isSameDraft(a: MealDraft, b: MealDraft): boolean {
+  return JSON.stringify(a) === JSON.stringify(b)
+}
+
+/** Fallback when the snapshot won't fit in storage: the photo is by far the largest field, and the one the user can re-pick in a tap. */
+function stripPhoto(draft: MealDraft): MealDraft {
+  return { ...draft, photo: undefined }
 }
 
 function sumIngredients(ingredients: Ingredient[]): Nutrition {
@@ -80,22 +108,80 @@ function MealEditorContent({
   defaultMealType?: MealType
 }) {
   const requestClose = useSheetClose()
-  const [step, setStep] = useState<Step>(initial ? 'review' : 'input')
-  const [hasResult, setHasResult] = useState(Boolean(initial))
-  const [mealDate, setMealDate] = useState(initial?.date ?? date)
-  const [description, setDescription] = useState(initial?.description ?? '')
-  const [photo, setPhoto] = useState<string | undefined>(initial?.photo)
-  const [mealType, setMealType] = useState<MealType>(initial?.mealType ?? defaultMealType ?? 'lunch')
-  const [title, setTitle] = useState(initial?.title ?? '')
-  const [nutrition, setNutrition] = useState<Nutrition>(initial?.nutrition ?? EMPTY_NUTRITION)
-  const [ingredients, setIngredients] = useState<Ingredient[] | undefined>(initial?.ingredients)
+
+  // The form's whole restorable state in one object, so the baseline (what the
+  // sheet opened with) and the current values can be compared wholesale to
+  // decide whether there's anything worth rescuing. Comparing against the
+  // baseline rather than against "empty" is what makes this work for editing an
+  // existing meal too: reopening one and changing nothing leaves no draft.
+  const baseline: MealDraft = {
+    step: initial ? 'review' : 'input',
+    hasResult: Boolean(initial),
+    mealDate: initial?.date ?? date,
+    description: initial?.description ?? '',
+    photo: initial?.photo,
+    mealType: initial?.mealType ?? defaultMealType ?? 'lunch',
+    title: initial?.title ?? '',
+    nutrition: initial?.nutrition ?? EMPTY_NUTRITION,
+    ingredients: initial?.ingredients,
+    note: initial?.note,
+    manuallyEdited: initial?.manuallyEdited ?? false,
+  }
+
+  const draftId = draftKey('meal', initial?.id)
+  const restored = useRestoredDraft<MealDraft>(draftId)
+  const [restoredNotice, setRestoredNotice] = useState(Boolean(restored))
+
+  const [step, setStep] = useState<Step>(restored?.step ?? baseline.step)
+  const [hasResult, setHasResult] = useState(restored?.hasResult ?? baseline.hasResult)
+  const [mealDate, setMealDate] = useState(restored?.mealDate ?? baseline.mealDate)
+  const [description, setDescription] = useState(restored?.description ?? baseline.description)
+  const [photo, setPhoto] = useState<string | undefined>(restored ? restored.photo : baseline.photo)
+  const [mealType, setMealType] = useState<MealType>(restored?.mealType ?? baseline.mealType)
+  const [title, setTitle] = useState(restored?.title ?? baseline.title)
+  const [nutrition, setNutrition] = useState<Nutrition>(restored?.nutrition ?? baseline.nutrition)
+  const [ingredients, setIngredients] = useState<Ingredient[] | undefined>(
+    restored ? restored.ingredients : baseline.ingredients,
+  )
   const [estimating, setEstimating] = useState(false)
   const [cleaningUp, setCleaningUp] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [note, setNote] = useState<string | undefined>(initial?.note)
-  const [manuallyEdited, setManuallyEdited] = useState(initial?.manuallyEdited ?? false)
+  const [note, setNote] = useState<string | undefined>(restored ? restored.note : baseline.note)
+  const [manuallyEdited, setManuallyEdited] = useState(restored?.manuallyEdited ?? baseline.manuallyEdited)
   const [pickingRecipe, setPickingRecipe] = useState(false)
+
+  const snapshot: MealDraft = {
+    step,
+    hasResult,
+    mealDate,
+    description,
+    photo,
+    mealType,
+    title,
+    nutrition,
+    ingredients,
+    note,
+    manuallyEdited,
+  }
+  const draft = useDraftAutosave(draftId, snapshot, !isSameDraft(snapshot, baseline), stripPhoto)
+
+  /** Drops the restored values and returns the sheet to how it opened. */
+  function discardDraft() {
+    setStep(baseline.step)
+    setHasResult(baseline.hasResult)
+    setMealDate(baseline.mealDate)
+    setDescription(baseline.description)
+    setPhoto(baseline.photo)
+    setMealType(baseline.mealType)
+    setTitle(baseline.title)
+    setNutrition(baseline.nutrition)
+    setIngredients(baseline.ingredients)
+    setNote(baseline.note)
+    setManuallyEdited(baseline.manuallyEdited)
+    setRestoredNotice(false)
+    draft.clear()
+  }
 
   const hasApiKey = Boolean(getApiKey())
   const recipes = useAllRecipes()
@@ -189,6 +275,7 @@ function MealEditorContent({
     }
     try {
       await saveMeal(meal)
+      draft.clear()
       requestClose()
     } catch (err) {
       // Without this, a failed write (full storage, a browser/IndexedDB
@@ -202,7 +289,7 @@ function MealEditorContent({
 
   return (
     <>
-      <div className="flex shrink-0 items-center justify-between p-5 pb-4">
+      <div className="flex shrink-0 items-center justify-between p-5 pb-4 pt-7">
         {step === 'review' ? (
           <button onClick={() => setStep('input')} className="text-ink-soft hover:text-ink" aria-label="Zurück">
             <BackIcon />
@@ -220,11 +307,14 @@ function MealEditorContent({
               <ForwardIcon />
             </button>
           )}
-          <button onClick={requestClose} className="text-ink-soft hover:text-ink" aria-label="Schließen">
-            ✕
-          </button>
         </div>
       </div>
+
+      {restoredNotice && (
+        <div className="shrink-0 px-5">
+          <DraftRestoredBanner onDiscard={discardDraft} />
+        </div>
+      )}
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div

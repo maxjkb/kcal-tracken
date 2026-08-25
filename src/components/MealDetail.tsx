@@ -3,7 +3,6 @@ import { formatIngredientAmount, MEAL_TYPE_LABELS, type Meal } from '../lib/db'
 import { MacroBadge, MacroRingBadge } from './MacroBadge'
 import { Sheet } from './Sheet'
 import { Collapse } from './Collapse'
-import { useSheetClose } from '../hooks/useSheetClose'
 
 export function MealDetail({
   meal,
@@ -23,7 +22,7 @@ export function MealDetail({
       onClose={onClose}
       sheetClassName="glass flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl"
     >
-      <div className="flex min-h-0 flex-col overflow-y-auto p-5">
+      <div className="flex min-h-0 flex-col overflow-y-auto p-5 pt-7">
         <MealDetailContent meal={meal} onEdit={onEdit} />
       </div>
     </Sheet>
@@ -31,7 +30,6 @@ export function MealDetail({
 }
 
 function MealDetailContent({ meal, onEdit }: { meal: Meal; onEdit: () => void }) {
-  const requestClose = useSheetClose()
   const [descriptionOpen, setDescriptionOpen] = useState(false)
   const [ingredientsOpen, setIngredientsOpen] = useState(false)
 
@@ -39,9 +37,6 @@ function MealDetailContent({ meal, onEdit }: { meal: Meal; onEdit: () => void })
     <>
       <div className="mb-4 flex items-center justify-between">
         <span className="text-xs font-medium text-ink-soft">{MEAL_TYPE_LABELS[meal.mealType]}</span>
-        <button onClick={requestClose} className="text-ink-soft hover:text-ink" aria-label="Schließen">
-          ✕
-        </button>
       </div>
 
       {meal.photo && <img src={meal.photo} alt="" className="mb-4 h-44 w-full rounded-2xl object-cover" />}
