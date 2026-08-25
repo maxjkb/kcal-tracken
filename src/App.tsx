@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from 'react'
+import { Suspense, lazy, useLayoutEffect, useState } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { BottomNav } from './components/BottomNav'
 import { TopGradient } from './components/TopGradient'
@@ -28,13 +28,46 @@ const RecipeDetailPage = lazy(
 
 const recipesFallback = <p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>
 
-// Only the four main-page roots get the decorative top gradient — not their
-// sub-pages (recipe category/detail, settings, …).
-const TOP_GRADIENT_PATHS = ['/', '/recipes', '/supplements', '/stats']
+type Section = 'feed' | 'recipes' | 'supplements' | 'stats'
+
+/** Which of the four main areas a route belongs to — covers the whole area, not just its root
+  * (a recipe's detail page still counts as "Rezepte"), so the theme stays consistent while
+  * navigating deeper in. Settings and anything else outside these four falls through to null. */
+function sectionForPath(pathname: string): Section | null {
+  if (pathname === '/') return 'feed'
+  if (pathname.startsWith('/recipes')) return 'recipes'
+  if (pathname.startsWith('/supplements')) return 'supplements'
+  if (pathname.startsWith('/stats')) return 'stats'
+  return null
+}
+
+/** The --color-section-* custom property (see index.css) each area washes its TopGradient and
+  * .glass-accent buttons in. Statistik deliberately stays on the plain accent blue — see index.css
+  * for why — rather than getting its own token. */
+const SECTION_COLOR_VAR: Record<Section, string> = {
+  feed: 'var(--color-section-feed)',
+  recipes: 'var(--color-section-recipes)',
+  supplements: 'var(--color-section-supplements)',
+  stats: 'var(--color-accent)',
+}
 
 export default function App() {
   const [addingMeal, setAddingMeal] = useState(false)
   const location = useLocation()
+  const section = sectionForPath(location.pathname)
+
+  // Set on <body> rather than a wrapping element: Sheets (MealEditor, RecipeEditor, the date
+  // pickers, …) portal straight to document.body, outside this component's own DOM subtree, so a
+  // custom property set anywhere inside here wouldn't reach them — body is the one ancestor every
+  // portaled Sheet actually shares. useLayoutEffect (not useEffect) so the new area's color is
+  // already in place before the browser paints the route change, no one-frame flash of the old one.
+  useLayoutEffect(() => {
+    if (section) {
+      document.body.style.setProperty('--color-section', SECTION_COLOR_VAR[section])
+    } else {
+      document.body.style.removeProperty('--color-section')
+    }
+  }, [section])
 
   return (
     <>
@@ -45,7 +78,7 @@ export default function App() {
           a later, non-positioned paint step that simply covers whatever's
           behind it; body's own canvas-level background doesn't have that
           problem, it's always the bottom-most layer. */}
-      {TOP_GRADIENT_PATHS.includes(location.pathname) && <TopGradient />}
+      {section && <TopGradient />}
       <div className="min-h-screen">
         <Routes>
           <Route path="/" element={<FeedPage />} />
