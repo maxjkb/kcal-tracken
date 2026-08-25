@@ -50,7 +50,9 @@
   --color-line: #e5e5ea;
 
   /* Main accent (buttons, nav, "+", arrows) — solid, not pastel. Kcal reuses
-     the same hue since it's now one of the four equal nutrient rings. */
+     the same hue since it's now one of the four equal nutrient rings. Stays
+     the single dominant color everywhere — see --color-section below for
+     the secondary, per-area tint layered on top of it. */
   --color-accent: #0a84ff;
   --color-kcal: #0a84ff;
   /* Macro badge colors — Apple Health-style. */
@@ -58,6 +60,35 @@
   --color-carbs: #34c759;
   --color-fat: #ffcc00;
   --color-danger: #ff3b30;
+
+  /*
+   * One accent color per main area (Feed/Rezepte/Supplements/Statistik),
+   * chosen from Apple's own system-color set and deliberately picked to sit
+   * in hue-space away from every color that already means something else in
+   * this app — protein's pink (~350°), danger's red (~4°), carbs' green
+   * (~137°) — and away from yellow/orange per explicit request. Ordered by
+   * hue they read Teal(189°) < Blue(211°, accent/kcal/Statistik) <
+   * Indigo(243°, Feed) < Purple(283°, Supplements), each pair 20-40°+ apart
+   * so no two are mistakable for one another even at a glance.
+   *
+   * Statistik intentionally has no separate token — it stays on
+   * --color-accent itself, both because the request was to keep blue as the
+   * overall main color and because Statistik's own kcal rings are already
+   * that exact blue, so nothing needs to shift there.
+   *
+   * These are consumed two ways (App.tsx sets --color-section to whichever
+   * of these applies to the current route, on document.body so it also
+   * reaches body-portaled Sheets):
+   * - TopGradient's wash uses --color-section directly.
+   * - .glass-accent (every primary button/pill in the app) blends a small
+   *   amount of it into the accent blue — buttons stay recognizably blue,
+   *   with just a hint of the current area's color, per explicit request
+   *   ("die Funktionstasten... behalten das Standardblau, bekommen aber
+   *   einen kleinen minimalen Farbverlauf").
+   */
+  --color-section-feed: #5856d6; /* Indigo — the "Flieder" requested for Feed */
+  --color-section-recipes: #30b0c7; /* Teal/Türkis */
+  --color-section-supplements: #af52de; /* Purple */
 }
 
 html {
@@ -68,6 +99,11 @@ body {
   @apply antialiased;
   background: var(--color-bg);
   color: var(--color-ink);
+  /* Falls back to the plain accent blue everywhere App.tsx doesn't set an
+     explicit per-section override (Einstellungen, and before the route
+     effect below has run on first paint) — TopGradient/.glass-accent then
+     render exactly as they did before per-area color existed. */
+  --color-section: var(--color-accent);
 }
 
 /* TopGradient's own sizing. `vh` in real mobile Safari is measured against
@@ -105,6 +141,10 @@ body {
     --color-carbs: #30d158;
     --color-fat: #ffd60a;
     --color-danger: #ff453a;
+
+    --color-section-feed: #5e5ce6;
+    --color-section-recipes: #40cbe0;
+    --color-section-supplements: #bf5af2;
   }
 }
 
@@ -166,9 +206,19 @@ input[type="number"] {
 }
 
 /* Solid accent-colored glass: no glow, no pastel tint on its own border —
-   fill and border are the same hue family so the edge never looks mismatched. */
+   fill and border are the same hue family so the edge never looks mismatched.
+   The fill is a small, deliberate gradient from the plain accent blue toward
+   --color-section (85%/15% — barely perceptible as its own color, but the
+   whole area's buttons pick up a consistent, recognizable hint of "where you
+   are" without ever stopping reading as blue). Outside a themed section
+   --color-section falls back to --color-accent itself (see body{} above),
+   so the gradient collapses to flat blue exactly as before. */
 .glass-accent {
-  background: var(--color-accent);
+  background: linear-gradient(
+    135deg,
+    var(--color-accent),
+    color-mix(in srgb, var(--color-accent) 85%, var(--color-section) 15%)
+  );
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid color-mix(in srgb, var(--color-accent) 55%, white 45%);
