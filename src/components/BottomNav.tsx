@@ -5,6 +5,7 @@ import { SPRING_SNAPPY } from '../lib/motionTokens'
 const TABS = [
   { to: '/recipes', label: 'Rezepte', icon: RecipesIcon, end: false },
   { to: '/', label: 'Feed', icon: FeedIcon, end: true },
+  { to: '/supplements', label: 'Supplements', icon: SupplementsIcon, end: false },
   { to: '/stats', label: 'Statistik', icon: StatsIcon, end: false },
   { to: '/settings', label: 'Einstellungen', icon: SettingsIcon, end: false },
 ]
@@ -17,7 +18,10 @@ export function BottomNav({ onAddMeal }: { onAddMeal: () => void }) {
     // visible pill: otherwise the transparent strip around the pill still
     // intercepts taps on whatever page content happens to sit behind it.
     <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pointer-events-none">
-      <div className="glass pointer-events-auto mx-4 flex gap-1 rounded-full p-1.5">
+      {/* mx-2/gap-0.5 instead of the earlier mx-4/gap-1 — six nav tabs plus the
+          "+" button need the extra breathing room to still fit a 375px-wide
+          iPhone SE without overflowing; the icons themselves stay full-size. */}
+      <div className="glass pointer-events-auto mx-2 flex gap-0.5 rounded-full p-1.5">
         {TABS.map(({ to, label, icon: Icon, end }) => (
           <NavLink key={to} to={to} end={end} aria-label={label} className="relative flex h-11 w-11 items-center justify-center rounded-full">
             {({ isActive }) => (
@@ -77,6 +81,15 @@ function FeedIcon() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
       <rect x="4" y="4" width="16" height="16" rx="4" />
       <path strokeLinecap="round" d="M8 9h8M8 13h8M8 17h4" />
+    </svg>
+  )
+}
+
+function SupplementsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+      <rect x="4" y="9" width="16" height="6" rx="3" transform="rotate(45 12 12)" />
+      <path strokeLinecap="round" d="M12 9v6" transform="rotate(45 12 12)" />
     </svg>
   )
 }
