@@ -3,6 +3,7 @@ import type { Auth, User } from 'firebase/auth'
 import type { Firestore } from 'firebase/firestore'
 import type * as FirestoreApi from 'firebase/firestore'
 import { getFirebaseConfig } from './firebaseConfig'
+import { recordUsage } from './usageQuota'
 
 const EMAIL_STORAGE_KEY = 'kcal-tracker:sync-email-for-signin'
 
@@ -120,11 +121,18 @@ function signInRedirectUrl(): string {
   return window.location.href.split('#')[0] + '#/settings/sync'
 }
 
+/** Counter id for the sign-in emails this install has sent today — see lib/usageQuota.ts. */
+export const SIGN_IN_EMAIL_USAGE_ID = 'firebase:signin-email'
+
 export async function sendSignInLink(email: string): Promise<void> {
   const services = await getFirebaseServices()
   if (!services) throw new Error('Kein Firebase-Projekt hinterlegt.')
   const { sendSignInLinkToEmail } = await import('firebase/auth')
   await sendSignInLinkToEmail(services.auth, email, { url: signInRedirectUrl(), handleCodeInApp: true })
+  // Counted only on success: a rejected send didn't consume the allowance, and
+  // the whole point of the tally is to explain an auth/quota-exceeded before
+  // it happens.
+  recordUsage(SIGN_IN_EMAIL_USAGE_ID)
   window.localStorage.setItem(EMAIL_STORAGE_KEY, email)
 }
 

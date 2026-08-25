@@ -1,0 +1,70 @@
+/**
+ * What changed in each released version, in the app's own words.
+ *
+ * Kept here rather than parsed from CHANGELOG.md at runtime: the changelog is
+ * a repository file and never ships in the bundle, and fetching it would make
+ * a settings screen depend on the network to describe the app you already
+ * have installed. The two are maintained together at release time.
+ *
+ * Newest first. Deliberately short — this answers "what's new since I last
+ * looked", not "what exactly was touched".
+ */
+export interface ReleaseNote {
+  version: string
+  date: string
+  highlights: string[]
+}
+
+export const RELEASE_NOTES: ReleaseNote[] = [
+  {
+    version: '1.9.0',
+    date: '2026-08-25',
+    highlights: [
+      'Neu in den Einstellungen: Version & Neuigkeiten, Aktualisierung und Kontingent.',
+      'Gemini wechselt automatisch das Modell, wenn ein Tageskontingent aufgebraucht ist.',
+      'Größere Schaltflächen überall, Farben pro Mahlzeit-Typ, Apfel statt Stern beim Snack.',
+      'Statistik: Punkt-Diagramm mit Trendlinie, Nährwert-Detail beim Antippen eines Punktes.',
+      'Mahlzeit-Editor: Vorschläge mit Nährwert-Ringen, Galerie-Button, breiteres Textfeld.',
+    ],
+  },
+  {
+    version: '1.8.0',
+    date: '2026-08-25',
+    highlights: [
+      'Sheets lassen sich von überall wegwischen und öffnen nur noch halbhoch.',
+      'Fixierte Titelzeile auf den Hauptseiten, Inhalt läuft darunter durch.',
+      '22 Fehler behoben, darunter mehrere stille Datenverluste.',
+    ],
+  },
+  {
+    version: '1.7.0',
+    date: '2026-08-25',
+    highlights: [
+      'Wischen zwischen den Hauptseiten, synchron mit der Bedienleiste.',
+      'Nicht gespeicherte Eingaben überleben ein versehentliches Schließen.',
+    ],
+  },
+  {
+    version: '1.6.0',
+    date: '2026-08-25',
+    highlights: [
+      'Supplement-Katalog auf 89 Einträge erweitert, mit Suche.',
+      'Empfehlungen aktualisieren sich einmal täglich und bleiben konsistent.',
+    ],
+  },
+  {
+    version: '1.5.0',
+    date: '2026-08-25',
+    highlights: [
+      'Neue Reihenfolge der Bedienleiste, Einstellungen und "+" oben rechts.',
+      'Feed hat eine eigene Überschrift.',
+    ],
+  },
+]
+
+export const CURRENT_VERSION = __APP_VERSION__
+
+/** The notes for the running build, if this version has any. */
+export function currentReleaseNote(): ReleaseNote | undefined {
+  return RELEASE_NOTES.find((n) => n.version === CURRENT_VERSION)
+}

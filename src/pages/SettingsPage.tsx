@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronIcon } from '../components/ChevronIcon'
 import { PageHeader } from '../components/PageHeader'
+import { CURRENT_VERSION } from '../lib/releaseNotes'
 import { getApiKey } from '../lib/settings'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { isStoragePersisted } from '../lib/persistence'
@@ -73,6 +74,33 @@ export function SettingsPage() {
           icon={<SyncIcon />}
           title="Sync"
           subtitle={syncSubtitle}
+        />
+        <SettingsRow
+          to="/settings/kontingent"
+          iconBg="bg-accent"
+          icon={<GaugeIcon />}
+          title="Kontingent"
+          subtitle="Anfragen an Gemini & Firebase heute"
+        />
+      </div>
+
+      {/* Its own group: these two are about the app itself rather than about
+          your data or your account, and the separation is what makes a menu
+          scannable rather than a list to read through. */}
+      <div className="glass-subtle mt-6 divide-y divide-line/60 overflow-hidden rounded-3xl shadow-sm shadow-black/5">
+        <SettingsRow
+          to="/settings/aktualisierung"
+          iconBg="bg-accent"
+          icon={<DownloadIcon />}
+          title="Aktualisierung"
+          subtitle="Nach neuer Version suchen"
+        />
+        <SettingsRow
+          to="/settings/version"
+          iconBg="bg-accent"
+          icon={<InfoIcon />}
+          title="Version & Neues"
+          subtitle={`Version ${CURRENT_VERSION}`}
         />
       </div>
     </div>
@@ -149,6 +177,34 @@ function DataIcon() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 15V4m0 0-3.5 3.5M12 4l3.5 3.5" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
+    </svg>
+  )
+}
+
+function GaugeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+      <path strokeLinecap="round" d="M4 18a8 8 0 1 1 16 0" />
+      <path strokeLinecap="round" d="m12 14 4-4" />
+    </svg>
+  )
+}
+
+function DownloadIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v10m0 0 4-4m-4 4-4-4" />
+      <path strokeLinecap="round" d="M4 17v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1" />
+    </svg>
+  )
+}
+
+function InfoIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+      <circle cx="12" cy="12" r="9" />
+      <path strokeLinecap="round" d="M12 11v5" />
+      <circle cx="12" cy="7.75" r="0.6" fill="currentColor" stroke="none" />
     </svg>
   )
 }

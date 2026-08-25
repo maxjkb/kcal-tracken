@@ -2,10 +2,10 @@ import { getApiKey } from './settings'
 import { searchFoodDatabaseMany, type FoodDatabaseMatch } from './foodDatabase'
 import type { MealType, SupplementCategory, SupplementRecommendation, SupplementTimeOfDay } from './db'
 
-const DEFAULT_MODEL = 'gemini-3.6-flash'
+import { DEFAULT_MODEL, markExhausted, modelOrder } from './geminiModels'
+import { recordUsage } from './usageQuota'
+
 const MODEL_STORAGE_KEY = 'kcal-tracker:gemini-model'
-/** Tried automatically when the configured model's quota is exhausted (429) — same model suggested in Settings for its higher free quota. */
-const FALLBACK_MODEL = 'gemini-3.5-flash-lite'
 
 export function getModel(): string {
   try {
@@ -173,36 +173,54 @@ interface GeminiResponse {
 }
 
 /**
- * Wraps the raw call with an automatic one-time model fallback: if the
- * configured model's quota is exhausted (429) and a higher-quota fallback
- * model exists and isn't already the one configured, silently retry with
- * that model. On success, it's persisted as the new default (setModel) so
- * later calls go straight to the model that actually has quota left,
- * instead of hitting the exhausted one every time until it resets. If the
- * fallback also fails, the original rate-limit error is surfaced — it's
- * more informative than the fallback's.
+ * Runs a request against the first model that still has quota, falling through
+ * the rest on the way.
+ *
+ * The previous version fell back exactly once, to a single hard-coded model,
+ * and gave up if that was also spent — so a busy day ended with the feature
+ * simply unavailable even though other models were untouched. It now walks the
+ * whole chain (see geminiModels.ts) and remembers which models reported
+ * exhaustion today, so subsequent requests skip straight past them instead of
+ * spending a failed round-trip on each one. The markers expire at the Pacific
+ * day boundary, which is when the quotas actually reset, so a recovered model
+ * comes back into rotation by itself.
+ *
+ * The model chosen in Settings is *not* overwritten when a fallback succeeds.
+ * It used to be, which meant one exhausted day silently and permanently
+ * changed a setting the user had picked. The exhaustion markers are persisted
+ * instead, so later sessions still skip the dead models without touching the
+ * preference — and once they expire, the chosen model comes back on its own.
+ * Errors that aren't about quota (a bad key, a blocked prompt, no network)
+ * are thrown immediately — trying three models against a wrong API key would
+ * just be three times the wait for the same message.
  */
 async function callGemini(params: {
   systemPrompt: string
   parts: GeminiPart[]
   responseSchema: object
 }): Promise<Record<string, unknown>> {
-  const primaryModel = getModel()
-  try {
-    return await callGeminiRaw(primaryModel, params)
-  } catch (err) {
-    const isRateLimited = err instanceof GeminiError && err.status === 429
-    if (isRateLimited && primaryModel !== FALLBACK_MODEL) {
-      try {
-        const result = await callGeminiRaw(FALLBACK_MODEL, params)
-        setModel(FALLBACK_MODEL)
-        return result
-      } catch {
-        throw err
-      }
+  const preferred = getModel()
+  const order = modelOrder(preferred)
+  let firstRateLimitError: unknown = null
+
+  for (const model of order) {
+    try {
+      const result = await callGeminiRaw(model, params)
+      recordUsage(`gemini:${model}`)
+      return result
+    } catch (err) {
+      const isRateLimited = err instanceof GeminiError && err.status === 429
+      if (!isRateLimited) throw err
+      // The request still reached the API and still counted against the day.
+      recordUsage(`gemini:${model}`)
+      markExhausted(model)
+      firstRateLimitError ??= err
     }
-    throw err
   }
+
+  // Every model is spent. The first error is the most relevant one: it names
+  // the model the user actually chose.
+  throw firstRateLimitError
 }
 
 async function callGeminiRaw(
