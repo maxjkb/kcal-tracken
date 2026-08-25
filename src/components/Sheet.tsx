@@ -1,16 +1,16 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion } from 'motion/react'
 import { REDUCED_MOTION_TRANSITION, SPRING_DEFAULT, SPRING_FADE, SPRING_MOMENTUM } from '../lib/motionTokens'
 import { SheetCloseContext } from '../hooks/useSheetClose'
 import { lockBodyScroll, unlockBodyScroll } from '../lib/scrollLock'
 
-/** Downward movement before a touch is read as a dismiss rather than a scroll. */
-const DISMISS_INTENT_PX = 10
+/** Movement before a touch is read as a sheet drag rather than a scroll. */
+const DRAG_INTENT_PX = 8
 /** How much more vertical than horizontal that movement has to be. */
 const VERTICAL_BIAS = 1.2
-/** Projected travel that commits the dismiss. */
-const DISMISS_DISTANCE = 120
+/** Projected travel past the smallest detent that dismisses the sheet. */
+const DISMISS_DISTANCE = 100
 /** Movement under this, from a pointer that never really moved, is a tap on the handle. */
 const TAP_SLOP = 8
 
@@ -19,46 +19,55 @@ function project(velocity: number, decelerationRate = 0.995): number {
   return ((velocity / 1000) * decelerationRate) / (1 - decelerationRate)
 }
 
-/** Progressive resistance upward, where there is nothing to reveal. */
+/** Progressive resistance past the top, where there is nothing more to reveal. */
 function rubberband(offset: number, dimension: number, constant = 0.55): number {
   return (offset * dimension * constant) / (dimension + constant * Math.abs(offset))
 }
 
 /**
  * Shared bottom-sheet chrome (backdrop + material) for every modal in the
- * app — meal/recipe detail & editors, date/month/year pickers. Replaces the
- * near-identical `fixed inset-0 … bg-ink/30` markup that used to be
- * duplicated in each of them.
+ * app — meal/recipe detail & editors, date/month/year pickers.
  *
  * Always portals to <body>: a sheet can be opened from anywhere, including
  * from within an ancestor that has its own `transform` (e.g. SlideInPage) —
- * a transformed ancestor becomes the containing block for a `position:
- * fixed` descendant, which would otherwise collapse the sheet to that
- * ancestor's own content box instead of the viewport.
+ * a transformed ancestor becomes the containing block for a `position: fixed`
+ * descendant, which would otherwise collapse the sheet to that ancestor's own
+ * content box instead of the viewport.
  *
  * The page behind is frozen for as long as a sheet is mounted (see
  * lib/scrollLock.ts) — a sheet you can scroll the page behind reads as a web
  * page with an overlay rather than as a sheet.
  *
- * **The dismiss gesture is hand-rolled rather than Motion's `drag`.** It has
- * to work from anywhere in the sheet, which means it can only be recognised
- * *after* a touch has been identified as a downward pull rather than a scroll
- * — and `dragControls.start()` called from a pointermove does not establish a
- * working drag session, so the sheet simply never moved. Owning the gesture
- * also makes the apple-design fundamentals explicit: 1:1 tracking downward,
- * progressive resistance upward (§9), momentum projection to decide the
- * outcome (§6), and the release velocity handed to whichever spring runs next
- * so there is no seam between dragging and animating (§5).
+ * ## Detents
  *
- * Two nested motion elements on purpose: the outer one owns `y` (the gesture),
- * the inner one owns opacity/scale (mount and unmount via AnimatePresence).
- * Sharing one element would put two owners on the same `y` and neither would
- * win predictably.
+ * `detents` are the heights the sheet rests at, as fractions of its own full
+ * height, smallest first — `[0.6, 1]` opens at 60% and expands to full when
+ * dragged up. A tall editor that fills the screen the moment it opens buries
+ * whatever was behind it and gives equal prominence to the supporting material
+ * at the bottom; opening part-way keeps the page visible and lets the extra
+ * content be pulled up only when it's wanted. The default `[1]` keeps the
+ * short sheets (pickers, the supplement form) exactly as they were — a detent
+ * on a sheet that's already short would only add empty space.
+ *
+ * ## Why the gesture is hand-rolled
+ *
+ * It has to work from anywhere in the sheet, which means it can only be
+ * recognised *after* a touch has been identified as a vertical drag rather
+ * than a scroll — and `dragControls.start()` called from a pointermove does
+ * not establish a working Motion drag session, so the sheet simply never
+ * moved. Owning it also makes the apple-design fundamentals explicit: 1:1
+ * tracking, progressive resistance past the top (§9), momentum projection to
+ * pick the resting detent (§6), and the release velocity handed to whichever
+ * spring runs next so there's no seam between dragging and animating (§5).
+ *
+ * Two nested motion elements on purpose: the outer owns `y` (the gesture and
+ * the detents), the inner owns opacity/scale (mount and unmount via
+ * AnimatePresence). Sharing one element would put two owners on `y`.
  *
  * Note for callers passing a scrollable sheet: put the scroll on an inner
- * wrapper, not on the sheet element itself. The handle is a child of the
- * sheet element, so a sheet that scrolls would carry the handle out of view
- * with the first swipe.
+ * wrapper, not on the sheet element itself. The handle is a child of the sheet
+ * element, so a sheet that scrolls would carry the handle out of view with the
+ * first swipe.
  */
 export function Sheet({
   onClose,
@@ -66,6 +75,7 @@ export function Sheet({
   sheetClassName,
   closeOnBackdropClick = true,
   closeOnDrag = true,
+  detents = [1],
 }: {
   onClose: () => void
   children: ReactNode
@@ -75,6 +85,8 @@ export function Sheet({
   closeOnBackdropClick?: boolean
   /** Disable for the same reason — an accidental swipe shouldn't discard in-progress input. */
   closeOnDrag?: boolean
+  /** Resting heights as fractions of the sheet's full height, smallest first. Opens at the smallest. */
+  detents?: number[]
 }) {
   const [closing, setClosing] = useState(false)
   const prefersReducedMotion = useReducedMotion()
@@ -82,6 +94,67 @@ export function Sheet({
 
   const dragEnabled = closeOnDrag && !prefersReducedMotion
   const y = useMotionValue(0)
+  const sheetRef = useRef<HTMLDivElement>(null)
+
+  /**
+   * Detents as `y` offsets, largest sheet first: 0 is fully open, a positive
+   * value is that much of the sheet pushed off the bottom. Measured rather
+   * than assumed, so a sheet capped at `max-h` gets detents of its real
+   * height rather than of the viewport's.
+   */
+  const offsets = useRef<number[]>([0])
+  const restIndex = useRef(0)
+
+  /** Recomputes the detent offsets from the sheet's current height. */
+  const measure = useCallback(() => {
+    const height = sheetRef.current?.offsetHeight ?? window.innerHeight
+    const sorted = [...detents].sort((a, b) => b - a)
+    offsets.current = sorted.map((fraction) => height * (1 - fraction))
+    return height
+    // `detents` is a literal at every call site, so a reference check would
+    // re-run this on every render; its contents never change for a mounted sheet.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Slide up from below on mount, to whichever detent the sheet opens at.
+  // useLayoutEffect so the measurement and the starting offset are in place
+  // before the first paint — otherwise the sheet flashes fully open.
+  useLayoutEffect(() => {
+    const height = measure()
+    restIndex.current = offsets.current.length - 1
+
+    const target = offsets.current[restIndex.current]
+    if (prefersReducedMotion) {
+      y.set(target)
+      return
+    }
+    y.set(height)
+    const entry = animate(y, target, SPRING_DEFAULT)
+    return () => entry.stop()
+  }, [measure, prefersReducedMotion, y])
+
+  /**
+   * Re-measures when the sheet's own height changes.
+   *
+   * A sheet's content is not fixed: the meal editor's second step is a
+   * different height from its first, and a suggestion list grows as it loads.
+   * Offsets measured once at mount go stale the moment that happens, and the
+   * sheet then rests at an offset computed for a height it no longer has —
+   * pushing its own controls off the bottom of the screen. Skipped while a
+   * drag is in flight, where re-measuring would fight the finger.
+   */
+  useEffect(() => {
+    const node = sheetRef.current
+    if (!node || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(() => {
+      if (gesture.current?.phase === 'dragging') return
+      measure()
+      const target = offsets.current[Math.min(restIndex.current, offsets.current.length - 1)]
+      if (Math.abs(y.get() - target) > 1) animate(y, target, SPRING_DEFAULT)
+    })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [measure, y])
 
   // The page behind must not scroll. Tied to mount rather than to `closing`
   // so it stays frozen through the exit animation.
@@ -93,25 +166,34 @@ export function Sheet({
   const gesture = useRef<{
     startX: number
     startY: number
+    startOffset: number
     lastY: number
     lastTime: number
     velocity: number
     pointerId: number
+    /** Decided at touch-down: is a downward pull here a dismiss, or does content need scrolling back first? */
+    canPullDown: boolean
     phase: 'undecided' | 'dragging' | 'abandoned'
   } | null>(null)
 
   /**
-   * Whether a downward drag starting here should dismiss rather than scroll.
-   * Only when every scrollable ancestor is already at its top: pulling a
-   * half-scrolled list down has to scroll it back up first, exactly like a
-   * native sheet, or the content above becomes unreachable.
+   * Whether a downward drag starting here should move the sheet rather than
+   * scroll its content. Only when every scrollable ancestor is already at its
+   * top: pulling a half-scrolled list down has to scroll it back up first,
+   * exactly like a native sheet, or the content above becomes unreachable.
+   *
+   * Evaluated at touch-down rather than when the drag is recognised, because
+   * that is the state the user actually started from — and because the
+   * touchmove blocker below needs the answer before the first move.
    */
-  function canDismissFrom(target: HTMLElement, sheet: HTMLElement): boolean {
+  function canPullDownFrom(target: HTMLElement): boolean {
+    const sheet = sheetRef.current
+    if (!sheet) return false
     // "From anywhere" includes over the text field — on iOS a downward pull on
     // a compose sheet's body dismisses it, and carving out the largest element
     // in the sheet would make the gesture feel arbitrary. Caret placement is a
-    // tap, not a drag, so the two don't collide; a scrolled textarea is still
-    // caught below. Only genuinely drag-operated controls are excluded.
+    // tap, not a drag, so the two don't collide. Only genuinely drag-operated
+    // controls are excluded.
     if (target.closest('input[type="range"], select, [data-no-swipe]')) return false
     let node: HTMLElement | null = target
     while (node && node !== sheet.parentElement) {
@@ -121,15 +203,51 @@ export function Sheet({
     return true
   }
 
+  /**
+   * Stops iOS Safari from claiming the touch.
+   *
+   * This is the fix for "the sheet can't be swiped away on my phone" while it
+   * worked in every desktop browser. With nothing preventing the default,
+   * Safari treats a downward pull at the top of a scroll container as its own
+   * rubber-band, takes ownership of the touch, and fires `pointercancel` —
+   * which killed the drag mid-gesture, so the sheet sprang back instead of
+   * closing. Chromium doesn't do this, which is exactly why it never showed up
+   * in testing.
+   *
+   * Must be a manually attached listener: React's onTouchMove is registered
+   * passively, and a passive listener is forbidden from calling
+   * preventDefault(). Only downward moves from a pull-eligible start are
+   * blocked, so normal scrolling inside the sheet is untouched.
+   */
+  useEffect(() => {
+    const node = sheetRef.current
+    if (!node || !dragEnabled) return
+    function onTouchMove(event: TouchEvent) {
+      const g = gesture.current
+      if (!g || g.phase === 'abandoned') return
+      const touch = event.touches[0]
+      if (!touch) return
+      const dy = touch.clientY - g.startY
+      const expanding = dy < 0 && y.get() > 0
+      if ((dy > 0 && g.canPullDown) || expanding || g.phase === 'dragging') {
+        if (event.cancelable) event.preventDefault()
+      }
+    }
+    node.addEventListener('touchmove', onTouchMove, { passive: false })
+    return () => node.removeEventListener('touchmove', onTouchMove)
+  }, [dragEnabled, y])
+
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
     if (!dragEnabled || event.pointerType === 'mouse') return
     gesture.current = {
       startX: event.clientX,
       startY: event.clientY,
+      startOffset: y.get(),
       lastY: event.clientY,
       lastTime: event.timeStamp,
       velocity: 0,
       pointerId: event.pointerId,
+      canPullDown: canPullDownFrom(event.target as HTMLElement),
       phase: 'undecided',
     }
   }
@@ -142,20 +260,19 @@ export function Sheet({
     const dx = event.clientX - g.startX
 
     if (g.phase === 'undecided') {
-      // Anything that isn't a downward pull settles it once — no second guess
-      // partway through, so a scroll can never turn into a dismiss halfway
-      // down the list.
-      if (dy < -DISMISS_INTENT_PX || Math.abs(dx) > Math.abs(dy) * VERTICAL_BIAS) {
+      if (Math.abs(dx) > Math.abs(dy) * VERTICAL_BIAS) {
         g.phase = 'abandoned'
         return
       }
-      if (dy < DISMISS_INTENT_PX) return
-      if (!canDismissFrom(event.target as HTMLElement, event.currentTarget)) {
+      if (Math.abs(dy) < DRAG_INTENT_PX) return
+      // Down closes (needs the content at its top); up expands, which is only
+      // possible while the sheet isn't already at its largest detent.
+      const wantsExpand = dy < 0 && g.startOffset > 0
+      if (!(dy > 0 ? g.canPullDown : wantsExpand)) {
         g.phase = 'abandoned'
         return
       }
       g.phase = 'dragging'
-      // Capture so tracking survives the finger leaving the sheet's bounds.
       event.currentTarget.setPointerCapture?.(event.pointerId)
     }
 
@@ -164,32 +281,53 @@ export function Sheet({
     g.lastY = event.clientY
     g.lastTime = event.timeStamp
 
-    // 1:1 downward, progressive resistance upward.
-    y.set(dy >= 0 ? dy : rubberband(dy, window.innerHeight * 0.08))
+    // 1:1 within range, progressive resistance past the largest detent.
+    const next = g.startOffset + dy
+    y.set(next >= 0 ? next : rubberband(next, window.innerHeight * 0.06))
   }
 
-  function handlePointerUp(event: React.PointerEvent<HTMLDivElement>) {
-    const g = gesture.current
-    if (!g || g.pointerId !== event.pointerId) return
-    gesture.current = null
-    if (g.phase !== 'dragging') return
+  /** Snap to the nearest detent, or dismiss if thrown past the smallest one. */
+  function settle(velocity: number) {
+    const current = y.get()
+    const projected = current + project(velocity)
+    const smallest = offsets.current[offsets.current.length - 1]
 
-    const dy = event.clientY - g.startY
-    const projected = dy + project(g.velocity)
-
-    if (projected > DISMISS_DISTANCE) {
+    if (projected > smallest + DISMISS_DISTANCE) {
       // Keep going the way it was thrown (apple-design §8) rather than pulling
       // it back to a symmetric exit — that would read as the interface
       // fighting the user.
-      animate(y, window.innerHeight, {
+      animate(y, (sheetRef.current?.offsetHeight ?? window.innerHeight) + 40, {
         ...SPRING_MOMENTUM,
-        velocity: g.velocity,
+        velocity,
         onComplete: () => setClosing(true),
       })
       return
     }
-    // Not far enough: settle home, continuing at the finger's exact speed.
-    animate(y, 0, { ...SPRING_MOMENTUM, velocity: g.velocity })
+
+    let nearest = 0
+    let bestDistance = Infinity
+    offsets.current.forEach((offset, i) => {
+      const distance = Math.abs(projected - offset)
+      if (distance < bestDistance) {
+        bestDistance = distance
+        nearest = i
+      }
+    })
+    restIndex.current = nearest
+    animate(y, offsets.current[nearest], { ...SPRING_MOMENTUM, velocity })
+  }
+
+  function endGesture(event: React.PointerEvent<HTMLDivElement>) {
+    const g = gesture.current
+    if (!g || g.pointerId !== event.pointerId) return
+    gesture.current = null
+    if (g.phase !== 'dragging') return
+    // Deliberately not reading the event's own coordinates: on a
+    // `pointercancel` those are unreliable, and treating a cancelled drag as a
+    // release at the wrong position was the second half of the iOS bug —
+    // the sheet sprang back because `dy` came out far too small. The tracked
+    // position and velocity are always the real ones.
+    settle(g.velocity)
   }
 
   const handleDownAt = useRef<{ x: number; y: number } | null>(null)
@@ -206,22 +344,21 @@ export function Sheet({
             transition={prefersReducedMotion ? REDUCED_MOTION_TRANSITION : SPRING_FADE}
             onClick={closeOnBackdropClick ? requestClose : undefined}
           />
-          {/* Outer element owns the gesture's y; the inner one owns the
-              mount/unmount opacity and scale. */}
           <motion.div
+            ref={sheetRef}
             className={`relative ${sheetClassName}`}
             style={{ y }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
+            onPointerUp={endGesture}
+            onPointerCancel={endGesture}
           >
             <motion.div
               className="contents"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.95 }}
-              transition={prefersReducedMotion ? REDUCED_MOTION_TRANSITION : SPRING_DEFAULT}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={prefersReducedMotion ? REDUCED_MOTION_TRANSITION : SPRING_FADE}
             >
               {/* Always rendered, never gated on dragEnabled: the "✕" is gone
                   from every sheet, so this handle is the only affordance left.
