@@ -150,7 +150,10 @@ export function Sheet({
       if (gesture.current?.phase === 'dragging') return
       measure()
       const target = offsets.current[Math.min(restIndex.current, offsets.current.length - 1)]
-      if (Math.abs(y.get() - target) > 1) animate(y, target, SPRING_DEFAULT)
+      if (Math.abs(y.get() - target) > 1) {
+        settling.current?.stop()
+        settling.current = animate(y, target, SPRING_DEFAULT)
+      }
     })
     observer.observe(node)
     return () => observer.disconnect()
@@ -162,6 +165,18 @@ export function Sheet({
     lockBodyScroll()
     return unlockBodyScroll
   }, [])
+
+  /**
+   * The settle/dismiss animation in flight, so a new touch can stop it.
+   *
+   * `MotionValue.set()` does not cancel a running animation — the spring keeps
+   * overwriting the value on the next frame. Without this, grabbing a sheet
+   * that was already flicked away did nothing (the finger moved, the sheet did
+   * not), and the dismissal's onComplete still fired a few hundred
+   * milliseconds later, closing the sheet out from under the hand that was
+   * pulling it back. apple-design §3: every animation must be interruptible.
+   */
+  const settling = useRef<{ stop: () => void } | null>(null)
 
   const gesture = useRef<{
     startX: number
@@ -239,6 +254,8 @@ export function Sheet({
 
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
     if (!dragEnabled || event.pointerType === 'mouse') return
+    settling.current?.stop()
+    settling.current = null
     gesture.current = {
       startX: event.clientX,
       startY: event.clientY,
@@ -296,10 +313,13 @@ export function Sheet({
       // Keep going the way it was thrown (apple-design §8) rather than pulling
       // it back to a symmetric exit — that would read as the interface
       // fighting the user.
-      animate(y, (sheetRef.current?.offsetHeight ?? window.innerHeight) + 40, {
+      settling.current = animate(y, (sheetRef.current?.offsetHeight ?? window.innerHeight) + 40, {
         ...SPRING_MOMENTUM,
         velocity,
-        onComplete: () => setClosing(true),
+        onComplete: () => {
+          settling.current = null
+          setClosing(true)
+        },
       })
       return
     }
@@ -314,7 +334,7 @@ export function Sheet({
       }
     })
     restIndex.current = nearest
-    animate(y, offsets.current[nearest], { ...SPRING_MOMENTUM, velocity })
+    settling.current = animate(y, offsets.current[nearest], { ...SPRING_MOMENTUM, velocity })
   }
 
   function endGesture(event: React.PointerEvent<HTMLDivElement>) {

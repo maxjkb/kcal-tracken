@@ -103,7 +103,7 @@ function SupplementFormContent({
     setDosage(baseline.dosage)
     setTimesOfDay(baseline.timesOfDay)
     setRestoredNotice(false)
-    draft.clear()
+    draft.discard()
   }
 
   function toggleTime(t: SupplementTimeOfDay) {
@@ -163,10 +163,16 @@ function SupplementFormContent({
   async function handleRemove() {
     if (!editing) return
     setSaving(true)
+    setError(null)
     try {
       await removeMySupplement(editing.mySupplement.id)
       draft.clear()
       requestClose()
+    } catch (err) {
+      // The one handler here that had a finally but no catch: a failed write
+      // re-enabled the button and said nothing, so the entry looked removable
+      // but never went away.
+      setError(describeSaveError(err, 'Supplement'))
     } finally {
       setSaving(false)
     }

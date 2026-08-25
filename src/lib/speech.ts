@@ -2,6 +2,8 @@
 // Not all browsers support this — callers must check isSpeechRecognitionSupported().
 
 interface SpeechRecognitionResultEvent extends Event {
+  /** Index of the first result new to this event — everything before it was already delivered. */
+  resultIndex: number
   results: {
     length: number
     item(index: number): { 0: { transcript: string }; isFinal: boolean }
@@ -87,7 +89,13 @@ export function startDictation(opts: {
   let done = false
 
   recognition.onresult = (event) => {
-    for (let i = 0; i < event.results.length; i++) {
+    // From resultIndex, not from 0: with `continuous` on, `event.results` is
+    // cumulative across events, so restarting at 0 re-appended every segment
+    // that had already been collected. Three dictated phrases came out as
+    // "A A B A B C" — the very duplication this file's comment below claims
+    // was solved by disabling interim results — and were then fed to Gemini,
+    // which duly counted the ingredients several times over.
+    for (let i = event.resultIndex; i < event.results.length; i++) {
       const result = event.results[i]
       if (result.isFinal) {
         const transcript = result[0].transcript.trim()

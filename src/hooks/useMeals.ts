@@ -45,6 +45,36 @@ export function useMealSuggestions(forType: MealType, limit: number): MealSugges
   }, [forType, limit])
 }
 
+/** The fields the statistics and the PDF export actually read — deliberately without `photo`. */
+export type MealSummary = Pick<Meal, 'id' | 'date' | 'mealType' | 'nutrition' | 'createdAt'>
+
+/**
+ * Meals in a range, reduced to the fields the statistics need.
+ *
+ * `useMealsInRange` materialises whole records, and a Meal carries its photo
+ * inline as a base64 data URL — roughly 150–300 KB each. Picking "Jahr" with a
+ * year of photographed meals therefore deserialised hundreds of megabytes of
+ * image data to add up twelve monthly calorie sums, which on a phone means a
+ * long freeze or a crashed tab.
+ *
+ * Streamed with `.each()` and projected on the way past, so the photos are
+ * never all held at once — Dexie has no server-side projection, but it does
+ * hand records over one at a time, and each full record becomes collectable
+ * again as soon as its few numbers have been copied out.
+ */
+export function useMealSummariesInRange(startKey: string, endKey: string): MealSummary[] | undefined {
+  return useLiveQuery(async () => {
+    const summaries: MealSummary[] = []
+    await db.meals
+      .where('date')
+      .between(startKey, endKey, true, true)
+      .each((m) => {
+        summaries.push({ id: m.id, date: m.date, mealType: m.mealType, nutrition: m.nutrition, createdAt: m.createdAt })
+      })
+    return summaries.sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt)
+  }, [startKey, endKey])
+}
+
 export async function deleteMeal(id: string): Promise<void> {
   await db.meals.delete(id)
   pushMealChange(null, id)

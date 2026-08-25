@@ -21,7 +21,6 @@ export function MealDetail({
     <Sheet
       onClose={onClose}
       sheetClassName="glass flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl"
-      detents={[0.6, 1]}
     >
       <div className="flex min-h-0 flex-col overflow-y-auto p-5 pt-7">
         <MealDetailContent meal={meal} onEdit={onEdit} />

@@ -23,6 +23,8 @@ import type { BodyProfile } from './bodyProfile'
  */
 
 let currentUid: string | null = null
+/** Set synchronously by startSync so a second, concurrent call can't slip past the currentUid check while the first is still awaiting. */
+let startingUid: string | null = null
 let unsubscribers: (() => void)[] = []
 let statusListeners: (() => void)[] = []
 let lastSyncError: string | null = null
@@ -74,6 +76,28 @@ function readLocalApiKey(): string | null {
   }
 }
 
+/**
+ * A deleted record, kept as a document rather than removed.
+ *
+ * Hard-deleting the remote document made deletions un-syncable: reconcile
+ * treats "local record with no remote document" as something to upload, so a
+ * device that was offline when the delete happened would push its stale copy
+ * straight back into Firestore on its next launch — and the snapshot listener
+ * then reinstated it everywhere. A record that has to be *absent* to be
+ * deleted cannot survive a device that hasn't heard about it yet. A tombstone
+ * carries the delete forward as a normal, timestamped change instead, so
+ * last-write-wins resolves it like any other edit.
+ */
+interface Tombstone {
+  id: string
+  deleted: true
+  updatedAt: number
+}
+
+function isTombstone(value: unknown): value is Tombstone {
+  return typeof value === 'object' && value !== null && (value as { deleted?: unknown }).deleted === true
+}
+
 /** Called by saveMeal/deleteMeal right after the local write succeeds. No-op if sync isn't active. Fire-and-forget. */
 export function pushMealChange(meal: Meal | null, id: string): void {
   if (!currentUid) return
@@ -82,7 +106,7 @@ export function pushMealChange(meal: Meal | null, id: string): void {
     const [services, fs] = await Promise.all([getFirebaseServices(), getFirestoreApi()])
     if (!services || !fs) return
     const ref = fs.doc(services.firestore, 'users', uid, 'meals', id)
-    await (meal ? fs.setDoc(ref, meal) : fs.deleteDoc(ref))
+    await fs.setDoc(ref, meal ?? ({ id, deleted: true, updatedAt: Date.now() } satisfies Tombstone))
   })().catch(() => {})
 }
 
@@ -94,7 +118,7 @@ export function pushRecipeChange(recipe: Recipe | null, id: string): void {
     const [services, fs] = await Promise.all([getFirebaseServices(), getFirestoreApi()])
     if (!services || !fs) return
     const ref = fs.doc(services.firestore, 'users', uid, 'recipes', id)
-    await (recipe ? fs.setDoc(ref, recipe) : fs.deleteDoc(ref))
+    await fs.setDoc(ref, recipe ?? ({ id, deleted: true, updatedAt: Date.now() } satisfies Tombstone))
   })().catch(() => {})
 }
 
@@ -126,13 +150,16 @@ export function pushApiKeyChange(apiKey: string | null): void {
 async function reconcileMeals(fsApi: typeof import('firebase/firestore'), fs: Firestore, uid: string) {
   const col = fsApi.collection(fs, 'users', uid, 'meals')
   const [localItems, remoteSnap] = await Promise.all([db.meals.toArray(), fsApi.getDocs(col)])
-  const remoteById = new Map(remoteSnap.docs.map((d) => [d.id, d.data() as Meal]))
-  const localById = new Map(localItems.map((m) => [m.id, m]))
+  const remoteById = new Map(remoteSnap.docs.map((d) => [d.id, d.data() as Meal | Tombstone]))
+  const localById = new Map(localItems.map((item) => [item.id, item]))
 
   const batch = fsApi.writeBatch(fs)
   let hasWrites = false
   for (const local of localItems) {
     const remote = remoteById.get(local.id)
+    // A tombstone that is at least as new as the local copy wins: this device
+    // simply hadn't heard about the delete yet.
+    if (isTombstone(remote) && remote.updatedAt >= local.updatedAt) continue
     if (!remote || local.updatedAt > remote.updatedAt) {
       batch.set(fsApi.doc(col, local.id), local)
       hasWrites = true
@@ -142,6 +169,10 @@ async function reconcileMeals(fsApi: typeof import('firebase/firestore'), fs: Fi
 
   for (const [id, remote] of remoteById) {
     const local = localById.get(id)
+    if (isTombstone(remote)) {
+      if (local && remote.updatedAt >= local.updatedAt) await db.meals.delete(id)
+      continue
+    }
     if (!local || remote.updatedAt > local.updatedAt) {
       await db.meals.put(remote)
     }
@@ -207,8 +238,21 @@ async function reconcileApiKey(fsApi: typeof import('firebase/firestore'), fs: F
 }
 
 export async function startSync(uid: string): Promise<void> {
+  // Claimed synchronously, before the first await. The sign-in flow calls this
+  // twice — once from the settings page's own handler, once from the global
+  // onAuthChange listener — and `currentUid` was only assigned two awaits in,
+  // so both calls sailed past it. Each then registered its own pair of
+  // snapshot listeners while `unsubscribers` kept only the second pair, so
+  // signing out left an orphaned listener writing remote documents into the
+  // local database for the rest of the session.
+  if (startingUid === uid || currentUid === uid) return
+  startingUid = uid
+
   const [services, fsApi] = await Promise.all([getFirebaseServices(), getFirestoreApi()])
-  if (!services || !fsApi) return
+  if (!services || !fsApi) {
+    startingUid = null
+    return
+  }
   currentUid = uid
   lastSyncError = null
   notifyStatus()
@@ -228,7 +272,12 @@ export async function startSync(uid: string): Promise<void> {
           void db.meals.delete(change.doc.id)
           continue
         }
-        const remote = change.doc.data() as Meal
+        const data = change.doc.data() as Meal | Tombstone
+        if (isTombstone(data)) {
+          void db.meals.delete(data.id)
+          continue
+        }
+        const remote = data
         void db.meals.get(remote.id).then((local) => {
           if (!local || remote.updatedAt >= local.updatedAt) void db.meals.put(remote)
         })
@@ -241,7 +290,12 @@ export async function startSync(uid: string): Promise<void> {
           void db.recipes.delete(change.doc.id)
           continue
         }
-        const remote = change.doc.data() as Recipe
+        const data = change.doc.data() as Recipe | Tombstone
+        if (isTombstone(data)) {
+          void db.recipes.delete(data.id)
+          continue
+        }
+        const remote = data
         void db.recipes.get(remote.id).then((local) => {
           if (!local || remote.updatedAt >= local.updatedAt) void db.recipes.put(remote)
         })
@@ -253,6 +307,8 @@ export async function startSync(uid: string): Promise<void> {
     lastSyncError = err instanceof Error ? err.message : String(err)
     notifyStatus()
     throw err
+  } finally {
+    startingUid = null
   }
 }
 
@@ -260,6 +316,7 @@ export function stopSync(): void {
   unsubscribers.forEach((fn) => fn())
   unsubscribers = []
   currentUid = null
+  startingUid = null
   notifyStatus()
 }
 

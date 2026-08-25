@@ -23,6 +23,7 @@ import { Link } from 'react-router-dom'
 import { Sheet } from './Sheet'
 import { useSheetClose } from '../hooks/useSheetClose'
 import { useSwipeBack } from '../hooks/useSwipeBack'
+import { useIngredientScaling } from '../hooks/useIngredientScaling'
 import { useDraftAutosave, useRestoredDraft } from '../hooks/useFormDraft'
 import { draftKey } from '../lib/drafts'
 import { DraftRestoredBanner } from './DraftRestoredBanner'
@@ -189,12 +190,14 @@ function RecipeEditorContent({
     setSteps(baseline.steps)
     setManuallyEdited(baseline.manuallyEdited)
     setRestoredNotice(false)
-    draft.clear()
+    draft.discard()
   }
 
   // Swiping right does what the back control on this step does. Null while
   // there is nothing to go back to, so the gesture stays inert on step one.
   const swipeBack = useSwipeBack(step === 'review' ? () => setStep('input') : null)
+
+  const scaleIngredient = useIngredientScaling()
 
   const hasApiKey = Boolean(getApiKey())
 
@@ -236,22 +239,14 @@ function RecipeEditorContent({
   }
 
   function handleIngredientAmountChange(index: number, newAmount: number) {
-    setIngredients((current) => {
-      const ing = current[index]
-      const ratio = ing.amount > 0 && newAmount >= 0 ? newAmount / ing.amount : 1
-      const scaled: Ingredient = {
-        ...ing,
-        amount: newAmount,
-        kcal: round1(ing.kcal * ratio),
-        protein: round1(ing.protein * ratio),
-        carbs: round1(ing.carbs * ratio),
-        fat: round1(ing.fat * ratio),
-      }
-      const next = current.map((item, i) => (i === index ? scaled : item))
-      setNutrition(sumIngredients(next))
-      setManuallyEdited(true)
-      return next
-    })
+    // Computed from the current value rather than inside a setIngredients
+    // updater: the updater also has to set the totals and the edited flag, and
+    // an updater that calls other setState functions is impure — StrictMode
+    // double-invokes it, so those side effects ran twice per keystroke.
+    const next = scaleIngredient(ingredients, index, newAmount)
+    setIngredients(next)
+    setNutrition(sumIngredients(next))
+    setManuallyEdited(true)
   }
 
   function handleRemoveIngredient(index: number) {

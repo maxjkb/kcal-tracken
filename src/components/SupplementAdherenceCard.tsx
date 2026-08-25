@@ -37,7 +37,15 @@ export function SupplementAdherenceCard({ startKey, endKey }: { startKey: string
     const effectiveStartKey = createdKey > startKey ? createdKey : startKey
     const days = effectiveStartKey <= effectiveEndKey ? daysBetween(effectiveStartKey, effectiveEndKey) : []
     const totalSlots = days.length * my.timesOfDay.length
-    const checkedSlots = logEntries.filter((e) => e.mySupplementId === my.id && days.includes(e.date)).length
+    // Also filtered by whether the slot is still part of the routine. Without
+    // that, check-ins for a time of day the user has since removed keep
+    // counting against a denominator that no longer includes them — a
+    // supplement dropped from twice to once a day then reported 14/7, i.e.
+    // 200% adherence, and inflated the overall figure with it.
+    const activeTimes = new Set(my.timesOfDay)
+    const checkedSlots = logEntries.filter(
+      (e) => e.mySupplementId === my.id && days.includes(e.date) && activeTimes.has(e.timeOfDay),
+    ).length
     return {
       id: my.id,
       name: supplementById.get(my.supplementId)?.name ?? 'Supplement',

@@ -72,6 +72,17 @@ export function SwipeNavigator({ children }: { children: ReactNode }) {
   /** Which neighbour is mounted during a gesture, and on which side. */
   const [preview, setPreview] = useState<{ index: number; direction: 1 | -1 } | null>(null)
 
+  /**
+   * The settle/commit animation in flight, so a new gesture can stop it.
+   *
+   * `MotionValue.set()` does not cancel a running animation — the spring keeps
+   * overwriting the value on the next frame. Without this, grabbing the page
+   * back mid-flick did nothing, and the old animation's onComplete still
+   * navigated to the section the user was actively cancelling. apple-design
+   * §3: every animation must be interruptible and redirectable.
+   */
+  const settling = useRef<{ stop: () => void } | null>(null)
+
   const gesture = useRef<{
     startX: number
     startY: number
@@ -208,7 +219,7 @@ export function SwipeNavigator({ children }: { children: ReactNode }) {
       const back = backHandler.current
       const wentFarEnough = dx > g.width * COMMIT_FRACTION || g.velocity > 500
       gesture.current = null
-      animate(x, 0, { ...SPRING_MOMENTUM, velocity: g.velocity })
+      settling.current = animate(x, 0, { ...SPRING_MOMENTUM, velocity: g.velocity })
       if (inSection) animate(progress, index, SPRING_DEFAULT)
       setPreview(null)
       if (wentFarEnough) back()
@@ -228,7 +239,7 @@ export function SwipeNavigator({ children }: { children: ReactNode }) {
     if (!commits) {
       // Hand the release velocity to the spring so there's no seam between
       // dragging and settling.
-      animate(x, 0, { ...SPRING_MOMENTUM, velocity: g.velocity })
+      settling.current = animate(x, 0, { ...SPRING_MOMENTUM, velocity: g.velocity })
       animate(progress, index, { ...SPRING_MOMENTUM, velocity: -g.velocity / g.width })
       setPreview(null)
       return
@@ -237,10 +248,11 @@ export function SwipeNavigator({ children }: { children: ReactNode }) {
     const direction = target > index ? 1 : -1
     const destination = -direction * g.width
     animate(progress, target, { ...SPRING_DEFAULT, velocity: -g.velocity / g.width })
-    animate(x, destination, {
+    settling.current = animate(x, destination, {
       ...SPRING_DEFAULT,
       velocity: g.velocity,
       onComplete: () => {
+        settling.current = null
         // Swap only once the outgoing page is exactly one viewport away, which
         // is where the incoming one already sits — so the route change lands
         // on an identical frame and is invisible.
