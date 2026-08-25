@@ -478,7 +478,7 @@ function MealEditorContent({
                       key={type}
                       type="button"
                       onClick={() => setMealType(type)}
-                      className={`rounded-xl px-2 py-2 text-xs font-medium transition ${
+                      className={`rounded-xl px-2 py-3.5 text-xs font-medium transition ${
                         mealType === type ? 'bg-accent/20 text-ink' : 'bg-bg text-ink-soft hover:bg-line'
                       }`}
                     >
@@ -552,7 +552,7 @@ function MealEditorContent({
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="glass-accent mt-2 flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
+                className="glass-accent mt-2 flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {saving ? 'Speichern…' : 'Speichern'}
               </button>

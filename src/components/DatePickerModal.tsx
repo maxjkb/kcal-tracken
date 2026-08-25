@@ -42,7 +42,7 @@ function NavRow({ label, onPrev, onNext }: { label: string; onPrev: () => void; 
     <div className="mb-3 flex items-center justify-between">
       <button
         onClick={onPrev}
-        className="flex h-8 w-8 items-center justify-center rounded-full bg-bg text-ink-soft hover:bg-line"
+        className="flex h-11 w-11 items-center justify-center rounded-full bg-bg text-ink-soft hover:bg-line"
         aria-label="Zurück"
       >
         <ChevronIcon direction="left" className="h-3.5 w-3.5" />
@@ -50,7 +50,7 @@ function NavRow({ label, onPrev, onNext }: { label: string; onPrev: () => void; 
       <span className="text-sm font-medium text-ink">{label}</span>
       <button
         onClick={onNext}
-        className="flex h-8 w-8 items-center justify-center rounded-full bg-bg text-ink-soft hover:bg-line"
+        className="flex h-11 w-11 items-center justify-center rounded-full bg-bg text-ink-soft hover:bg-line"
         aria-label="Weiter"
       >
         <ChevronIcon direction="right" className="h-3.5 w-3.5" />

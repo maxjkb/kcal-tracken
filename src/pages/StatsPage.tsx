@@ -173,7 +173,7 @@ export function StatsPage() {
           <button
             key={key}
             onClick={() => setPeriod(key)}
-            className={`relative flex-1 rounded-full py-2 text-sm font-medium transition-colors ${
+            className={`relative flex-1 rounded-full py-3 text-sm font-medium transition-colors ${
               period === key ? 'text-ink' : 'text-ink-soft hover:text-ink'
             }`}
           >
@@ -192,17 +192,17 @@ export function StatsPage() {
       <div className="glass-subtle glass-subtle-themed mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
         <button
           onClick={() => setAnchorKey((k) => shiftAnchor(period, k, -1))}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-white"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white"
           aria-label="Vorheriger Zeitraum"
         >
           <ChevronIcon direction="left" />
         </button>
-        <button onClick={() => setPickerOpen(true)} className="text-sm font-medium text-ink hover:opacity-70">
+        <button onClick={() => setPickerOpen(true)} className="px-3 py-3 text-sm font-medium text-ink hover:opacity-70">
           {formatPeriodLabel(period, anchorKey)}
         </button>
         <button
           onClick={() => setAnchorKey((k) => shiftAnchor(period, k, 1))}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-white"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white"
           aria-label="Nächster Zeitraum"
         >
           <ChevronIcon direction="right" />

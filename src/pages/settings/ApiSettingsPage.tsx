@@ -70,7 +70,7 @@ export function ApiSettingsPage() {
         </div>
         <button
           onClick={handleSaveKey}
-          className="glass-accent mt-3 w-full rounded-xl py-2.5 text-sm font-semibold"
+          className="glass-accent mt-3 w-full rounded-xl py-3 text-sm font-semibold"
         >
           Speichern
         </button>

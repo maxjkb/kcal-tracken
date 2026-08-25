@@ -1,20 +1,16 @@
 import type { MealType } from '../lib/db'
 
 /**
- * A small pictogram per meal type — sunrise/sun/moon/star, evoking the time
- * of day each category represents. Purely a shape distinction: every icon
- * renders in the single accent color (via `currentColor`, tinted by
- * whichever badge wraps it), never a different hue per type. Assigning each
- * meal type its own color would collide with what color already means in
- * this app — the exact same four hues already mark kcal/protein/carbs/fat
- * on every meal card, so reusing them here for a different kind of category
- * would read as a mismatched, confusing second meaning for the same colors.
+ * A small pictogram per meal type — sunrise, sun, moon, apple — evoking the
+ * time of day each category represents. Colour comes from `currentColor` by
+ * default, so a caller that wants the meal-type hue sets it via
+ * MEAL_TYPE_COLOR rather than the icon deciding for itself.
  */
 export function MealTypeIcon({ type, className = 'h-4 w-4' }: { type: MealType; className?: string }) {
   if (type === 'breakfast') return <SunriseIcon className={className} />
   if (type === 'lunch') return <SunIcon className={className} />
   if (type === 'dinner') return <MoonIcon className={className} />
-  return <StarIcon className={className} />
+  return <AppleIcon className={className} />
 }
 
 function SunriseIcon({ className }: { className: string }) {
@@ -47,14 +43,20 @@ function MoonIcon({ className }: { className: string }) {
   )
 }
 
-function StarIcon({ className }: { className: string }) {
+/**
+ * Replaces the star, which said "favourite" far more than "snack" — a shape
+ * already spoken for elsewhere in most interfaces. An apple is unambiguously
+ * food and unambiguously the small, between-meals kind.
+ */
+function AppleIcon({ className }: { className: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="m12 3 2.4 5.4L20 9.3l-4.2 3.9 1.1 5.8L12 16.2l-4.9 2.8 1.1-5.8L4 9.3l5.6-.9Z"
+        d="M12 8.5c1.4-1.3 3.4-1.6 5-.6 2 1.3 2.6 4.3 1.4 7-1 2.2-2.6 4.1-4 4.1-.9 0-1.5-.4-2.4-.4s-1.5.4-2.4.4c-1.4 0-3-1.9-4-4.1-1.2-2.7-.6-5.7 1.4-7 1.6-1 3.6-.7 5 .6Z"
       />
+      <path strokeLinecap="round" d="M12 8.5V6m0 0c0-1.4 1.1-2.5 2.5-2.5" />
     </svg>
   )
 }

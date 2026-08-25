@@ -45,7 +45,7 @@ export function SupplementsPage() {
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`relative flex-1 rounded-full py-2 text-sm font-medium transition-colors ${
+            className={`relative flex-1 rounded-full py-3 text-sm font-medium transition-colors ${
               tab === key ? 'text-ink' : 'text-ink-soft hover:text-ink'
             }`}
           >

@@ -9,7 +9,7 @@ import { ChevronIcon } from '../components/ChevronIcon'
 import { MiniNutrientRings, NutrientRings } from '../components/NutrientRings'
 import { DayPickerModal } from '../components/DatePickerModal'
 import { Collapse } from '../components/Collapse'
-import { MealTypeIcon } from '../components/MealTypeIcon'
+import { MealTypeBadge } from '../components/MealTypeBadge'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { PageHeader } from '../components/PageHeader'
 
@@ -95,13 +95,13 @@ export function FeedPage() {
       <div className="glass-subtle glass-subtle-themed mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
         <button
           onClick={() => setDateKey((k) => addDays(k, -1))}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-white"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white"
           aria-label="Vorheriger Tag"
         >
           <ChevronIcon direction="left" />
         </button>
         <div className="text-center">
-          <button onClick={() => setPickerOpen(true)} className="text-lg font-semibold text-ink hover:opacity-70">
+          <button onClick={() => setPickerOpen(true)} className="px-3 py-3 text-lg font-semibold text-ink hover:opacity-70">
             {formatDateHeading(dateKey)}
           </button>
           {!isToday && (
@@ -115,7 +115,7 @@ export function FeedPage() {
         </div>
         <button
           onClick={() => setDateKey((k) => addDays(k, 1))}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-white"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white"
           aria-label="Nächster Tag"
         >
           <ChevronIcon direction="right" />
@@ -136,15 +136,13 @@ export function FeedPage() {
             return (
               <section key={type}>
                 <div className="mb-2 flex items-center gap-2">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-section-12 text-section">
-                    <MealTypeIcon type={type} className="h-3.5 w-3.5" />
-                  </span>
+                  <MealTypeBadge type={type} size="sm" />
                   <h2 className="text-lg font-semibold text-ink">{MEAL_TYPE_LABELS[type]}</h2>
                   {typeMeals.length > 0 && (
                     <button
                       onClick={() => setCollapsed((c) => ({ ...c, [type]: !c[type] }))}
                       aria-label={isOpen ? `${MEAL_TYPE_LABELS[type]} einklappen` : `${MEAL_TYPE_LABELS[type]} ausklappen`}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-ink-soft hover:bg-bg"
+                      className="flex h-11 w-11 items-center justify-center rounded-full text-ink-soft hover:bg-bg"
                     >
                       <svg
                         viewBox="0 0 24 24"

@@ -168,7 +168,7 @@ export function KcalTrendChart({
                   onSelectBucket(selected)
                   setSelectedKey(null)
                 }}
-                className="mt-3 w-full rounded-2xl bg-accent/12 py-2.5 text-sm font-semibold text-accent"
+                className="mt-3 w-full rounded-2xl bg-accent/12 py-3 text-sm font-semibold text-accent"
               >
                 Details ansehen
               </button>

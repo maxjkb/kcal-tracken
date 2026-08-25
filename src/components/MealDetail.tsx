@@ -118,7 +118,7 @@ function MealDetailContent({ meal, onEdit }: { meal: Meal; onEdit: () => void })
 
       {meal.note && <p className="mb-5 text-xs italic text-ink-soft">Hinweis der KI: {meal.note}</p>}
 
-      <button onClick={onEdit} className="glass-accent rounded-2xl px-4 py-2.5 text-sm font-semibold transition">
+      <button onClick={onEdit} className="glass-accent rounded-2xl px-4 py-3 text-sm font-semibold transition">
         Bearbeiten
       </button>
     </>

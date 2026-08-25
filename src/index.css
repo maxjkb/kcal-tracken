@@ -59,6 +59,21 @@
   --color-protein: #ff375f;
   --color-carbs: #34c759;
   --color-fat: #ffcc00;
+
+  /* One colour per meal type, keyed to the time of day it names: sunrise
+     orange, midday yellow, night indigo, and green for the snack.
+     Indigo rather than a lilac purple for the evening — a lilac was tried for
+     the section theme and read as washed-out next to this palette.
+     Note the tension this creates, deliberately accepted: --color-fat is the
+     same yellow and --color-carbs the same green. The macro colours appear as
+     ring outlines with a macro glyph inside, these as filled badges behind a
+     time-of-day pictogram, so shape and context separate them — but they are
+     the same hues, and if that ever reads as one meaning rather than two, the
+     lunch and snack values are the ones to shift. */
+  --color-meal-breakfast: #ff9500;
+  --color-meal-lunch: #ffcc00;
+  --color-meal-dinner: #5e5ce6;
+  --color-meal-snack: #34c759;
   --color-danger: #ff3b30;
 
   /*
@@ -161,6 +176,10 @@ body {
     --color-kcal: #0a84ff;
     --color-carbs: #30d158;
     --color-fat: #ffd60a;
+    --color-meal-breakfast: #ff9f0a;
+    --color-meal-lunch: #ffd60a;
+    --color-meal-dinner: #7d7aff;
+    --color-meal-snack: #30d158;
     --color-danger: #ff453a;
 
     --color-section-feed: #64d2ff;

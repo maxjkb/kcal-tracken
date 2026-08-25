@@ -15,7 +15,7 @@ export function SettingsBackHeader({ title }: { title: string }) {
       <Link
         to="/settings"
         aria-label="Zurück zu Einstellungen"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface text-ink-soft shadow-sm shadow-black/5 hover:text-ink"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface text-ink-soft shadow-sm shadow-black/5 hover:text-ink"
       >
         <ChevronIcon direction="left" />
       </Link>
