@@ -31,7 +31,7 @@ export function RecipeCategoryPage() {
           >
             <ChevronIcon direction="left" />
           </Link>
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/12 text-accent">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-section-12 text-section">
             <MealTypeIcon type={cat} className="h-4 w-4" />
           </span>
           <h1 className="text-2xl font-bold tracking-tight text-ink">{MEAL_TYPE_LABELS[cat]}</h1>
@@ -40,8 +40,8 @@ export function RecipeCategoryPage() {
         {recipes === undefined ? (
           <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
         ) : recipes.length === 0 ? (
-          <div className="glass-subtle flex flex-col items-center gap-3 rounded-3xl px-6 py-10 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/12 text-accent">
+          <div className="glass-subtle glass-subtle-themed flex flex-col items-center gap-3 rounded-3xl px-6 py-10 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-section-12 text-section">
               <MealTypeIcon type={cat} className="h-6 w-6" />
             </span>
             <p className="text-sm text-ink-soft">Noch keine Rezepte in dieser Kategorie.</p>

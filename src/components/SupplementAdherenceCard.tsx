@@ -51,7 +51,7 @@ export function SupplementAdherenceCard({ startKey, endKey }: { startKey: string
   const overallPercent = totalSlots > 0 ? Math.round((checkedSlots / totalSlots) * 100) : null
 
   return (
-    <div className="glass-subtle mt-4 rounded-3xl p-5 shadow-sm shadow-black/5">
+    <div className="glass-subtle glass-subtle-themed mt-4 rounded-3xl p-5 shadow-sm shadow-black/5">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-ink">Supplement-Treue</h2>
         {overallPercent !== null && <span className="text-sm font-bold text-accent">{overallPercent}%</span>}

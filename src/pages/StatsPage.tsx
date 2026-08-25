@@ -145,7 +145,7 @@ export function StatsPage() {
           instead of each segment fading its own background in and out — the
           segmented-control behavior iOS uses, where the selection reads as a
           single object moving to the tapped option. */}
-      <div className="glass-subtle mb-4 flex gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5">
+      <div className="glass-subtle glass-subtle-themed mb-4 flex gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5">
         {PERIODS.map(({ key, label }) => (
           <button
             key={key}
@@ -157,7 +157,7 @@ export function StatsPage() {
             {period === key && (
               <motion.span
                 layoutId="stats-period-pill"
-                className="absolute inset-0 rounded-full bg-accent/20"
+                className="absolute inset-0 rounded-full bg-section-20"
                 transition={prefersReducedMotion ? { duration: 0 } : SPRING_SNAPPY}
               />
             )}
@@ -166,7 +166,7 @@ export function StatsPage() {
         ))}
       </div>
 
-      <div className="glass-subtle mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
+      <div className="glass-subtle glass-subtle-themed mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
         <button
           onClick={() => setAnchorKey((k) => shiftAnchor(period, k, -1))}
           className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-white"
@@ -203,7 +203,7 @@ export function StatsPage() {
       </div>
 
       {period === 'day' ? (
-        <div className="glass-subtle rounded-3xl p-5 shadow-sm shadow-black/5">
+        <div className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
           {meals === undefined ? (
             <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
           ) : perMealData.length === 0 ? (

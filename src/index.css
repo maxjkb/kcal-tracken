@@ -63,32 +63,51 @@
 
   /*
    * One accent color per main area (Feed/Rezepte/Supplements/Statistik),
-   * chosen from Apple's own system-color set and deliberately picked to sit
-   * in hue-space away from every color that already means something else in
-   * this app — protein's pink (~350°), danger's red (~4°), carbs' green
-   * (~137°) — and away from yellow/orange per explicit request. Ordered by
-   * hue they read Teal(189°) < Blue(211°, accent/kcal/Statistik) <
-   * Indigo(243°, Feed) < Purple(283°, Supplements), each pair 20-40°+ apart
-   * so no two are mistakable for one another even at a glance.
+   * chosen from Apple's own system-color set. First attempt used Indigo
+   * (Feed) and Purple (Supplements) — both read as "reddish/lilac" on
+   * review and were replaced with Cyan and Mint, so the whole set now forms
+   * one continuous cool family rather than spanning into red/violet hues:
+   * Mint(172°, Supplements) < Teal(189°, Rezepte) < Cyan(199°, Feed) <
+   * Blue(211°, accent/kcal/Statistik) — a deliberate gradation ("Abstufung")
+   * rather than four maximally-separated hues, with Mint's 35°+ gap from
+   * carbs' green (~137°) still enough to keep the two apart. Still nowhere
+   * near protein's pink (~350°), danger's red (~4°), or yellow/orange.
    *
    * Statistik intentionally has no separate token — it stays on
    * --color-accent itself, both because the request was to keep blue as the
    * overall main color and because Statistik's own kcal rings are already
    * that exact blue, so nothing needs to shift there.
    *
-   * These are consumed two ways (App.tsx sets --color-section to whichever
-   * of these applies to the current route, on document.body so it also
-   * reaches body-portaled Sheets):
+   * These are consumed several ways (App.tsx sets --color-section to
+   * whichever of these applies to the current route, on document.body so it
+   * also reaches body-portaled Sheets):
    * - TopGradient's wash uses --color-section directly.
    * - .glass-accent (every primary button/pill in the app) blends a small
    *   amount of it into the accent blue — buttons stay recognizably blue,
    *   with just a hint of the current area's color, per explicit request
    *   ("die Funktionstasten... behalten das Standardblau, bekommen aber
    *   einen kleinen minimalen Farbverlauf").
+   * - .bg-section-12/.bg-section-20 (icon-badge backgrounds, the selected
+   *   pill in a page's own segmented control) and .glass-subtle-themed (a
+   *   card's border) go further and show the area color directly,
+   *   undiluted, since neither sits under text that needs to stay
+   *   readable.
+   * - .text-section (an icon badge's glyph) uses the separate
+   *   --color-section-*-icon tokens just below instead of these — the
+   *   plain Cyan/Teal/Mint here are tuned to look good as a soft wash or
+   *   mixed mostly with blue, not as a small icon glyph directly against
+   *   the page's near-white light-mode background, where they measure as
+   *   low as ~1.9:1 (fails even the 3:1 non-text bar). The *-icon tokens
+   *   are darkened versions of the same hue, light-mode only — dark mode's
+   *   own values already clear 8:1+ against near-black, so those just
+   *   repeat the plain token.
    */
-  --color-section-feed: #5856d6; /* Indigo — the "Flieder" requested for Feed */
+  --color-section-feed: #32ade6; /* Cyan */
   --color-section-recipes: #30b0c7; /* Teal/Türkis */
-  --color-section-supplements: #af52de; /* Purple */
+  --color-section-supplements: #00c7be; /* Mint */
+  --color-section-feed-icon: #178abf;
+  --color-section-recipes-icon: #2891a4;
+  --color-section-supplements-icon: #008f88;
 }
 
 html {
@@ -101,9 +120,11 @@ body {
   color: var(--color-ink);
   /* Falls back to the plain accent blue everywhere App.tsx doesn't set an
      explicit per-section override (Einstellungen, and before the route
-     effect below has run on first paint) — TopGradient/.glass-accent then
-     render exactly as they did before per-area color existed. */
+     effect below has run on first paint) — TopGradient/.glass-accent/the
+     classes below then render exactly as they did before per-area color
+     existed. */
   --color-section: var(--color-accent);
+  --color-section-icon: var(--color-accent);
 }
 
 /* TopGradient's own sizing. `vh` in real mobile Safari is measured against
@@ -142,9 +163,14 @@ body {
     --color-fat: #ffd60a;
     --color-danger: #ff453a;
 
-    --color-section-feed: #5e5ce6;
+    --color-section-feed: #64d2ff;
     --color-section-recipes: #40cbe0;
-    --color-section-supplements: #bf5af2;
+    --color-section-supplements: #66d4cf;
+    /* Already high-contrast against near-black, unlike the light-mode
+       values above — no separate darkened variant needed. */
+    --color-section-feed-icon: #64d2ff;
+    --color-section-recipes-icon: #40cbe0;
+    --color-section-supplements-icon: #66d4cf;
   }
 }
 
@@ -234,6 +260,33 @@ input[type="number"] {
   border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
+/* Composes with .glass-subtle on a page's primary card/list containers — a
+   soft area-colored edge (rather than the plain white "catches light" edge
+   .glass-subtle uses everywhere else), so a section reads as its own theme
+   even away from any icon or button. Kept as an addable modifier rather
+   than folded into .glass-subtle itself: that class is also used in
+   Einstellungen/editors, which should stay visually untouched. */
+.glass-subtle-themed {
+  border-color: color-mix(in srgb, var(--color-section) 45%, white 55%);
+}
+
+/* Icon-badge backgrounds/pills — the undiluted area color, at the same two
+   intensities .../12 and .../20 already used for the plain accent blue
+   elsewhere, so swapping one class for the other changes nothing but the
+   hue. */
+.bg-section-12 {
+  background: color-mix(in srgb, var(--color-section) 12%, transparent);
+}
+.bg-section-20 {
+  background: color-mix(in srgb, var(--color-section) 20%, transparent);
+}
+/* An icon badge's glyph — see --color-section-*-icon in the palette above
+   for why this reads a separate, darker (light-mode-only) token rather than
+   --color-section itself. */
+.text-section {
+  color: var(--color-section-icon);
+}
+
 @media (prefers-color-scheme: dark) {
   .glass {
     background: rgba(28, 28, 30, 0.65);
@@ -246,6 +299,13 @@ input[type="number"] {
   .glass-subtle {
     background: rgba(28, 28, 30, 0.55);
     border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  /* Lower mix + no white (dark surfaces don't get a bright edge) — echoes
+     the whisper-faint rgba(255,255,255,0.1) .glass-subtle border above,
+     just with a hint of hue instead of none. */
+  .glass-subtle-themed {
+    border-color: color-mix(in srgb, var(--color-section) 30%, transparent);
   }
 }
 
