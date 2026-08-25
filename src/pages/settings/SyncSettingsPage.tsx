@@ -12,6 +12,7 @@ import {
 } from '../../lib/firebaseConfig'
 import {
   completeSignInFromLink,
+  describeAuthError,
   getStoredSignInEmail,
   isRunningStandalone,
   isSignInLinkUrl,
@@ -78,13 +79,13 @@ export function SyncSettingsPage() {
         try {
           await startSync(signedInUser.uid)
           flash('Angemeldet.')
-        } catch {
+        } catch (err) {
           setError(
-            'Angemeldet, aber die erste Synchronisation ist fehlgeschlagen. Bitte "Jetzt synchronisieren" versuchen.',
+            `Angemeldet, aber die erste Synchronisation ist fehlgeschlagen: ${describeAuthError(err)}. Bitte "Jetzt synchronisieren" versuchen.`,
           )
         }
       })
-      .catch(() => setError('Anmeldelink ungültig oder abgelaufen. Bitte einen neuen Link anfordern.'))
+      .catch((err) => setError(`Anmeldelink ungültig oder abgelaufen: ${describeAuthError(err)}`))
   }, [linkToComplete, flash])
 
   function handleSaveConfig() {
@@ -125,10 +126,8 @@ export function SyncSettingsPage() {
     try {
       await sendSignInLink(email.trim())
       setLinkSent(true)
-    } catch {
-      setError(
-        'Anmeldelink konnte nicht gesendet werden. Prüfe, ob in der Firebase-Konsole unter Authentication die Anmeldemethode "E-Mail-Link" aktiviert ist.',
-      )
+    } catch (err) {
+      setError(`Anmeldelink konnte nicht gesendet werden: ${describeAuthError(err)}`)
     } finally {
       setBusy(false)
     }
@@ -144,13 +143,13 @@ export function SyncSettingsPage() {
       try {
         await startSync(signedInUser.uid)
         flash('Angemeldet.')
-      } catch {
+      } catch (err) {
         setError(
-          'Angemeldet, aber die erste Synchronisation ist fehlgeschlagen. Bitte "Jetzt synchronisieren" versuchen.',
+          `Angemeldet, aber die erste Synchronisation ist fehlgeschlagen: ${describeAuthError(err)}. Bitte "Jetzt synchronisieren" versuchen.`,
         )
       }
-    } catch {
-      setError('Anmeldelink ungültig oder abgelaufen. Bitte einen neuen Link anfordern.')
+    } catch (err) {
+      setError(`Anmeldelink ungültig oder abgelaufen: ${describeAuthError(err)}`)
     } finally {
       setBusy(false)
     }
@@ -183,8 +182,8 @@ export function SyncSettingsPage() {
     try {
       await resyncNow()
       flash('Synchronisiert.')
-    } catch {
-      setError('Synchronisation fehlgeschlagen. Bitte später erneut versuchen.')
+    } catch (err) {
+      setError(`Synchronisation fehlgeschlagen: ${describeAuthError(err)}`)
     } finally {
       setBusy(false)
     }
