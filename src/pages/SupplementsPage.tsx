@@ -10,6 +10,7 @@ import {
 } from '../lib/db'
 import { SUPPLEMENT_CATEGORY_ORDER } from '../lib/supplementSeed'
 import { PageHeader } from '../components/PageHeader'
+import { StaggeredList } from '../components/StaggeredList'
 import {
   addSuggestionToMyList,
   useAllSupplements,
@@ -36,8 +37,8 @@ export function SupplementsPage() {
   const prefersReducedMotion = useReducedMotion()
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
-      <PageHeader title="Supplements" className="mb-4" />
+    <div className="mx-auto max-w-lg px-4 pb-28">
+      <PageHeader title="Supplements" />
 
       <div className="glass-subtle glass-subtle-themed mb-5 flex gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5">
         {TABS.map(({ key, label }) => (
@@ -282,6 +283,7 @@ function SuggestionsTab() {
         </p>
       )}
 
+      <StaggeredList className="flex flex-col gap-4">
       {suggestions.map((s) => {
         const added = addedNames.has(s.supplementName)
         const isConsistency = s.kind === 'consistency'
@@ -318,6 +320,7 @@ function SuggestionsTab() {
           </div>
         )
       })}
+      </StaggeredList>
 
       <button
         type="button"

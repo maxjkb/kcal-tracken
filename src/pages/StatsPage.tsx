@@ -142,14 +142,13 @@ export function StatsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
+    <div className="mx-auto max-w-lg px-4 pb-28">
       {/* PDF export folds into the header's round-button cluster rather than
           keeping its own labelled pill — three round buttons plus the title
           still fit a 375px screen, two of them plus a wide pill would not.
           The label survives as the accessible name and the tooltip. */}
       <PageHeader
         title="Statistik"
-        className="mb-4"
         actions={
           <HeaderButton
             onClick={() => meals && handleExportPdf(meals)}

@@ -22,6 +22,7 @@ import { ActionButton } from './ActionButton'
 import { NutritionFields } from './NutritionFields'
 import { AutoGrowTextarea } from './AutoGrowTextarea'
 import { ChevronIcon } from './ChevronIcon'
+import { StaggeredList } from './StaggeredList'
 import { BouncingDots } from './BouncingDots'
 import { MacroBadge, MacroRingBadge } from './MacroBadge'
 import { Link } from 'react-router-dom'
@@ -402,31 +403,35 @@ function MealEditorContent({
                         </p>
                       )}
                     </div>
-                    <DictationButton onRecordingDone={handleDictationDone} disabled={cleaningUp} />
+                    {/* Dictate and send stack beside the field, in the order
+                        they're used: speak the meal, then send it. Both act on
+                        the text, so they belong next to it rather than in the
+                        row of input *sources* below — grouping by proximity is
+                        what tells you which control affects what. */}
+                    <div className="flex shrink-0 flex-col gap-2">
+                      <DictationButton onRecordingDone={handleDictationDone} disabled={cleaningUp} />
+                      <ActionButton
+                        label="Nährwerte schätzen"
+                        onClick={handleEstimate}
+                        disabled={estimating || cleaningUp || !hasApiKey}
+                        primary
+                      >
+                        {estimating ? <BouncingDots /> : <SendIcon />}
+                      </ActionButton>
+                    </div>
                   </div>
                 </div>
 
-                {/* Three round actions instead of three full-width slabs. The
-                    old layout gave a secondary shortcut (pick a recipe) the
-                    same visual weight as the primary action, and pushed
-                    everything else below the fold. Send is solid blue as the
-                    one primary action; the two shortcuts are tinted, so the
-                    row still reads as one family with a clear lead. */}
+                {/* The three ways to fill the field, as equal round options
+                    rather than full-width slabs: a saved recipe, a new photo,
+                    or one already in the library. Tinted, not solid — the one
+                    primary action is the send arrow above. */}
                 <div className="flex items-center gap-3">
                   <ActionButton label="Rezept auswählen" onClick={() => setPickingRecipe(true)}>
                     <RecipeIcon />
                   </ActionButton>
-
-                  <PhotoActionButton photo={photo} onChange={setPhoto} />
-
-                  <ActionButton
-                    label="Nährwerte schätzen"
-                    onClick={handleEstimate}
-                    disabled={estimating || cleaningUp || !hasApiKey}
-                    primary
-                  >
-                    {estimating ? <BouncingDots /> : <SendIcon />}
-                  </ActionButton>
+                  <PhotoActionButton photo={photo} onChange={setPhoto} source="camera" />
+                  <PhotoActionButton photo={photo} onChange={setPhoto} source="library" />
                 </div>
 
                 {photo && <PhotoPreview photo={photo} onChange={setPhoto} />}
@@ -592,7 +597,7 @@ function MealSuggestions({ mealType, onPick }: { mealType: MealType; onPick: (s:
   return (
     <div>
       <span className="mb-1.5 block text-xs text-ink-soft">Vorschläge</span>
-      <div className="flex flex-col gap-1.5">
+      <StaggeredList className="flex flex-col gap-1.5">
         {suggestions.map((s) => (
           <button
             key={s.title}
@@ -612,7 +617,7 @@ function MealSuggestions({ mealType, onPick }: { mealType: MealType; onPick: (s:
             </span>
           </button>
         ))}
-      </div>
+      </StaggeredList>
     </div>
   )
 }

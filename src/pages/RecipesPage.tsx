@@ -34,8 +34,8 @@ export function RecipesPage() {
   // it the wrong way whenever you swipe *back* into Rezepte.
   return (
     <>
-      <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
-        <PageHeader title="Rezepte" className="mb-4" />
+      <div className="mx-auto max-w-lg px-4 pb-28">
+        <PageHeader title="Rezepte" />
 
         <div className="glass-subtle glass-subtle-themed divide-y divide-line/60 overflow-hidden rounded-3xl shadow-sm shadow-black/5">
           {MEAL_TYPE_ORDER.map((type) => (

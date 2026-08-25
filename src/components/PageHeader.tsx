@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { useAddMeal } from '../hooks/useAddMeal'
+
+/** Scroll distance over which the edge effect fades in — short enough to feel immediate, long enough not to flicker. */
+const EDGE_FADE_PX = 28
 
 /**
  * The shared top row of every main page: the page's own title on the left,
@@ -15,6 +19,23 @@ import { useAddMeal } from '../hooks/useAddMeal'
  * `actions` lets a page prepend its own page-specific round button (Statistik's
  * PDF export) into the same cluster, so a page never grows a second, competing
  * row of controls.
+ *
+ * ## Sticky, with a scroll edge effect
+ *
+ * The row stays put and the page's content passes *underneath* it. Per the
+ * HIG's layout guidance, controls sit on top of content rather than on the
+ * same plane — and the transition between the two is a scroll edge effect,
+ * explicitly "instead of a background":
+ *
+ * > **Design Guideline — Layout**: "Differentiate controls from content.
+ * > Instead of a background, use a scroll edge effect to provide a transition
+ * > between content and the control area."
+ *
+ * So the material is not painted at rest: at the top of the page the header
+ * floats over the page's own gradient with nothing between them, and the blur
+ * plus a soft shadow fade in over the first 28px of scroll — the moment there
+ * is actually content beneath to separate from. A permanently drawn bar would
+ * be exactly the background the guideline rules out.
  */
 export function PageHeader({
   title,
@@ -30,20 +51,47 @@ export function PageHeader({
   className?: string
 }) {
   const addMeal = useAddMeal()
+  const prefersReducedMotion = useReducedMotion()
+  const { scrollY } = useScroll()
+
+  // Driven straight from scroll position rather than from a boolean state:
+  // a threshold that flips at one pixel makes the material pop in, and it
+  // re-renders the whole header on every scroll tick. A MotionValue feeds the
+  // compositor without a single React render.
+  const edge = useTransform(scrollY, [0, EDGE_FADE_PX], [0, 1], { clamp: true })
+  const edgeOpacity = prefersReducedMotion ? 1 : edge
 
   return (
-    <div className={`flex items-center justify-between gap-3 ${className}`}>
-      <h1 className="text-2xl font-bold tracking-tight text-ink">{title}</h1>
-      <div className="flex shrink-0 items-center gap-2">
-        {actions}
-        {showSettings && (
-          <HeaderButton as={Link} to="/settings" label="Einstellungen">
-            <SettingsIcon />
+    <div className={`sticky top-0 z-30 -mx-4 px-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-3 ${className}`}>
+      {/* The edge effect itself. Separate, absolutely positioned layer so its
+          opacity can be animated without touching the title's own rendering,
+          and so the blur never applies to the text sitting on top of it.
+          Nearly opaque rather than lightly tinted — a large surface has to
+          carry its own legibility, and at 70% the numbers scrolling behind the
+          title were still legible through it:
+          > **Design Guideline — Liquid Glass**: "Larger elements appear more
+          > opaque to preserve legibility over complex backgrounds."
+          The mask fades the last fifth so the boundary is a gradient rather
+          than a drawn line, which is the edge effect the layout guidance asks
+          for in place of a divider. */}
+      <motion.div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-bg/92 backdrop-blur-xl [mask-image:linear-gradient(to_bottom,black_80%,transparent)]"
+        style={{ opacity: edgeOpacity }}
+      />
+      <div className="relative flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-ink">{title}</h1>
+        <div className="flex shrink-0 items-center gap-2">
+          {actions}
+          {showSettings && (
+            <HeaderButton as={Link} to="/settings" label="Einstellungen">
+              <SettingsIcon />
+            </HeaderButton>
+          )}
+          <HeaderButton onClick={addMeal} label="Mahlzeit hinzufügen">
+            <PlusIcon />
           </HeaderButton>
-        )}
-        <HeaderButton onClick={addMeal} label="Mahlzeit hinzufügen">
-          <PlusIcon />
-        </HeaderButton>
+        </div>
       </div>
     </div>
   )

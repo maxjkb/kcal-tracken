@@ -51,8 +51,11 @@ export function DictationButton({
         disabled={disabled}
         aria-pressed={listening}
         aria-label={listening ? 'Diktat stoppen' : 'Diktat starten'}
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition disabled:opacity-40 ${
-          listening ? 'bg-danger text-white shadow-lg shadow-danger/30 animate-pulse' : 'bg-bg text-ink-soft hover:bg-line'
+        // 44px, matching ActionButton: the two now sit stacked beside the
+        // text field, where a 4px size difference reads as a mistake — and 40
+        // was under the 44pt minimum target size anyway.
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${
+          listening ? 'animate-pulse bg-danger text-white shadow-sm shadow-danger/30' : 'bg-bg text-ink-soft hover:bg-line'
         }`}
       >
         {listening ? <CheckIcon /> : <MicIcon />}
