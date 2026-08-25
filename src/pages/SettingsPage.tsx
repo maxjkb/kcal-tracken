@@ -5,7 +5,6 @@ import { PageHeader } from '../components/PageHeader'
 import { getApiKey } from '../lib/settings'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { isStoragePersisted } from '../lib/persistence'
-import { getFirebaseConfig } from '../lib/firebaseConfig'
 import { onAuthChange } from '../lib/firebase'
 
 /**
@@ -28,13 +27,12 @@ export function SettingsPage() {
   }, [])
   const storageSubtitle = persisted === true ? 'Aktiv' : persisted === false ? 'Nicht aktiv' : 'Wird geprüft…'
 
-  const firebaseConfig = getFirebaseConfig()
+  // No "not set up" branch any more: the Firebase project has been baked into
+  // the app since #29, so getFirebaseConfig() never returns null and the
+  // fallback was unreachable copy that could only mislead.
   const [syncEmail, setSyncEmail] = useState<string | null>(null)
-  useEffect(() => {
-    if (!getFirebaseConfig()) return
-    return onAuthChange((user) => setSyncEmail(user?.email ?? null))
-  }, [])
-  const syncSubtitle = !firebaseConfig ? 'Nicht eingerichtet' : syncEmail ? `Angemeldet als ${syncEmail}` : 'Nicht angemeldet'
+  useEffect(() => onAuthChange((user) => setSyncEmail(user?.email ?? null)), [])
+  const syncSubtitle = syncEmail ? `Angemeldet als ${syncEmail}` : 'Nicht angemeldet'
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">

@@ -11,9 +11,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { useMealsInRange } from '../hooks/useMeals'
-import { MEAL_TYPE_LABELS, toLocalDateKey, type Meal } from '../lib/db'
-import { lazyRetry } from '../lib/lazyRetry'
+import { useMealSummariesInRange, type MealSummary } from '../hooks/useMeals'
+import { MEAL_TYPE_LABELS, toLocalDateKey } from '../lib/db'
 import { ChevronIcon } from '../components/ChevronIcon'
 import { ConcentricRings, NutrientRings } from '../components/NutrientRings'
 import { DayPickerModal, MonthPickerModal, YearPickerModal } from '../components/DatePickerModal'
@@ -51,16 +50,29 @@ export function StatsPage() {
   const [anchorKey, setAnchorKey] = useState(() => toLocalDateKey(new Date()))
   const [pickerOpen, setPickerOpen] = useState(false)
   const { startKey, endKey } = getPeriodRange(period, anchorKey)
-  const meals = useMealsInRange(startKey, endKey)
+  const meals = useMealSummariesInRange(startKey, endKey)
   const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
 
-  const loadPdfModule = lazyRetry(() => import('../lib/pdf'))
-
-  async function handleExportPdf(meals: Meal[]) {
+  async function handleExportPdf(meals: MealSummary[]) {
     setExporting(true)
+    setExportError(null)
     try {
-      const { exportDiaryPdf } = await loadPdfModule()
+      // A plain dynamic import, not lazyRetry. lazyRetry exists for React.lazy
+      // route chunks, where a stale cached index.html makes a full reload the
+      // right recovery — but doing that here would throw away whatever the
+      // user has open (an unsaved meal in a sheet, for instance) to recover a
+      // PDF export they can simply retry. And the call site floated the
+      // promise, so any other failure was an unhandled rejection: the button
+      // just stopped spinning, with no PDF and no explanation.
+      const { exportDiaryPdf } = await import('../lib/pdf')
       exportDiaryPdf({ period, anchorKey, meals, startKey, endKey })
+    } catch (err) {
+      setExportError(
+        err instanceof Error && /import|fetch|network/i.test(err.message)
+          ? 'PDF-Modul konnte nicht geladen werden. Internetverbindung prüfen und erneut versuchen.'
+          : 'PDF konnte nicht erstellt werden.',
+      )
     } finally {
       setExporting(false)
     }
@@ -148,6 +160,8 @@ export function StatsPage() {
           </HeaderButton>
         }
       />
+
+      {exportError && <p className="mb-4 text-sm font-medium text-danger">{exportError}</p>}
 
       {/* One shared pill slides between the segments (Motion `layoutId`)
           instead of each segment fading its own background in and out — the

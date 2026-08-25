@@ -33,9 +33,14 @@ export function useRestoredDraft<T>(key: string): T | null {
  * while `isDirty` — merely opening and closing an untouched sheet must not
  * leave a draft behind for the next open to resurrect.
  *
- * Returns `clear`, which the caller MUST call after a successful save: from
- * then on the stored record is the truth, and a draft resurfacing on the next
- * open would be a bug rather than a rescue.
+ * Returns two ways to drop the draft, and they are not interchangeable:
+ * `clear` after a successful save (the stored record is the truth from then
+ * on, and nothing more should be written on unmount), and `discard` for the
+ * banner's "Verwerfen" (wipe what was restored, but keep protecting whatever
+ * the user types next). Using `clear` for both meant that discarding a
+ * restored draft silently switched the rescue off for the rest of the sheet's
+ * life — so a full new description typed afterwards was lost to exactly the
+ * stray swipe this hook exists to survive.
  *
  * `shrink` is the fallback for a snapshot too large to store (a meal photo's
  * data URL runs to megabytes) — return a slimmed-down copy, so the typing is
@@ -46,7 +51,7 @@ export function useDraftAutosave<T>(
   current: T,
   isDirty: boolean,
   shrink?: (data: T) => T,
-): { clear: () => void } {
+): { clear: () => void; discard: () => void } {
   const latest = useRef(current)
   const dirty = useRef(isDirty)
   const shrinkFn = useRef(shrink)
@@ -71,8 +76,14 @@ export function useDraftAutosave<T>(
   }, [key])
 
   return {
+    /** After a successful save: forget the draft and stop autosaving. */
     clear: () => {
       saved.current = true
+      clearDraft(key)
+    },
+    /** After "Verwerfen": forget the draft, but keep autosaving from here on. */
+    discard: () => {
+      saved.current = false
       clearDraft(key)
     },
   }

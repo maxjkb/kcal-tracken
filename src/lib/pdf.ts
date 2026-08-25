@@ -17,7 +17,8 @@ function formatGermanDate(dateKey: string): string {
 export function exportDiaryPdf(params: {
   period: Period
   anchorKey: string
-  meals: Meal[]
+  /** Only `date` and `nutrition` are read, so the caller can pass photo-free summaries. */
+  meals: Pick<Meal, 'date' | 'nutrition'>[]
   startKey: string
   endKey: string
 }) {

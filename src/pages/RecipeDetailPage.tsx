@@ -35,6 +35,22 @@ export function RecipeDetailPage() {
   const [stepsOpen, setStepsOpen] = useState(false)
   const [editing, setEditing] = useState(false)
 
+  // `undefined` is Dexie still resolving; `null` is a genuine miss. Treating
+  // both as "loading" left a deleted or mistyped recipe id showing "Lädt…"
+  // forever, with the back arrow as the only way out and no hint why.
+  if (recipe === null) {
+    return (
+      <SlideInPage>
+        <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
+          <p className="py-10 text-center text-sm text-ink-soft">Dieses Rezept gibt es nicht mehr.</p>
+          <Link to="/recipes" className="block text-center text-sm font-semibold text-accent">
+            Zurück zu den Rezepten
+          </Link>
+        </div>
+      </SlideInPage>
+    )
+  }
+
   if (!recipe) {
     return (
       <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">

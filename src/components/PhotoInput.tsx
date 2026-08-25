@@ -53,7 +53,12 @@ export function PhotoActionButton({
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
 
-  async function handleFile(file: File | undefined) {
+  async function handleFile(input: HTMLInputElement) {
+    const file = input.files?.[0]
+    // Reset first, and unconditionally: the input keeps its value, so picking
+    // the same file again is not a change and fires no event at all. Removing
+    // a photo and re-picking the identical one silently did nothing.
+    input.value = ''
     if (!file) return
     const raw = await readAsDataUrl(file)
     const scaled = await downscaleImage(raw)
@@ -75,7 +80,7 @@ export function PhotoActionButton({
         accept="image/*"
         capture="environment"
         className="hidden"
-        onChange={(e) => handleFile(e.target.files?.[0])}
+        onChange={(e) => void handleFile(e.target)}
       />
     </>
   )

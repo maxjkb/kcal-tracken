@@ -498,7 +498,20 @@ export async function estimateSingleIngredient(input: string): Promise<SingleIng
 // --- Supplements -------------------------------------------------------
 
 const SUPPLEMENT_TIME_ENUM: SupplementTimeOfDay[] = ['morning', 'noon', 'evening', 'night']
-const SUPPLEMENT_CATEGORY_ENUM: SupplementCategory[] = ['build_muscle', 'recovery', 'general_health']
+// Must stay in step with SupplementCategory in db.ts: this feeds both the
+// response schema and the validation below, so a category missing here can
+// never be produced — it silently collapses to general_health, filing e.g. a
+// joint supplement where the user will not find it in the catalog.
+const SUPPLEMENT_CATEGORY_ENUM: SupplementCategory[] = [
+  'build_muscle',
+  'endurance',
+  'recovery',
+  'joints',
+  'immune',
+  'cognition',
+  'gut',
+  'general_health',
+]
 
 export interface SupplementRecommendationInput {
   /** German label of the user's body goal, e.g. "Muskelaufbau" — as freeform text so this file stays decoupled from lib/bodyProfile.ts. */
@@ -538,7 +551,8 @@ const SUPPLEMENT_RECOMMENDATION_SCHEMA = {
           category: {
             type: 'STRING',
             enum: SUPPLEMENT_CATEGORY_ENUM,
-            description: 'build_muscle = Muskelaufbau/Kraft/Leistung, recovery = Erholung/Schlaf/Stress, general_health = allgemeine Gesundheit.',
+            description:
+              'build_muscle = Muskelaufbau & Kraft, endurance = Ausdauer & Leistung, recovery = Erholung & Schlaf, joints = Gelenke & Knochen, immune = Immunsystem, cognition = Fokus & Kognition, gut = Darm & Verdauung, general_health = Vitamine & Grundversorgung.',
           },
           suggestedDosage: {
             type: 'STRING',
@@ -757,6 +771,5 @@ export async function estimateRecipeSuggestions(input: {
     category: MEAL_TYPE_ENUM.includes(s.category) ? s.category : 'lunch',
     description: String(s.description ?? ''),
     reasoning: String(s.reasoning ?? ''),
-    kind: s.kind === 'consistency' ? 'consistency' : 'new',
   }))
 }
