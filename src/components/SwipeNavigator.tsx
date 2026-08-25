@@ -1,92 +1,76 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { animate, motion, useMotionValue, useReducedMotion } from 'motion/react'
 import { SECTION_TABS, sectionIndexForPath } from '../lib/sections'
+import { useSwipeProgress } from '../hooks/useSwipeProgress'
+import { BackSwipeContext, type BackHandlerRegistry } from '../lib/backSwipe'
 import { SPRING_DEFAULT, SPRING_MOMENTUM } from '../lib/motionTokens'
+import { SectionPreview } from './SectionPreview'
+import { preloadSection } from '../lib/preloadSection'
 
 /** Movement before we commit to calling a gesture horizontal rather than a scroll. */
-const DIRECTION_LOCK_PX = 12
+const DIRECTION_LOCK_PX = 8
 /** How much more horizontal than vertical a gesture must be to count as a swipe. */
-const HORIZONTAL_BIAS = 1.2
+const HORIZONTAL_BIAS = 1
 /** Fraction of the viewport the projected endpoint must pass to change page. */
-const COMMIT_FRACTION = 0.28
-/** Cap on how far the page visually gives — a hint that the gesture registered, not a page that leaves. */
-const GIVE_FRACTION = 0.16
+const COMMIT_FRACTION = 0.22
 
-/**
- * Apple's scroll-deceleration projection (Designing Fluid Interfaces) — where a
- * flick would come to rest.
- *
- * 0.99 rather than the 0.998 that matches free scrolling: 0.998 multiplies
- * velocity by ~500, which for a *discrete* page commit means any quick twitch
- * projects several viewports away and flips the page regardless of how far the
- * finger actually travelled. The snappier rate keeps the physical model —
- * a fast flick still carries further than a slow drag of the same length —
- * while leaving distance a real part of the decision.
- */
+/** Apple's scroll-deceleration projection — where a flick would come to rest. 0.99 rather than the free-scroll 0.998, so distance still matters for a discrete page commit. */
 function project(velocity: number, decelerationRate = 0.99): number {
   return ((velocity / 1000) * decelerationRate) / (1 - decelerationRate)
 }
 
-/** Progressive resistance: follows the finger at first, asymptotically approaching `dimension`. */
+/** Progressive resistance at the ends of the list, where there is nothing to move to. */
 function rubberband(offset: number, dimension: number, constant = 0.55): number {
   return (offset * dimension * constant) / (dimension + constant * Math.abs(offset))
 }
 
 /**
- * App-wide horizontal swipe navigation between the four main areas, in the
- * order lib/sections.ts defines (Rezepte → Supplements → Feed → Statistik).
- * Finger left moves forward, finger right moves back — the direction iOS uses,
- * where the content follows the finger rather than the finger pointing at a
- * button.
+ * Horizontal swipe navigation between the four main areas, in the order
+ * lib/sections.ts defines (Rezepte → Supplements → Feed → Statistik). Finger
+ * left moves forward, finger right moves back.
  *
- * Three things make it read as a gesture rather than a shortcut key:
+ * Rewritten to follow the finger properly (apple-design §2, §3, §5):
  *
- * - **Direction lock.** Nothing happens until the gesture has moved
- *   DIRECTION_LOCK_PX and is clearly more horizontal than vertical. Until then
- *   it's still a candidate scroll, and a scroll that drifts sideways must never
- *   turn into a page change. Once locked vertical the gesture is abandoned
- *   outright — no second guess partway through.
- * - **Continuous feedback.** While locked horizontal the page follows the
- *   finger, rubber-banded to a small fraction of the viewport (and much harder
- *   at the ends of the list, where there is nothing to move to). It reads as
- *   the page giving under the gesture rather than sliding away: a full-width
- *   drag would need the neighbouring page rendered underneath to avoid pulling
- *   a blank viewport into view, which would mean mounting Statistik's charts on
- *   every stray touch.
- * - **Momentum projection.** The commit decision uses where the flick would
- *   *come to rest*, not where the finger let go, so a short fast flick carries
- *   as far as a long slow drag.
+ * - **1:1 tracking with the real neighbour on screen.** Once a gesture locks
+ *   horizontal, the adjacent page is mounted just off-screen and the pair
+ *   moves with the finger at full scale — not the damped nudge this used to
+ *   do. That nudge existed only to avoid dragging an empty viewport into
+ *   view, which is a reason to render the neighbour, not to fake the motion.
+ *   Mounting on direction-lock rather than on every touch keeps the cost to
+ *   one mount per real gesture, and the chunk is already warm (see
+ *   preloadSection).
+ * - **Velocity handoff.** The release velocity is passed into the settling
+ *   spring, so there is no seam between dragging and animating.
+ * - **Interruptible.** The gesture can be grabbed and reversed at any point;
+ *   nothing locks input while the page settles.
  *
- * `touch-action: pan-y` hands vertical scrolling to the browser (native
- * momentum, no jank) while reserving the horizontal axis for us — which also
- * stops Safari's own back/forward overscroll from fighting the gesture.
+ * The commit swap happens at the moment the outgoing page is exactly one
+ * viewport away, which is precisely where the incoming page already sits — so
+ * the route change is invisible.
  *
- * Opt a subtree out with `data-no-swipe`; native horizontal controls (a range
- * slider) are skipped automatically. Sheets are unaffected either way — they
- * portal to <body>, outside this subtree, so their own drag never competes.
+ * `touch-action: pan-y` hands vertical scrolling to the browser while
+ * reserving the horizontal axis. Opt a subtree out with `data-no-swipe`;
+ * native horizontal controls (a range slider) are skipped automatically.
  */
 export function SwipeNavigator({ children }: { children: ReactNode }) {
   const location = useLocation()
   const navigate = useNavigate()
   const prefersReducedMotion = useReducedMotion()
-  const x = useMotionValue(0)
 
   const index = sectionIndexForPath(location.pathname)
-  const enabled = index !== -1
+  const inSection = index !== -1
 
-  // Direction of the last area change, so the incoming page enters from the
-  // side it came from (spatial consistency: what left rightwards comes back
-  // from the right). Derived by adjusting state during render — React's
-  // documented pattern for reacting to a changed value — because the direction
-  // is only ever needed on the render where the keyed child below mounts and
-  // reads its `initial`.
-  const [previousIndex, setPreviousIndex] = useState(index)
-  let enterDirection = 0
-  if (previousIndex !== index) {
-    if (index !== -1 && previousIndex !== -1) enterDirection = Math.sign(index - previousIndex)
-    setPreviousIndex(index)
-  }
+  const x = useMotionValue(0)
+  // Fractional index shared with the bottom nav, so the selection pill travels
+  // with the page rather than alongside it. Provided from above (App) because
+  // the nav is this component's sibling, not its child.
+  const shared = useSwipeProgress()
+  const local = useMotionValue(index === -1 ? 0 : index)
+  const progress = shared ?? local
+
+  /** Which neighbour is mounted during a gesture, and on which side. */
+  const [preview, setPreview] = useState<{ index: number; direction: 1 | -1 } | null>(null)
 
   const gesture = useRef<{
     startX: number
@@ -96,12 +80,57 @@ export function SwipeNavigator({ children }: { children: ReactNode }) {
     velocity: number
     axis: 'undecided' | 'horizontal' | 'abandoned'
     pointerId: number
+    width: number
+    previewIndex: number | null
   } | null>(null)
+
+  // Keep the shared progress in step with the route whenever it changes for a
+  // reason other than a drag — a tap on the nav, a link, the back button.
+  useEffect(() => {
+    if (!inSection) return
+    if (gesture.current?.axis === 'horizontal') return
+    const settle = animate(progress, index, prefersReducedMotion ? { duration: 0 } : SPRING_DEFAULT)
+    return () => settle.stop()
+  }, [index, inSection, progress, prefersReducedMotion])
+
+  // Warm the adjacent routes' lazy chunks while the app is idle. Without this
+  // the first swipe toward Statistik or Rezepte had to fetch a chunk mid-
+  // gesture, which is exactly when there is no time for it.
+  useEffect(() => {
+    if (!inSection) return
+    const neighbours = [index - 1, index + 1].filter((i) => i >= 0 && i < SECTION_TABS.length)
+    const idle = window.requestIdleCallback?.bind(window) ?? ((cb: () => void) => window.setTimeout(cb, 300))
+    const id = idle(() => neighbours.forEach((i) => preloadSection(SECTION_TABS[i].to)))
+    return () => window.cancelIdleCallback?.(id as number)
+  }, [index, inSection])
+
+  // A page that has its own "back" (a recipe detail, a settings sub-page)
+  // claims the right-swipe, so the gesture means what its back arrow means
+  // rather than running into the end of the section list.
+  const backHandler = useRef<(() => void) | null>(null)
+  // Built once via a useState initializer rather than read off a ref during
+  // render: the object identity has to be stable (it's a context value), and
+  // reading `.current` in the render body is exactly what it isn't for.
+  const [backRegistry] = useState<BackHandlerRegistry>(() => ({
+    set: (handler) => {
+      backHandler.current = handler
+    },
+    get: () => backHandler.current,
+  }))
+
+  const clearGesture = useCallback(() => {
+    gesture.current = null
+    setPreview(null)
+  }, [])
 
   function handlePointerDown(event: React.PointerEvent) {
     // Mouse excluded on purpose: a click-drag across a desktop page is a text
     // selection, not a navigation gesture.
-    if (!enabled || event.pointerType === 'mouse') return
+    if (event.pointerType === 'mouse') return
+    // Outside the four areas (the settings tree) there is no section to swipe
+    // to — but a page there may still have registered a back action, and that
+    // gesture has to keep working.
+    if (!inSection && !backHandler.current) return
     const target = event.target as HTMLElement
     if (target.closest('input[type="range"], [data-no-swipe]')) return
     gesture.current = {
@@ -112,6 +141,8 @@ export function SwipeNavigator({ children }: { children: ReactNode }) {
       velocity: 0,
       axis: 'undecided',
       pointerId: event.pointerId,
+      width: window.innerWidth,
+      previewIndex: null,
     }
   }
 
@@ -129,72 +160,120 @@ export function SwipeNavigator({ children }: { children: ReactNode }) {
       }
       if (Math.abs(dx) > DIRECTION_LOCK_PX && Math.abs(dx) > Math.abs(dy) * HORIZONTAL_BIAS) {
         g.axis = 'horizontal'
+        // Capture the pointer so tracking survives the finger leaving this
+        // element — otherwise a drag that strays over the bottom nav stops
+        // reporting halfway through, which is what made swiping back and
+        // forth feel like it only worked sometimes.
+        ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
       } else {
         return
       }
     }
 
-    // Velocity from the latest move pair rather than the whole gesture, so a
-    // flick at the end of a slow drag still reads as a flick.
     const dt = event.timeStamp - g.lastTime
     if (dt > 0) g.velocity = ((event.clientX - g.lastX) / dt) * 1000
     g.lastX = event.clientX
     g.lastTime = event.timeStamp
 
-    if (prefersReducedMotion) return
-
-    const width = window.innerWidth
     // dx < 0 is forward through SECTION_TABS (finger left), dx > 0 is back.
-    const atEnd = (dx < 0 && index === SECTION_TABS.length - 1) || (dx > 0 && index === 0)
-    const give = width * (atEnd ? GIVE_FRACTION / 3 : GIVE_FRACTION)
-    x.set(rubberband(dx, give))
+    const direction: 1 | -1 = dx < 0 ? 1 : -1
+    const claimsBack = direction === -1 && backHandler.current !== null
+    const targetIndex = index + direction
+    const hasNeighbour = inSection && !claimsBack && targetIndex >= 0 && targetIndex < SECTION_TABS.length
+
+    if (hasNeighbour && g.previewIndex !== targetIndex) {
+      g.previewIndex = targetIndex
+      setPreview({ index: targetIndex, direction })
+    }
+
+    // Full 1:1 travel where there is somewhere to go; progressive resistance
+    // where there isn't (apple-design §9 — a hard stop reads as frozen).
+    const offset = hasNeighbour ? dx : rubberband(dx, g.width * 0.12)
+    if (!prefersReducedMotion) x.set(offset)
+    if (inSection) progress.set(index - offset / g.width)
   }
 
   function endGesture(event: React.PointerEvent) {
     const g = gesture.current
     if (!g || g.pointerId !== event.pointerId) return
-    gesture.current = null
-    if (g.axis !== 'horizontal') return
-
-    const dx = event.clientX - g.startX
-    // Decide on the raw finger travel, not the damped visual offset — the
-    // rubber-banding is a display choice and shouldn't move the commit line.
-    // Velocity is clamped to half a viewport of assist so a flick can carry a
-    // short drag over the line, but can never make the distance irrelevant.
-    const assist = Math.max(-window.innerWidth / 2, Math.min(window.innerWidth / 2, project(g.velocity)))
-    const projected = dx + assist
-    const threshold = window.innerWidth * COMMIT_FRACTION
-    const target = projected < -threshold ? index + 1 : projected > threshold ? index - 1 : index
-
-    if (target !== index && target >= 0 && target < SECTION_TABS.length) {
-      // Reset before navigating: the incoming page runs its own entry
-      // animation from the edge, and a leftover give offset would fight it.
-      x.set(0)
-      navigate(SECTION_TABS[target].to)
+    if (g.axis !== 'horizontal') {
+      clearGesture()
       return
     }
-    animate(x, 0, SPRING_MOMENTUM)
+
+    const dx = event.clientX - g.startX
+
+    // A page-level back beats section navigation when both could apply.
+    if (dx > 0 && backHandler.current) {
+      const back = backHandler.current
+      const wentFarEnough = dx > g.width * COMMIT_FRACTION || g.velocity > 500
+      gesture.current = null
+      animate(x, 0, { ...SPRING_MOMENTUM, velocity: g.velocity })
+      if (inSection) animate(progress, index, SPRING_DEFAULT)
+      setPreview(null)
+      if (wentFarEnough) back()
+      return
+    }
+
+    // Decide on where the flick would come to rest, clamped so velocity can
+    // carry a short drag over the line without making distance irrelevant.
+    const assist = Math.max(-g.width / 2, Math.min(g.width / 2, project(g.velocity)))
+    const projected = dx + assist
+    const threshold = g.width * COMMIT_FRACTION
+    const target = projected < -threshold ? index + 1 : projected > threshold ? index - 1 : index
+    const commits = inSection && target !== index && target >= 0 && target < SECTION_TABS.length
+
+    gesture.current = null
+
+    if (!commits) {
+      // Hand the release velocity to the spring so there's no seam between
+      // dragging and settling.
+      animate(x, 0, { ...SPRING_MOMENTUM, velocity: g.velocity })
+      animate(progress, index, { ...SPRING_MOMENTUM, velocity: -g.velocity / g.width })
+      setPreview(null)
+      return
+    }
+
+    const direction = target > index ? 1 : -1
+    const destination = -direction * g.width
+    animate(progress, target, { ...SPRING_DEFAULT, velocity: -g.velocity / g.width })
+    animate(x, destination, {
+      ...SPRING_DEFAULT,
+      velocity: g.velocity,
+      onComplete: () => {
+        // Swap only once the outgoing page is exactly one viewport away, which
+        // is where the incoming one already sits — so the route change lands
+        // on an identical frame and is invisible.
+        navigate(SECTION_TABS[target].to)
+        x.set(0)
+        setPreview(null)
+      },
+    })
   }
 
   return (
-    <motion.div
-      style={{ x, touchAction: enabled ? 'pan-y' : undefined }}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={endGesture}
-      onPointerCancel={endGesture}
-    >
-      {/* Keyed on the area rather than the exact path: drilling into a recipe
-          stays within Rezepte and keeps its own SlideInPage transition, while
-          moving between areas re-runs this entry animation. */}
-      <motion.div
-        key={index === -1 ? 'other' : SECTION_TABS[index].to}
-        initial={prefersReducedMotion || enterDirection === 0 ? false : { x: enterDirection * 28, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={SPRING_DEFAULT}
+    <BackSwipeContext.Provider value={backRegistry}>
+      <div
+        className="relative min-h-screen overflow-x-clip"
+        style={{ touchAction: 'pan-y' }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endGesture}
+        onPointerCancel={endGesture}
       >
-        {children}
-      </motion.div>
-    </motion.div>
+        <motion.div style={{ x }}>
+          {children}
+          {preview && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 w-full"
+              style={{ left: preview.direction === 1 ? '100%' : '-100%' }}
+            >
+              <SectionPreview to={SECTION_TABS[preview.index].to} />
+            </div>
+          )}
+        </motion.div>
+      </div>
+    </BackSwipeContext.Provider>
   )
 }

@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, type Meal } from '../lib/db'
+import { db, toLocalDateKey, type Meal, type MealType } from '../lib/db'
 import { pushMealChange } from '../lib/sync'
+import { rankMealSuggestions, SUGGESTION_HISTORY_DAYS, type MealSuggestion } from '../lib/mealSuggestions'
 
 /** All meals for a single local date key (YYYY-MM-DD), sorted by creation time. */
 export function useMealsForDate(dateKey: string): Meal[] | undefined {
@@ -27,6 +28,21 @@ export function useMealsInRange(startKey: string, endKey: string): Meal[] | unde
  */
 export function useRecentMeals(limit: number): Meal[] | undefined {
   return useLiveQuery(() => db.meals.orderBy('createdAt').reverse().limit(limit).toArray(), [limit])
+}
+
+/**
+ * One-tap starting points for the meal editor, ranked by how well each fits
+ * *this* moment — see lib/mealSuggestions.ts for the scoring.
+ *
+ * Re-reads on every change to the meals table (useLiveQuery), so logging
+ * something immediately moves it up the list the next time the editor opens.
+ */
+export function useMealSuggestions(forType: MealType, limit: number): MealSuggestion[] | undefined {
+  return useLiveQuery(async () => {
+    const startKey = toLocalDateKey(new Date(Date.now() - SUGGESTION_HISTORY_DAYS * 86_400_000))
+    const meals = await db.meals.where('date').aboveOrEqual(startKey).toArray()
+    return rankMealSuggestions(meals, forType, limit)
+  }, [forType, limit])
 }
 
 export async function deleteMeal(id: string): Promise<void> {

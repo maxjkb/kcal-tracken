@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { ActionButton } from './ActionButton'
 
 function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -35,7 +36,15 @@ async function downscaleImage(dataUrl: string, maxDim = 1024): Promise<string> {
   })
 }
 
-export function PhotoInput({
+/**
+ * The camera as a single round action, input and all.
+ *
+ * Renders its own trigger rather than handing one back through a render prop:
+ * a render prop would mean passing a ref-reading callback out during render,
+ * and this keeps the ref's only reader inside the event handler where it
+ * belongs.
+ */
+export function PhotoActionButton({
   photo,
   onChange,
 }: {
@@ -51,31 +60,15 @@ export function PhotoInput({
     onChange(scaled)
   }
 
-  if (photo) {
-    return (
-      <div className="relative w-full">
-        <img src={photo} alt="Foto der Mahlzeit" className="h-40 w-full rounded-2xl object-cover" />
-        <button
-          type="button"
-          onClick={() => onChange(undefined)}
-          className="absolute right-2 top-2 rounded-full bg-ink/70 px-2.5 py-1 text-xs font-medium text-white"
-        >
-          Entfernen
-        </button>
-      </div>
-    )
-  }
-
   return (
-    <div>
-      <button
-        type="button"
+    <>
+      <ActionButton
+        label={photo ? 'Foto ersetzen' : 'Foto aufnehmen'}
+        active={Boolean(photo)}
         onClick={() => inputRef.current?.click()}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-line bg-bg py-4 text-sm text-ink-soft hover:border-ink-faint hover:text-ink"
       >
         <CameraIcon />
-        Foto hinzufügen
-      </button>
+      </ActionButton>
       <input
         ref={inputRef}
         type="file"
@@ -84,6 +77,22 @@ export function PhotoInput({
         className="hidden"
         onChange={(e) => handleFile(e.target.files?.[0])}
       />
+    </>
+  )
+}
+
+/** Just the taken photo with its remove control — rendered by callers that show the picker elsewhere. */
+export function PhotoPreview({ photo, onChange }: { photo: string; onChange: (dataUrl: string | undefined) => void }) {
+  return (
+    <div className="relative w-full">
+      <img src={photo} alt="Foto der Mahlzeit" className="h-40 w-full rounded-2xl object-cover" />
+      <button
+        type="button"
+        onClick={() => onChange(undefined)}
+        className="absolute right-2 top-2 rounded-full bg-ink/70 px-2.5 py-1 text-xs font-medium text-white"
+      >
+        Entfernen
+      </button>
     </div>
   )
 }

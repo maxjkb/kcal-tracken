@@ -11,18 +11,23 @@ import {
 } from '../lib/db'
 import { saveMeal } from '../hooks/useMeals'
 import { useAllRecipes } from '../hooks/useRecipes'
+import { useMealSuggestions } from '../hooks/useMeals'
+import type { MealSuggestion } from '../lib/mealSuggestions'
 import { estimateNutrition, cleanUpDictation, GeminiError } from '../lib/gemini'
 import { getApiKey } from '../lib/settings'
 import { describeSaveError } from '../lib/errors'
 import { DictationButton } from './DictationButton'
-import { PhotoInput } from './PhotoInput'
+import { PhotoActionButton, PhotoPreview } from './PhotoInput'
+import { ActionButton } from './ActionButton'
 import { NutritionFields } from './NutritionFields'
 import { AutoGrowTextarea } from './AutoGrowTextarea'
+import { ChevronIcon } from './ChevronIcon'
 import { BouncingDots } from './BouncingDots'
 import { MacroBadge, MacroRingBadge } from './MacroBadge'
 import { Link } from 'react-router-dom'
 import { Sheet } from './Sheet'
 import { useSheetClose } from '../hooks/useSheetClose'
+import { useSwipeBack } from '../hooks/useSwipeBack'
 import { useDraftAutosave, useRestoredDraft } from '../hooks/useFormDraft'
 import { draftKey } from '../lib/drafts'
 import { DraftRestoredBanner } from './DraftRestoredBanner'
@@ -183,6 +188,10 @@ function MealEditorContent({
     draft.clear()
   }
 
+  // Swiping right does what the back control on this step does. Null while
+  // there is nothing to go back to, so the gesture stays inert on step one.
+  const swipeBack = useSwipeBack(pickingRecipe ? () => setPickingRecipe(false) : step === 'review' ? () => setStep('input') : null)
+
   const hasApiKey = Boolean(getApiKey())
   const recipes = useAllRecipes()
 
@@ -194,6 +203,16 @@ function MealEditorContent({
     setManuallyEdited(false)
     setHasResult(true)
     setPickingRecipe(false)
+    setStep('review')
+  }
+
+  function handleSelectSuggestion(suggestion: MealSuggestion) {
+    setTitle(suggestion.title)
+    setNutrition(suggestion.nutrition)
+    setIngredients(suggestion.ingredients)
+    setNote(undefined)
+    setManuallyEdited(false)
+    setHasResult(true)
     setStep('review')
   }
 
@@ -316,7 +335,7 @@ function MealEditorContent({
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden" {...swipeBack}>
         <div
           className="flex w-full shrink-0 transition-transform duration-300 ease-out"
           style={{ transform: `translateX(-${step === 'review' ? 100 : 0}%)` }}
@@ -388,7 +407,30 @@ function MealEditorContent({
                   </div>
                 </div>
 
-                <PhotoInput photo={photo} onChange={setPhoto} />
+                {/* Three round actions instead of three full-width slabs. The
+                    old layout gave a secondary shortcut (pick a recipe) the
+                    same visual weight as the primary action, and pushed
+                    everything else below the fold. Send is solid blue as the
+                    one primary action; the two shortcuts are tinted, so the
+                    row still reads as one family with a clear lead. */}
+                <div className="flex items-center gap-3">
+                  <ActionButton label="Rezept auswählen" onClick={() => setPickingRecipe(true)}>
+                    <RecipeIcon />
+                  </ActionButton>
+
+                  <PhotoActionButton photo={photo} onChange={setPhoto} />
+
+                  <ActionButton
+                    label="Nährwerte schätzen"
+                    onClick={handleEstimate}
+                    disabled={estimating || cleaningUp || !hasApiKey}
+                    primary
+                  >
+                    {estimating ? <BouncingDots /> : <SendIcon />}
+                  </ActionButton>
+                </div>
+
+                {photo && <PhotoPreview photo={photo} onChange={setPhoto} />}
 
                 {!hasApiKey && (
                   <p className="rounded-2xl bg-fat/15 px-3 py-2 text-xs text-ink">
@@ -400,24 +442,9 @@ function MealEditorContent({
                   </p>
                 )}
 
-                <button
-                  type="button"
-                  onClick={handleEstimate}
-                  disabled={estimating || cleaningUp || !hasApiKey}
-                  className="glass-accent flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {estimating ? <BouncingDots /> : 'Nährwerte schätzen'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPickingRecipe(true)}
-                  className="rounded-2xl bg-bg px-4 py-2.5 text-sm font-medium text-ink-soft transition hover:bg-line"
-                >
-                  Rezept auswählen
-                </button>
-
                 {error && <p className="text-sm font-medium text-danger">{error}</p>}
+
+                <MealSuggestions mealType={mealType} onPick={handleSelectSuggestion} />
               </div>
             )}
           </div>
@@ -543,6 +570,70 @@ function ForwardIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
+  )
+}
+
+/**
+ * One-tap starting points, below the actions.
+ *
+ * Ranked by what tends to be logged at this time of day, what's logged often,
+ * and what was logged recently (see lib/mealSuggestions.ts). Picking one skips
+ * straight to the review step: it's a meal that already has its numbers, so
+ * there is nothing left to estimate.
+ *
+ * Renders nothing at all until there's history worth offering — an empty
+ * "Vorschläge" heading on a fresh install would be a promise the app can't
+ * keep yet.
+ */
+function MealSuggestions({ mealType, onPick }: { mealType: MealType; onPick: (s: MealSuggestion) => void }) {
+  const suggestions = useMealSuggestions(mealType, 6)
+  if (!suggestions || suggestions.length === 0) return null
+
+  return (
+    <div>
+      <span className="mb-1.5 block text-xs text-ink-soft">Vorschläge</span>
+      <div className="flex flex-col gap-1.5">
+        {suggestions.map((s) => (
+          <button
+            key={s.title}
+            type="button"
+            onClick={() => onPick(s)}
+            className="flex items-center justify-between gap-3 rounded-2xl border border-line px-3 py-2.5 text-left transition active:bg-bg"
+          >
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-medium text-ink">{s.title}</span>
+              <span className="text-xs text-ink-soft">
+                {Math.round(s.nutrition.kcal)} kcal
+                {s.count > 1 && ` · ${s.count}× erfasst`}
+              </span>
+            </span>
+            <span className="shrink-0 text-ink-faint">
+              <ChevronIcon direction="right" className="h-4 w-4" />
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function RecipeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 6.5c-1.5-1.3-3.6-2-6-2v13c2.4 0 4.5.7 6 2m0-13c1.5-1.3 3.6-2 6-2v13c-2.4 0-4.5.7-6 2m0-13v13"
+      />
+    </svg>
+  )
+}
+
+function SendIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h13m0 0-5-5m5 5-5 5" />
     </svg>
   )
 }
