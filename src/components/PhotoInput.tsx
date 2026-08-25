@@ -47,9 +47,12 @@ async function downscaleImage(dataUrl: string, maxDim = 1024): Promise<string> {
 export function PhotoActionButton({
   photo,
   onChange,
+  source = 'camera',
 }: {
   photo?: string
   onChange: (dataUrl: string | undefined) => void
+  /** `camera` opens the camera directly; `library` opens the photo picker. */
+  source?: 'camera' | 'library'
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -65,24 +68,41 @@ export function PhotoActionButton({
     onChange(scaled)
   }
 
+  const isCamera = source === 'camera'
+
   return (
     <>
       <ActionButton
-        label={photo ? 'Foto ersetzen' : 'Foto aufnehmen'}
+        label={isCamera ? (photo ? 'Foto neu aufnehmen' : 'Foto aufnehmen') : 'Foto aus der Galerie wählen'}
         active={Boolean(photo)}
         onClick={() => inputRef.current?.click()}
       >
-        <CameraIcon />
+        {isCamera ? <CameraIcon /> : <LibraryIcon />}
       </ActionButton>
+      {/* `capture` is what separates the two: with it the camera opens
+          directly, without it the system photo picker does. Same input, same
+          handling — only the entry point differs, which is why a picture you
+          already took needed its own button rather than a detour through the
+          camera. */}
       <input
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture="environment"
+        {...(isCamera ? { capture: 'environment' as const } : {})}
         className="hidden"
         onChange={(e) => void handleFile(e.target)}
       />
     </>
+  )
+}
+
+function LibraryIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+      <rect x="3" y="5" width="18" height="14" rx="3" />
+      <circle cx="8.5" cy="10" r="1.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m4 17 4.5-4.5a2 2 0 0 1 2.8 0L15 16m0 0 2-2a2 2 0 0 1 2.8 0L21 15.5" />
+    </svg>
   )
 }
 

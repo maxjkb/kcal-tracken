@@ -86,8 +86,8 @@ export function FeedPage() {
   )
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
-      <PageHeader title="Feed" className="mb-4" />
+    <div className="mx-auto max-w-lg px-4 pb-28">
+      <PageHeader title="Feed" />
 
       {/* The date bar sits below the title rather than beside it: every other
           main page opens with a bare title on its own line, and Feed matching

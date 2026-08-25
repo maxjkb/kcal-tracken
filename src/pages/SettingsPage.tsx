@@ -35,8 +35,8 @@ export function SettingsPage() {
   const syncSubtitle = syncEmail ? `Angemeldet als ${syncEmail}` : 'Nicht angemeldet'
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
-      <PageHeader title="Einstellungen" showSettings={false} className="mb-4" />
+    <div className="mx-auto max-w-lg px-4 pb-28">
+      <PageHeader title="Einstellungen" showSettings={false} />
 
       <div className="glass-subtle divide-y divide-line/60 overflow-hidden rounded-3xl shadow-sm shadow-black/5">
         <SettingsRow
