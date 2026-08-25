@@ -22,6 +22,9 @@ import { MacroBadge, MacroRingBadge } from './MacroBadge'
 import { Link } from 'react-router-dom'
 import { Sheet } from './Sheet'
 import { useSheetClose } from '../hooks/useSheetClose'
+import { useDraftAutosave, useRestoredDraft } from '../hooks/useFormDraft'
+import { draftKey } from '../lib/drafts'
+import { DraftRestoredBanner } from './DraftRestoredBanner'
 
 const EMPTY_NUTRITION: Nutrition = { kcal: 0, protein: 0, carbs: 0, fat: 0 }
 
@@ -86,6 +89,24 @@ export function RecipeEditor({
   * typed input, so an accidental outside tap shouldn't be able to discard it. Drag-to-dismiss
   * stays on — it only ever fires from a deliberate pull on the dedicated handle, never from a
   * stray touch, so it doesn't carry that same accidental-loss risk. */
+/** Everything in this form worth carrying across an accidental close. */
+interface RecipeDraft {
+  step: Step
+  hasResult: boolean
+  description: string
+  recipeCategory: MealType
+  title: string
+  nutrition: Nutrition
+  ingredients: Ingredient[]
+  steps: RecipeStep[]
+  manuallyEdited: boolean
+}
+
+/** Structural equality is enough — every field is a plain JSON value, in a fixed key order. */
+function isSameRecipeDraft(a: RecipeDraft, b: RecipeDraft): boolean {
+  return JSON.stringify(a) === JSON.stringify(b)
+}
+
 function RecipeEditorContent({
   category,
   initial,
@@ -98,26 +119,73 @@ function RecipeEditorContent({
   seed?: RecipeSeed
 }) {
   const requestClose = useSheetClose()
-  const [step, setStep] = useState<Step>(initial || fromMeal ? 'review' : 'input')
-  const [hasResult, setHasResult] = useState(Boolean(initial || fromMeal))
-  const [description, setDescription] = useState(initial?.description ?? fromMeal?.description ?? seed?.description ?? '')
-  const [recipeCategory, setRecipeCategory] = useState<MealType>(
-    initial?.category ?? fromMeal?.mealType ?? seed?.category ?? category,
-  )
-  const [title, setTitle] = useState(initial?.title ?? fromMeal?.title ?? seed?.title ?? '')
-  const [nutrition, setNutrition] = useState<Nutrition>(initial?.nutrition ?? fromMeal?.nutrition ?? EMPTY_NUTRITION)
-  const [ingredients, setIngredients] = useState<Ingredient[]>(initial?.ingredients ?? fromMeal?.ingredients ?? [])
-  const [steps, setSteps] = useState<RecipeStep[]>(initial?.steps ?? [])
+
+  // What the sheet opened with — the yardstick for "is there anything worth
+  // rescuing here". Comparing against this rather than against an empty form
+  // is what makes the draft work when editing an existing recipe too:
+  // reopening one and changing nothing leaves no draft behind.
+  const baseline: RecipeDraft = {
+    step: initial || fromMeal ? 'review' : 'input',
+    hasResult: Boolean(initial || fromMeal),
+    description: initial?.description ?? fromMeal?.description ?? seed?.description ?? '',
+    recipeCategory: initial?.category ?? fromMeal?.mealType ?? seed?.category ?? category,
+    title: initial?.title ?? fromMeal?.title ?? seed?.title ?? '',
+    nutrition: initial?.nutrition ?? fromMeal?.nutrition ?? EMPTY_NUTRITION,
+    ingredients: initial?.ingredients ?? fromMeal?.ingredients ?? [],
+    steps: initial?.steps ?? [],
+    manuallyEdited: initial?.manuallyEdited ?? Boolean(fromMeal),
+  }
+
+  const draftId = draftKey('recipe', initial?.id)
+  const restored = useRestoredDraft<RecipeDraft>(draftId)
+  const [restoredNotice, setRestoredNotice] = useState(Boolean(restored))
+
+  const [step, setStep] = useState<Step>(restored?.step ?? baseline.step)
+  const [hasResult, setHasResult] = useState(restored?.hasResult ?? baseline.hasResult)
+  const [description, setDescription] = useState(restored?.description ?? baseline.description)
+  const [recipeCategory, setRecipeCategory] = useState<MealType>(restored?.recipeCategory ?? baseline.recipeCategory)
+  const [title, setTitle] = useState(restored?.title ?? baseline.title)
+  const [nutrition, setNutrition] = useState<Nutrition>(restored?.nutrition ?? baseline.nutrition)
+  const [ingredients, setIngredients] = useState<Ingredient[]>(restored?.ingredients ?? baseline.ingredients)
+  const [steps, setSteps] = useState<RecipeStep[]>(restored?.steps ?? baseline.steps)
   const [estimating, setEstimating] = useState(false)
   const [cleaningUp, setCleaningUp] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [manuallyEdited, setManuallyEdited] = useState(initial?.manuallyEdited ?? Boolean(fromMeal))
+  const [manuallyEdited, setManuallyEdited] = useState(restored?.manuallyEdited ?? baseline.manuallyEdited)
 
   const [addingIngredient, setAddingIngredient] = useState(false)
   const [newIngredientText, setNewIngredientText] = useState('')
   const [estimatingIngredient, setEstimatingIngredient] = useState(false)
   const [ingredientError, setIngredientError] = useState<string | null>(null)
+
+  const snapshot: RecipeDraft = {
+    step,
+    hasResult,
+    description,
+    recipeCategory,
+    title,
+    nutrition,
+    ingredients,
+    steps,
+    manuallyEdited,
+  }
+  const draft = useDraftAutosave(draftId, snapshot, !isSameRecipeDraft(snapshot, baseline))
+
+  /** Drops the restored values and returns the sheet to how it opened. */
+  function discardDraft() {
+    setStep(baseline.step)
+    setHasResult(baseline.hasResult)
+    setDescription(baseline.description)
+    setRecipeCategory(baseline.recipeCategory)
+    setTitle(baseline.title)
+    setNutrition(baseline.nutrition)
+    setIngredients(baseline.ingredients)
+    setSteps(baseline.steps)
+    setManuallyEdited(baseline.manuallyEdited)
+    setRestoredNotice(false)
+    draft.clear()
+  }
 
   const hasApiKey = Boolean(getApiKey())
 
@@ -237,6 +305,7 @@ function RecipeEditorContent({
     }
     try {
       await saveRecipe(recipe)
+      draft.clear()
       requestClose()
     } catch (err) {
       setError(describeSaveError(err, 'Rezept'))
@@ -247,7 +316,7 @@ function RecipeEditorContent({
 
   return (
     <>
-      <div className="flex shrink-0 items-center justify-between p-5 pb-4">
+      <div className="flex shrink-0 items-center justify-between p-5 pb-4 pt-7">
         {step === 'review' ? (
           <button onClick={() => setStep('input')} className="text-ink-soft hover:text-ink" aria-label="Zurück">
             <BackIcon />
@@ -267,11 +336,14 @@ function RecipeEditorContent({
               <ForwardIcon />
             </button>
           )}
-          <button onClick={requestClose} className="text-ink-soft hover:text-ink" aria-label="Schließen">
-            ✕
-          </button>
         </div>
       </div>
+
+      {restoredNotice && (
+        <div className="shrink-0 px-5">
+          <DraftRestoredBanner onDiscard={discardDraft} />
+        </div>
+      )}
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div

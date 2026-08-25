@@ -21,6 +21,9 @@ import { getApiKey } from '../lib/settings'
 import { describeSaveError } from '../lib/errors'
 import { Sheet } from './Sheet'
 import { useSheetClose } from '../hooks/useSheetClose'
+import { useDraftAutosave, useRestoredDraft } from '../hooks/useFormDraft'
+import { draftKey } from '../lib/drafts'
+import { DraftRestoredBanner } from './DraftRestoredBanner'
 import { BouncingDots } from './BouncingDots'
 
 /**
@@ -40,10 +43,22 @@ export function SupplementFormSheet({
   onClose: () => void
 }) {
   return (
-    <Sheet onClose={onClose} sheetClassName="glass flex w-full max-w-lg flex-col rounded-t-3xl p-5 sm:rounded-3xl">
+    <Sheet onClose={onClose} sheetClassName="glass flex w-full max-w-lg flex-col rounded-t-3xl p-5 pt-7 sm:rounded-3xl">
       <SupplementFormContent supplement={supplement ?? editing?.supplement} editing={editing} />
     </Sheet>
   )
+}
+
+/** Everything in this form worth carrying across an accidental close. */
+interface SupplementDraft {
+  name: string
+  category: SupplementCategory
+  dosage: string
+  timesOfDay: SupplementTimeOfDay[]
+}
+
+function isSameSupplementDraft(a: SupplementDraft, b: SupplementDraft): boolean {
+  return JSON.stringify(a) === JSON.stringify(b)
 }
 
 function SupplementFormContent({
@@ -57,13 +72,39 @@ function SupplementFormContent({
   const isCustomEntry = !supplement && !editing
   const hasApiKey = Boolean(getApiKey())
 
-  const [name, setName] = useState(supplement?.name ?? '')
-  const [category, setCategory] = useState<SupplementCategory>(supplement?.category ?? 'general_health')
-  const [dosage, setDosage] = useState(editing?.mySupplement.dosage ?? supplement?.typicalDosage ?? '')
-  const [timesOfDay, setTimesOfDay] = useState<SupplementTimeOfDay[]>(editing?.mySupplement.timesOfDay ?? ['morning'])
+  const baseline: SupplementDraft = {
+    name: supplement?.name ?? '',
+    category: supplement?.category ?? 'general_health',
+    dosage: editing?.mySupplement.dosage ?? supplement?.typicalDosage ?? '',
+    timesOfDay: editing?.mySupplement.timesOfDay ?? ['morning'],
+  }
+
+  // Keyed by the list entry being edited, or one shared "new" slot — there can
+  // only ever be one unsaved new supplement in flight at a time.
+  const draftId = draftKey('supplement', editing?.mySupplement.id ?? supplement?.id)
+  const restored = useRestoredDraft<SupplementDraft>(draftId)
+  const [restoredNotice, setRestoredNotice] = useState(Boolean(restored))
+
+  const [name, setName] = useState(restored?.name ?? baseline.name)
+  const [category, setCategory] = useState<SupplementCategory>(restored?.category ?? baseline.category)
+  const [dosage, setDosage] = useState(restored?.dosage ?? baseline.dosage)
+  const [timesOfDay, setTimesOfDay] = useState<SupplementTimeOfDay[]>(restored?.timesOfDay ?? baseline.timesOfDay)
   const [suggestingTime, setSuggestingTime] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+
+  const snapshot: SupplementDraft = { name, category, dosage, timesOfDay }
+  const draft = useDraftAutosave(draftId, snapshot, !isSameSupplementDraft(snapshot, baseline))
+
+  /** Drops the restored values and returns the sheet to how it opened. */
+  function discardDraft() {
+    setName(baseline.name)
+    setCategory(baseline.category)
+    setDosage(baseline.dosage)
+    setTimesOfDay(baseline.timesOfDay)
+    setRestoredNotice(false)
+    draft.clear()
+  }
 
   function toggleTime(t: SupplementTimeOfDay) {
     setTimesOfDay((current) =>
@@ -110,6 +151,7 @@ function SupplementFormContent({
         }
         await addMySupplement({ supplementId: catalogEntry.id, dosage: dosage.trim(), timesOfDay })
       }
+      draft.clear()
       requestClose()
     } catch (err) {
       setError(describeSaveError(err, 'Supplement'))
@@ -123,6 +165,7 @@ function SupplementFormContent({
     setSaving(true)
     try {
       await removeMySupplement(editing.mySupplement.id)
+      draft.clear()
       requestClose()
     } finally {
       setSaving(false)
@@ -131,14 +174,13 @@ function SupplementFormContent({
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4">
         <h2 className="text-lg font-semibold text-ink">
           {editing ? 'Supplement bearbeiten' : isCustomEntry ? 'Eigenes Supplement' : 'Zur Liste hinzufügen'}
         </h2>
-        <button onClick={requestClose} className="text-ink-soft hover:text-ink" aria-label="Schließen">
-          ✕
-        </button>
       </div>
+
+      {restoredNotice && <DraftRestoredBanner onDiscard={discardDraft} />}
 
       <div className="flex flex-col gap-4">
         {isCustomEntry ? (

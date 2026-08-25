@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronIcon } from '../components/ChevronIcon'
+import { PageHeader } from '../components/PageHeader'
 import { getApiKey } from '../lib/settings'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { isStoragePersisted } from '../lib/persistence'
@@ -37,7 +38,7 @@ export function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
-      <h1 className="mb-4 text-2xl font-bold tracking-tight text-ink">Einstellungen</h1>
+      <PageHeader title="Einstellungen" showSettings={false} className="mb-4" />
 
       <div className="glass-subtle divide-y divide-line/60 overflow-hidden rounded-3xl shadow-sm shadow-black/5">
         <SettingsRow

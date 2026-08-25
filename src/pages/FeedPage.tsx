@@ -11,6 +11,7 @@ import { DayPickerModal } from '../components/DatePickerModal'
 import { Collapse } from '../components/Collapse'
 import { MealTypeIcon } from '../components/MealTypeIcon'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
+import { PageHeader } from '../components/PageHeader'
 
 function sumNutrition(meals: Meal[]) {
   return meals.reduce(
@@ -86,6 +87,11 @@ export function FeedPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
+      <PageHeader title="Feed" className="mb-4" />
+
+      {/* The date bar sits below the title rather than beside it: every other
+          main page opens with a bare title on its own line, and Feed matching
+          that is the whole point of giving it one. */}
       <div className="glass-subtle glass-subtle-themed mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
         <button
           onClick={() => setDateKey((k) => addDays(k, -1))}

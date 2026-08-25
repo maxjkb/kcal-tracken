@@ -8,6 +8,7 @@ import {
   type Supplement,
 } from '../lib/db'
 import { SUPPLEMENT_CATEGORY_ORDER } from '../lib/supplementSeed'
+import { PageHeader } from '../components/PageHeader'
 import {
   addSuggestionToMyList,
   useAllSupplements,
@@ -42,7 +43,7 @@ export function SupplementsPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
-      <h1 className="mb-4 text-2xl font-bold tracking-tight text-ink">Supplements</h1>
+      <PageHeader title="Supplements" className="mb-4" />
 
       <div className="glass-subtle glass-subtle-themed mb-5 flex gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5">
         {TABS.map(({ key, label }) => (

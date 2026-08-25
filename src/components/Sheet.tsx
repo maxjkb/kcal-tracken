@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from 'react'
+import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, useDragControls, useReducedMotion } from 'motion/react'
 import { REDUCED_MOTION_TRANSITION, SPRING_DEFAULT, SPRING_FADE, SPRING_MOMENTUM } from '../lib/motionTokens'
@@ -56,6 +56,13 @@ export function Sheet({
 
   const dragEnabled = closeOnDrag && !prefersReducedMotion
 
+  // Distinguishes a tap on the handle from the end of a drag. Motion's drag
+  // ends with a normal pointerup on the handle, which the browser then reports
+  // as a click — without this, every spring-back from a short pull would also
+  // close the sheet, i.e. exactly the gesture that means "no, keep it open".
+  const handleDownAt = useRef<{ x: number; y: number } | null>(null)
+  const TAP_SLOP = 8
+
   // A sheet that was thrown downward should keep going the way it was thrown
   // (WWDC18: hint in the direction of the gesture) — pulling it back up to a
   // symmetric exit position would read as the interface fighting the user.
@@ -109,15 +116,33 @@ export function Sheet({
             exit={exitState}
             transition={closing ? exitTransition : prefersReducedMotion ? REDUCED_MOTION_TRANSITION : SPRING_DEFAULT}
           >
-            {dragEnabled && (
-              <div
-                onPointerDown={(e) => dragControls.start(e)}
-                className="absolute left-1/2 top-0 z-10 flex h-6 w-16 -translate-x-1/2 touch-none items-center justify-center"
-                aria-hidden="true"
-              >
-                <div className="h-1.5 w-9 rounded-full bg-ink-faint/50" />
-              </div>
-            )}
+            {/* Always rendered, never gated on dragEnabled: the "✕" is gone
+                from every sheet, so this handle is the only affordance left.
+                Gating it would leave a reduced-motion user — or either editor,
+                which also blocks backdrop-dismiss — with a sheet that cannot
+                be closed at all. Drag is what's conditional; tapping always
+                works. Sized for that promotion: a 44x112px hitbox (past the
+                44pt minimum, wide enough to hit without aiming) around a
+                restrained 6x48px bar, kept as separate elements so the target
+                can grow without the grip becoming a slab. */}
+            <button
+              type="button"
+              onPointerDown={(e) => {
+                handleDownAt.current = { x: e.clientX, y: e.clientY }
+                if (dragEnabled) dragControls.start(e)
+              }}
+              onClick={(e) => {
+                const down = handleDownAt.current
+                handleDownAt.current = null
+                // Keyboard activation reports 0/0 and has no down point — always a real tap.
+                if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > TAP_SLOP) return
+                requestClose()
+              }}
+              aria-label="Schließen"
+              className="absolute left-1/2 top-0 z-10 flex h-11 w-28 -translate-x-1/2 touch-none items-center justify-center pt-2.5"
+            >
+              <div className="h-1.5 w-12 rounded-full bg-ink-faint/50" />
+            </button>
             <SheetCloseContext.Provider value={requestClose}>{children}</SheetCloseContext.Provider>
           </motion.div>
         </div>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, toLocalDateKey, type Meal } from '../lib/db'
 import { ChevronIcon } from '../components/ChevronIcon'
-import { SlideInPage } from '../components/SlideInPage'
+import { PageHeader } from '../components/PageHeader'
 import { MealTypeIcon } from '../components/MealTypeIcon'
 import { MacroBadge } from '../components/MacroBadge'
 import { BouncingDots } from '../components/BouncingDots'
@@ -28,10 +28,14 @@ export function RecipesPage() {
   const recentMeals = useRecentMeals(RECENT_MEALS_COUNT)
   const [editorRequest, setEditorRequest] = useState<EditorRequest | null>(null)
 
+  // No SlideInPage here, unlike the two Rezepte drill-downs: this is a section
+  // root, and SwipeNavigator already animates it in from whichever side the
+  // gesture came from. SlideInPage's unconditional "from the right" would send
+  // it the wrong way whenever you swipe *back* into Rezepte.
   return (
-    <SlideInPage>
+    <>
       <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
-        <h1 className="mb-4 text-2xl font-bold tracking-tight text-ink">Rezepte</h1>
+        <PageHeader title="Rezepte" className="mb-4" />
 
         <div className="glass-subtle glass-subtle-themed divide-y divide-line/60 overflow-hidden rounded-3xl shadow-sm shadow-black/5">
           {MEAL_TYPE_ORDER.map((type) => (
@@ -89,7 +93,7 @@ export function RecipesPage() {
       {editorRequest?.kind === 'seed' && (
         <RecipeEditor category={editorRequest.seed.category} seed={editorRequest.seed} onClose={() => setEditorRequest(null)} />
       )}
-    </SlideInPage>
+    </>
   )
 }
 

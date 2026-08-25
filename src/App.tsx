@@ -1,6 +1,8 @@
 import { Suspense, lazy, useLayoutEffect, useState } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { BottomNav } from './components/BottomNav'
+import { SwipeNavigator } from './components/SwipeNavigator'
+import { AddMealContext } from './hooks/useAddMeal'
 import { TopGradient } from './components/TopGradient'
 import { FeedPage } from './pages/FeedPage'
 import { SettingsPage } from './pages/SettingsPage'
@@ -70,7 +72,7 @@ export default function App() {
   }, [section])
 
   return (
-    <>
+    <AddMealContext.Provider value={() => setAddingMeal(true)}>
       {/* Rendered outside the min-h-screen wrapper below, and that wrapper's
           own explicit bg-bg is dropped in favor of body's identical
           background (see index.css) — an opaque sibling paints over a
@@ -80,56 +82,58 @@ export default function App() {
           problem, it's always the bottom-most layer. */}
       {section && <TopGradient />}
       <div className="min-h-screen">
-        <Routes>
-          <Route path="/" element={<FeedPage />} />
-          <Route
-            path="/stats"
-            element={
-              <Suspense fallback={<p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>}>
-                <StatsPage />
-              </Suspense>
-            }
-          />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/settings/koerperwerte" element={<BodyProfilePage />} />
-          <Route path="/settings/api" element={<ApiSettingsPage />} />
-          <Route path="/settings/speicher" element={<StorageSettingsPage />} />
-          <Route path="/settings/daten" element={<DataSettingsPage />} />
-          <Route path="/settings/sync" element={<SyncSettingsPage />} />
-          <Route
-            path="/recipes"
-            element={
-              <Suspense fallback={recipesFallback}>
-                <RecipesPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/recipes/:category"
-            element={
-              <Suspense fallback={recipesFallback}>
-                <RecipeCategoryPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/recipes/:category/:id"
-            element={
-              <Suspense fallback={recipesFallback}>
-                <RecipeDetailPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/supplements"
-            element={
-              <Suspense fallback={<p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>}>
-                <SupplementsPage />
-              </Suspense>
-            }
-          />
-        </Routes>
-        <BottomNav onAddMeal={() => setAddingMeal(true)} />
+        <SwipeNavigator>
+          <Routes>
+            <Route path="/" element={<FeedPage />} />
+            <Route
+              path="/stats"
+              element={
+                <Suspense fallback={<p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>}>
+                  <StatsPage />
+                </Suspense>
+              }
+            />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/settings/koerperwerte" element={<BodyProfilePage />} />
+            <Route path="/settings/api" element={<ApiSettingsPage />} />
+            <Route path="/settings/speicher" element={<StorageSettingsPage />} />
+            <Route path="/settings/daten" element={<DataSettingsPage />} />
+            <Route path="/settings/sync" element={<SyncSettingsPage />} />
+            <Route
+              path="/recipes"
+              element={
+                <Suspense fallback={recipesFallback}>
+                  <RecipesPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/recipes/:category"
+              element={
+                <Suspense fallback={recipesFallback}>
+                  <RecipeCategoryPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/recipes/:category/:id"
+              element={
+                <Suspense fallback={recipesFallback}>
+                  <RecipeDetailPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/supplements"
+              element={
+                <Suspense fallback={<p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>}>
+                  <SupplementsPage />
+                </Suspense>
+              }
+            />
+          </Routes>
+        </SwipeNavigator>
+        <BottomNav />
 
         {addingMeal && (
           <MealEditor
@@ -139,6 +143,6 @@ export default function App() {
           />
         )}
       </div>
-    </>
+    </AddMealContext.Provider>
   )
 }
