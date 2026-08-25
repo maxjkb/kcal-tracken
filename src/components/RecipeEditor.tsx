@@ -13,6 +13,7 @@ import {
 import { saveRecipe } from '../hooks/useRecipes'
 import { estimateRecipe, estimateSingleIngredient, cleanUpDictation, GeminiError } from '../lib/gemini'
 import { getApiKey } from '../lib/settings'
+import { describeSaveError } from '../lib/errors'
 import { DictationButton } from './DictationButton'
 import { NutritionFields } from './NutritionFields'
 import { AutoGrowTextarea } from './AutoGrowTextarea'
@@ -40,14 +41,6 @@ function sumIngredients(ingredients: Ingredient[]): Nutrition {
     }),
     { kcal: 0, protein: 0, carbs: 0, fat: 0 },
   )
-}
-
-function describeSaveError(err: unknown): string {
-  if (err instanceof DOMException && err.name === 'QuotaExceededError') {
-    return 'Speicherplatz auf dem Gerät ist voll. Lösche alte Rezepte oder gib Speicher frei und versuche es erneut.'
-  }
-  const message = err instanceof Error ? err.message : String(err)
-  return `Rezept konnte nicht gespeichert werden (${message}). Bitte erneut versuchen.`
 }
 
 /** A recipe idea to seed the editor with — from an AI suggestion, not yet structured, so it
@@ -246,7 +239,7 @@ function RecipeEditorContent({
       await saveRecipe(recipe)
       requestClose()
     } catch (err) {
-      setError(describeSaveError(err))
+      setError(describeSaveError(err, 'Rezept'))
     } finally {
       setSaving(false)
     }

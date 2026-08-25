@@ -7,31 +7,45 @@ import { getFirebaseConfig } from './firebaseConfig'
 const EMAIL_STORAGE_KEY = 'kcal-tracker:sync-email-for-signin'
 
 /**
- * Firebase Auth errors carry a `.code` (e.g. "auth/operation-not-allowed")
- * that pinpoints the actual cause far better than a generic guessed message
- * ever could. describeAuthError() below surfaces it, with a plain-language
- * hint for the handful of codes anyone actually hits in practice — so a
+ * Firebase Auth AND Firestore errors both carry a `.code` (e.g.
+ * "auth/operation-not-allowed", or bare "permission-denied" for Firestore —
+ * different SDKs, different code shapes, both handled by the same lookup
+ * here) that pinpoints the actual cause far better than a generic guessed
+ * message ever could. describeFirebaseError() below surfaces it, with a
+ * plain-language hint for the codes anyone actually hits in practice — so a
  * failure becomes something diagnosable from the error text alone, instead
  * of every possible cause needing its own guess baked into the UI copy.
+ * Covers both because sync.ts's own errors (startSync/resyncNow) are
+ * Firestore-flavored but surface through the same SyncSettingsPage catches
+ * as the Auth ones.
  */
-const AUTH_ERROR_HINTS: Record<string, string> = {
+const FIREBASE_ERROR_HINTS: Record<string, string> = {
+  // Auth — sending/completing the sign-in link.
   'auth/operation-not-allowed':
     'Die Anmeldemethode "E-Mail-Link" ist im hinterlegten Firebase-Projekt nicht aktiviert (Firebase-Konsole → Authentication → Sign-in method → Email link aktivieren).',
   'auth/unauthorized-continue-uri':
     'Die Domain dieser App ist im hinterlegten Firebase-Projekt nicht als autorisierte Domain hinterlegt (Firebase-Konsole → Authentication → Settings → Authorized domains).',
   'auth/invalid-api-key': 'Der API-Key im hinterlegten Firebase-Projekt ist ungültig.',
   'auth/project-not-found': 'Das hinterlegte Firebase-Projekt existiert nicht (mehr) oder wurde gelöscht.',
-  'auth/quota-exceeded': 'Tageskontingent für E-Mails im Firebase-Projekt ist aufgebraucht — später erneut versuchen.',
+  'auth/quota-exceeded':
+    'Tageskontingent für Anmelde-E-Mails im Firebase-Projekt ist aufgebraucht (Google begrenzt das auf dem kostenlosen Spark-Tarif bewusst niedrig). Setzt sich automatisch zurück — meist innerhalb von 24 Stunden erneut versuchen, oder das Projekt auf den Blaze-Tarif umstellen für ein deutlich höheres Kontingent.',
   'auth/invalid-email': 'Das ist keine gültige E-Mail-Adresse.',
   'auth/network-request-failed': 'Netzwerkfehler — Internetverbindung prüfen.',
   'auth/too-many-requests': 'Zu viele Versuche in kurzer Zeit — bitte kurz warten und erneut versuchen.',
   'auth/expired-action-code': 'Dieser Anmeldelink ist abgelaufen.',
   'auth/invalid-action-code': 'Dieser Anmeldelink wurde schon verwendet oder ist ungültig.',
+  // Firestore — the actual data sync (startSync/resyncNow in sync.ts).
+  'permission-denied':
+    'Die Firestore-Sicherheitsregeln im hinterlegten Firebase-Projekt blockieren den Zugriff (Firebase-Konsole → Firestore Database → Regeln).',
+  unavailable: 'Firestore gerade nicht erreichbar (Netzwerk- oder Server-Problem) — meist von selbst gelöst, später erneut versuchen.',
+  'resource-exhausted': 'Kontingent des Firestore-Projekts ausgeschöpft — später erneut versuchen oder Tarif prüfen.',
+  unauthenticated: 'Anmeldung ist abgelaufen. Bitte einmal ab- und wieder anmelden.',
+  'not-found': 'Angefragte Daten im Firebase-Projekt nicht gefunden (evtl. wurde die Firestore Database nicht angelegt).',
 }
 
-export function describeAuthError(err: unknown): string {
+export function describeFirebaseError(err: unknown): string {
   const code = err && typeof err === 'object' && 'code' in err ? String((err as { code: unknown }).code) : null
-  const hint = code ? AUTH_ERROR_HINTS[code] : null
+  const hint = code ? FIREBASE_ERROR_HINTS[code] : null
   if (hint) return `${hint} (${code})`
   const message = err instanceof Error ? err.message : String(err)
   return code ? `${message} (${code})` : message

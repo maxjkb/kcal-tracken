@@ -12,7 +12,7 @@ import {
 } from '../../lib/firebaseConfig'
 import {
   completeSignInFromLink,
-  describeAuthError,
+  describeFirebaseError,
   getStoredSignInEmail,
   isRunningStandalone,
   isSignInLinkUrl,
@@ -81,11 +81,11 @@ export function SyncSettingsPage() {
           flash('Angemeldet.')
         } catch (err) {
           setError(
-            `Angemeldet, aber die erste Synchronisation ist fehlgeschlagen: ${describeAuthError(err)}. Bitte "Jetzt synchronisieren" versuchen.`,
+            `Angemeldet, aber die erste Synchronisation ist fehlgeschlagen: ${describeFirebaseError(err)}. Bitte "Jetzt synchronisieren" versuchen.`,
           )
         }
       })
-      .catch((err) => setError(`Anmeldelink ungültig oder abgelaufen: ${describeAuthError(err)}`))
+      .catch((err) => setError(`Anmeldelink ungültig oder abgelaufen: ${describeFirebaseError(err)}`))
   }, [linkToComplete, flash])
 
   function handleSaveConfig() {
@@ -127,7 +127,7 @@ export function SyncSettingsPage() {
       await sendSignInLink(email.trim())
       setLinkSent(true)
     } catch (err) {
-      setError(`Anmeldelink konnte nicht gesendet werden: ${describeAuthError(err)}`)
+      setError(`Anmeldelink konnte nicht gesendet werden: ${describeFirebaseError(err)}`)
     } finally {
       setBusy(false)
     }
@@ -145,11 +145,11 @@ export function SyncSettingsPage() {
         flash('Angemeldet.')
       } catch (err) {
         setError(
-          `Angemeldet, aber die erste Synchronisation ist fehlgeschlagen: ${describeAuthError(err)}. Bitte "Jetzt synchronisieren" versuchen.`,
+          `Angemeldet, aber die erste Synchronisation ist fehlgeschlagen: ${describeFirebaseError(err)}. Bitte "Jetzt synchronisieren" versuchen.`,
         )
       }
     } catch (err) {
-      setError(`Anmeldelink ungültig oder abgelaufen: ${describeAuthError(err)}`)
+      setError(`Anmeldelink ungültig oder abgelaufen: ${describeFirebaseError(err)}`)
     } finally {
       setBusy(false)
     }
@@ -183,7 +183,7 @@ export function SyncSettingsPage() {
       await resyncNow()
       flash('Synchronisiert.')
     } catch (err) {
-      setError(`Synchronisation fehlgeschlagen: ${describeAuthError(err)}`)
+      setError(`Synchronisation fehlgeschlagen: ${describeFirebaseError(err)}`)
     } finally {
       setBusy(false)
     }
