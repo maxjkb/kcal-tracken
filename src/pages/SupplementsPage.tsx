@@ -6,26 +6,22 @@ import {
   toLocalDateKey,
   type MySupplement,
   type Supplement,
+  type SupplementRecommendation,
 } from '../lib/db'
 import { SUPPLEMENT_CATEGORY_ORDER } from '../lib/supplementSeed'
 import { PageHeader } from '../components/PageHeader'
 import {
   addSuggestionToMyList,
   useAllSupplements,
+  useLatestAdvisorRun,
   useMySupplements,
   useSupplementLogForDate,
 } from '../hooks/useSupplements'
-import { useMealsInRange } from '../hooks/useMeals'
-import { computeDailyTargets, getBodyProfile, GOAL_LABELS } from '../lib/bodyProfile'
-import {
-  estimateSupplementRecommendations,
-  GeminiError,
-  type SupplementRecommendation,
-} from '../lib/gemini'
+import { generateAdvisorRun } from '../lib/supplementAdvisor'
+import { GeminiError } from '../lib/gemini'
 import { getApiKey } from '../lib/settings'
 import { SupplementChecklistRow } from '../components/SupplementChecklist'
 import { SupplementFormSheet } from '../components/SupplementFormSheet'
-import { BouncingDots } from '../components/BouncingDots'
 import { SPRING_SNAPPY } from '../lib/motionTokens'
 
 type Tab = 'today' | 'catalog' | 'suggestions'
@@ -34,8 +30,6 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'catalog', label: 'Katalog' },
   { key: 'suggestions', label: 'Vorschläge' },
 ]
-
-const RECOMMENDATION_PERIOD_DAYS = 14
 
 export function SupplementsPage() {
   const [tab, setTab] = useState<Tab>('today')
@@ -130,16 +124,45 @@ function CatalogTab() {
   const mySupplements = useMySupplements()
   const [adding, setAdding] = useState<Supplement | null>(null)
   const [addingCustom, setAddingCustom] = useState(false)
+  const [query, setQuery] = useState('')
 
   const myBySupplementId = new Map((mySupplements ?? []).map((m) => [m.supplementId, m]))
 
+  // Matches the description too, not just the name: the catalog is browsed by
+  // problem at least as often as by product ("Schlaf", "Gelenke"), and someone
+  // who doesn't already know a supplement's name can't search for it.
+  const needle = query.trim().toLowerCase()
+  const visible = needle
+    ? (supplements ?? []).filter(
+        (s) => s.name.toLowerCase().includes(needle) || s.description.toLowerCase().includes(needle),
+      )
+    : (supplements ?? [])
+
   return (
     <div className="flex flex-col gap-5">
+      <div className="relative">
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Katalog durchsuchen…"
+          aria-label="Katalog durchsuchen"
+          className="w-full rounded-2xl border border-line bg-bg py-2.5 pl-10 pr-3 text-sm text-ink placeholder:text-ink-soft focus:border-section focus:outline-none"
+        />
+        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-soft" aria-hidden="true">
+          <SearchIcon />
+        </span>
+      </div>
+
       {supplements === undefined ? (
         <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
+      ) : visible.length === 0 ? (
+        <p className="py-8 text-center text-sm text-ink-soft">
+          Nichts gefunden für „{query.trim()}". Du kannst es unten als eigenes Supplement anlegen.
+        </p>
       ) : (
         SUPPLEMENT_CATEGORY_ORDER.map((category) => {
-          const inCategory = supplements.filter((s) => s.category === category)
+          const inCategory = visible.filter((s) => s.category === category)
           if (inCategory.length === 0) return null
           return (
             <div key={category}>
@@ -191,58 +214,32 @@ function CatalogTab() {
   )
 }
 
+/**
+ * Read-only view of the standing recommendation.
+ *
+ * There is no "generate" button any more: the run happens once a day on app
+ * start (see lib/supplementAdvisor.ts), which is the whole point of storing
+ * past runs — a list the user could re-roll at will could never be consistent,
+ * because re-rolling is exactly what makes it change. What's left is a
+ * discreet retry for the case where the automatic run couldn't complete.
+ */
 function SuggestionsTab() {
-  const mySupplements = useMySupplements()
-  const supplements = useAllSupplements()
-  const [todayKey] = useState(() => toLocalDateKey(new Date()))
-  const [startKey] = useState(() => toLocalDateKey(new Date(Date.now() - (RECOMMENDATION_PERIOD_DAYS - 1) * 86_400_000)))
-  const meals = useMealsInRange(startKey, todayKey)
+  const run = useLatestAdvisorRun()
   const hasApiKey = Boolean(getApiKey())
 
-  const [suggestions, setSuggestions] = useState<SupplementRecommendation[] | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [retrying, setRetrying] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [addedNames, setAddedNames] = useState<Set<string>>(new Set())
 
-  async function handleRefresh() {
-    setLoading(true)
+  async function handleRetry() {
+    setRetrying(true)
     setError(null)
     try {
-      const bodyProfile = getBodyProfile()
-      const targets = bodyProfile ? computeDailyTargets(bodyProfile) : null
-      const days = Math.max(1, new Set((meals ?? []).map((m) => m.date)).size)
-      const totals = (meals ?? []).reduce(
-        (acc, m) => ({
-          kcal: acc.kcal + m.nutrition.kcal,
-          protein: acc.protein + m.nutrition.protein,
-          carbs: acc.carbs + m.nutrition.carbs,
-          fat: acc.fat + m.nutrition.fat,
-        }),
-        { kcal: 0, protein: 0, carbs: 0, fat: 0 },
-      )
-      const supplementById = new Map((supplements ?? []).map((s) => [s.id, s]))
-      const alreadyTaking = (mySupplements ?? [])
-        .map((m) => supplementById.get(m.supplementId)?.name)
-        .filter((n): n is string => Boolean(n))
-
-      const result = await estimateSupplementRecommendations({
-        goalLabel: bodyProfile ? GOAL_LABELS[bodyProfile.goal] : 'Kein Ziel hinterlegt',
-        dailyTargets: targets,
-        averageIntake: {
-          kcal: totals.kcal / days,
-          protein: totals.protein / days,
-          carbs: totals.carbs / days,
-          fat: totals.fat / days,
-        },
-        periodDays: days,
-        alreadyTaking,
-      })
-      setSuggestions(result)
-      setAddedNames(new Set())
+      await generateAdvisorRun()
     } catch (err) {
       setError(err instanceof GeminiError ? err.message : 'Unbekannter Fehler bei der Empfehlung.')
     } finally {
-      setLoading(false)
+      setRetrying(false)
     }
   }
 
@@ -251,43 +248,68 @@ function SuggestionsTab() {
     setAddedNames((current) => new Set(current).add(s.supplementName))
   }
 
+  if (!hasApiKey) {
+    return (
+      <p className="py-8 text-center text-sm text-ink-soft">
+        Für Vorschläge wird ein Gemini-API-Key benötigt — in den Einstellungen eintragen.
+      </p>
+    )
+  }
+
+  if (run === undefined) return <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
+
+  const suggestions = run?.suggestions ?? []
+
   return (
     <div className="flex flex-col gap-4">
-      <button
-        type="button"
-        onClick={handleRefresh}
-        disabled={loading || !hasApiKey}
-        className="glass-accent flex items-center justify-center gap-1.5 rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        {loading ? <BouncingDots /> : suggestions ? 'Empfehlungen aktualisieren' : 'Empfehlungen abrufen'}
-      </button>
-
-      {!hasApiKey && <p className="text-xs text-ink-soft">Kein API-Key hinterlegt — in den Einstellungen eintragen.</p>}
-      {error && <p className="text-sm font-medium text-danger">{error}</p>}
-
-      {suggestions !== null && suggestions.length === 0 && (
-        <p className="py-6 text-center text-sm text-ink-soft">Aktuell keine neuen Vorschläge.</p>
+      {run && (
+        <p className="text-xs text-ink-soft">
+          Stand {formatRunDate(run.date)} · aktualisiert sich einmal täglich automatisch
+        </p>
       )}
 
-      {suggestions?.map((s) => {
+      {error && <p className="text-sm font-medium text-danger">{error}</p>}
+
+      {run === null && !error && (
+        <p className="py-6 text-center text-sm text-ink-soft">
+          Noch keine Vorschläge. Sie werden beim nächsten Start der App automatisch erstellt.
+        </p>
+      )}
+
+      {run !== null && suggestions.length === 0 && (
+        <p className="py-6 text-center text-sm text-ink-soft">
+          Aktuell keine Vorschläge — deine Ernährung und deine Supplement-Routine geben gerade nichts her.
+        </p>
+      )}
+
+      {suggestions.map((s) => {
         const added = addedNames.has(s.supplementName)
+        const isConsistency = s.kind === 'consistency'
         return (
           <div key={s.supplementName} className="glass-subtle flex flex-col gap-2 rounded-3xl p-4">
             <div className="flex items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-semibold text-ink">{s.supplementName}</p>
                 <p className="text-xs text-ink-soft">{SUPPLEMENT_CATEGORY_LABELS[s.category]}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => handleAdd(s)}
-                disabled={added}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                  added ? 'bg-bg text-ink-soft' : 'bg-accent/12 text-accent hover:bg-accent/20'
-                }`}
-              >
-                {added ? 'Hinzugefügt' : 'Zur Liste hinzufügen'}
-              </button>
+              {/* A consistency item is already on the list — offering "add" would
+                  duplicate it, and the ask is to take it, not to acquire it. */}
+              {isConsistency ? (
+                <span className="shrink-0 rounded-full bg-section-12 px-3 py-1.5 text-xs font-semibold text-section">
+                  Schon auf der Liste
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleAdd(s)}
+                  disabled={added}
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                    added ? 'bg-bg text-ink-soft' : 'bg-accent/12 text-accent hover:bg-accent/20'
+                  }`}
+                >
+                  {added ? 'Hinzugefügt' : 'Zur Liste hinzufügen'}
+                </button>
+              )}
             </div>
             <p className="text-sm text-ink-soft">{s.reasoning}</p>
             <p className="text-xs text-ink-soft">
@@ -296,6 +318,31 @@ function SuggestionsTab() {
           </div>
         )
       })}
+
+      <button
+        type="button"
+        onClick={handleRetry}
+        disabled={retrying}
+        className="self-center text-xs font-medium text-ink-soft underline-offset-2 hover:underline disabled:opacity-40"
+      >
+        {retrying ? 'Wird neu erstellt…' : 'Jetzt neu erstellen'}
+      </button>
     </div>
+  )
+}
+
+function formatRunDate(dateKey: string): string {
+  const todayKey = toLocalDateKey(new Date())
+  if (dateKey === todayKey) return 'heute'
+  const [y, m, d] = dateKey.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
+}
+
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+      <circle cx="11" cy="11" r="7" />
+      <path strokeLinecap="round" d="m20 20-3.5-3.5" />
+    </svg>
   )
 }

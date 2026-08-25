@@ -109,12 +109,31 @@ export const SUPPLEMENT_TIME_LABELS: Record<SupplementTimeOfDay, string> = {
 
 export const SUPPLEMENT_TIME_ORDER: SupplementTimeOfDay[] = ['morning', 'noon', 'evening', 'night']
 
-export type SupplementCategory = 'build_muscle' | 'recovery' | 'general_health'
+/**
+ * Purely additive since the original three: the catalog grew from 10 entries
+ * to ~90, at which point three buckets meant scrolling thirty items to find
+ * one. Old values keep their meaning, so anything already stored — including
+ * the user's own custom entries — stays valid without a data migration.
+ */
+export type SupplementCategory =
+  | 'build_muscle'
+  | 'endurance'
+  | 'recovery'
+  | 'joints'
+  | 'immune'
+  | 'cognition'
+  | 'gut'
+  | 'general_health'
 
 export const SUPPLEMENT_CATEGORY_LABELS: Record<SupplementCategory, string> = {
-  build_muscle: 'Muskelaufbau',
-  recovery: 'Erholung',
-  general_health: 'Allgemeine Gesundheit',
+  build_muscle: 'Muskelaufbau & Kraft',
+  endurance: 'Ausdauer & Leistung',
+  recovery: 'Erholung & Schlaf',
+  joints: 'Gelenke & Knochen',
+  immune: 'Immunsystem',
+  cognition: 'Fokus & Kognition',
+  gut: 'Darm & Verdauung',
+  general_health: 'Vitamine & Grundversorgung',
 }
 
 /**
@@ -168,12 +187,66 @@ export interface SupplementLogEntry {
   checkedAt: number
 }
 
+/**
+ * One supplement suggestion. Lives here rather than in gemini.ts because it's
+ * now persisted (see SupplementAdvisorRun) — and gemini.ts already imports its
+ * enums from this file, so the reverse direction would be a cycle.
+ */
+export interface SupplementRecommendation {
+  supplementName: string
+  category: SupplementCategory
+  suggestedDosage: string
+  suggestedTimesOfDay: SupplementTimeOfDay[]
+  reasoning: string
+  /**
+   * `new` = not on the list yet. `consistency` = already on the list but taken
+   * too irregularly to do anything, so the suggestion is to actually stick
+   * with it rather than to add something else.
+   */
+  kind: 'new' | 'consistency'
+}
+
+/**
+ * The nutrition and routine situation one advisor run was based on. Stored
+ * alongside the suggestions so the *next* run can be told what has actually
+ * changed since — which is what lets it keep a recommendation's wording
+ * stable while nothing moved, and explain itself when something did.
+ */
+export interface SupplementAdvisorContext {
+  goalLabel: string
+  dailyTargets: Nutrition | null
+  averageIntake: Nutrition
+  periodDays: number
+  /** Names taken on at least ESTABLISHED_DAYS of the last 30 days. */
+  established: string[]
+}
+
+/**
+ * One day's supplement suggestions, kept for a week.
+ *
+ * The point of storing these is consistency, not history: without a record of
+ * what was suggested and *why*, every regeneration started from nothing and
+ * could argue Omega-3 differently on Tuesday than on Monday for no reason the
+ * user could see. With it, the model is handed its own previous reasoning and
+ * asked to keep it unless the underlying data actually moved. Never shown
+ * directly — the UI only ever renders the newest run.
+ */
+export interface SupplementAdvisorRun {
+  id: string
+  /** Local date key (YYYY-MM-DD) — at most one run per day. */
+  date: string
+  generatedAt: number
+  suggestions: SupplementRecommendation[]
+  context: SupplementAdvisorContext
+}
+
 class KcalDatabase extends Dexie {
   meals!: EntityTable<Meal, 'id'>
   recipes!: EntityTable<Recipe, 'id'>
   supplements!: EntityTable<Supplement, 'id'>
   mySupplements!: EntityTable<MySupplement, 'id'>
   supplementLog!: EntityTable<SupplementLogEntry, 'id'>
+  supplementAdvisorRuns!: EntityTable<SupplementAdvisorRun, 'id'>
 
   constructor() {
     super('kcal-tracker')
@@ -190,6 +263,14 @@ class KcalDatabase extends Dexie {
       supplements: 'id, name, category, createdAt',
       mySupplements: 'id, supplementId, createdAt',
       supplementLog: 'id, mySupplementId, date, [mySupplementId+date+timeOfDay]',
+    })
+    this.version(4).stores({
+      meals: 'id, date, mealType, createdAt',
+      recipes: 'id, category, createdAt',
+      supplements: 'id, name, category, createdAt',
+      mySupplements: 'id, supplementId, createdAt',
+      supplementLog: 'id, mySupplementId, date, [mySupplementId+date+timeOfDay]',
+      supplementAdvisorRuns: 'id, date, generatedAt',
     })
   }
 }
@@ -213,6 +294,10 @@ export function newMySupplementId(): string {
 }
 
 export function newSupplementLogId(): string {
+  return crypto.randomUUID()
+}
+
+export function newSupplementAdvisorRunId(): string {
   return crypto.randomUUID()
 }
 

@@ -1,6 +1,6 @@
 import { getApiKey } from './settings'
 import { searchFoodDatabaseMany, type FoodDatabaseMatch } from './foodDatabase'
-import type { MealType, SupplementCategory, SupplementTimeOfDay } from './db'
+import type { MealType, SupplementCategory, SupplementRecommendation, SupplementTimeOfDay } from './db'
 
 const DEFAULT_MODEL = 'gemini-3.6-flash'
 const MODEL_STORAGE_KEY = 'kcal-tracker:gemini-model'
@@ -509,24 +509,25 @@ export interface SupplementRecommendationInput {
   averageIntake: { kcal: number; protein: number; carbs: number; fat: number }
   /** How many days averageIntake covers — gives the model honest context on how much signal it actually has. */
   periodDays: number
-  /** Names of supplements already on the user's list, so the model doesn't just re-suggest them. */
-  alreadyTaking: string[]
+  /** Taken on almost every day of the last month — settled routine, nothing left to advise. */
+  established: string[]
+  /** On the list but taken patchily. These need a consistency nudge, not a new product. */
+  irregular: { name: string; daysTaken: number; daysTracked: number }[]
+  /** The previous run's suggestions with their wording, so unchanged circumstances produce unchanged advice. */
+  previous: { supplementName: string; reasoning: string }[] | null
+  /** Plain-language summary of how the nutrition data moved since that previous run, or null if nothing material changed. */
+  nutritionChange: string | null
 }
 
-export interface SupplementRecommendation {
-  supplementName: string
-  category: SupplementCategory
-  suggestedDosage: string
-  suggestedTimesOfDay: SupplementTimeOfDay[]
-  reasoning: string
-}
+export type { SupplementRecommendation } from './db'
 
 const SUPPLEMENT_RECOMMENDATION_SCHEMA = {
   type: 'OBJECT',
   properties: {
     suggestions: {
       type: 'ARRAY',
-      description: '2 bis 5 konkrete, unterschiedliche Supplement-Vorschläge — lieber wenige gut begründete als viele beliebige.',
+      description:
+        'So viele Vorschläge wie sachlich begründet sind — keine Ober- oder Untergrenze. Ist nur eines nötig, nenne genau eines; sind zehn nötig, nenne zehn. Erfinde nichts hinzu, um eine Liste zu füllen.',
       items: {
         type: 'OBJECT',
         properties: {
@@ -553,19 +554,37 @@ const SUPPLEMENT_RECOMMENDATION_SCHEMA = {
             description:
               'Kurze, konkrete Begründung auf Deutsch (1-3 Sätze) — soweit möglich mit Bezug auf die tatsächlichen Nährwertdaten des Nutzers (z.B. eine erkennbare Lücke), sonst auf das Körperziel gestützt.',
           },
+          kind: {
+            type: 'STRING',
+            enum: ['new', 'consistency'],
+            description:
+              'new = steht noch nicht auf der Liste. consistency = steht schon auf der Liste, wird aber zu unregelmäßig eingenommen; die Empfehlung lautet dann, es regelmäßig zu nehmen.',
+          },
         },
-        required: ['supplementName', 'category', 'suggestedDosage', 'suggestedTimesOfDay', 'reasoning'],
+        required: ['supplementName', 'category', 'suggestedDosage', 'suggestedTimesOfDay', 'reasoning', 'kind'],
       },
     },
   },
   required: ['suggestions'],
 }
 
-const SUPPLEMENT_RECOMMENDATION_SYSTEM_PROMPT = `Du bist ein Ernährungsassistent, der Nahrungsergänzungsmittel (Supplements) vorschlägt. Du bekommst das Körperziel des Nutzers sowie seine tatsächlichen Ernährungsdaten der letzten Zeit (Ziel- vs. Ist-Werte für Kalorien/Protein/Kohlenhydrate/Fett) und eine Liste bereits eingenommener Supplements.
+const SUPPLEMENT_RECOMMENDATION_SYSTEM_PROMPT = `Du bist ein Ernährungsassistent, der Nahrungsergänzungsmittel (Supplements) vorschlägt. Du bekommst das Körperziel des Nutzers, seine tatsächlichen Ernährungsdaten der letzten Zeit (Ziel- vs. Ist-Werte), seine bisherige Supplement-Einnahme und — falls vorhanden — deine eigenen Vorschläge vom letzten Mal.
 
-Gewichte deine Vorschläge und Begründungen zu etwa drei Vierteln auf Basis der tatsächlichen Ernährungsdaten (z.B. "der Proteinbedarf wird im Schnitt um X g/Tag verfehlt" oder "kaum fettreicher Fisch/Omega-3-Quellen erkennbar") und zu einem Viertel auf Basis allgemein anerkannter, zum Körperziel passender Supplements auch ohne direkten Datenbezug (z.B. ist Kreatin bei Muskelaufbau generell gut belegt, unabhängig von den geloggten Mahlzeiten). Schlage keine bereits eingenommenen Supplements erneut vor.
+WICHTIGSTE REGEL — Konsistenz: Deine Vorschläge sollen sich nicht von Tag zu Tag ohne Grund ändern. Wenn dir frühere Vorschläge vorliegen und sich an den Ernährungsdaten nichts Wesentliches geändert hat, übernimm dieselben Supplements mit im Kern derselben Begründung. Formuliere sie nicht ohne Anlass neu und tausche sie nicht gegen andere aus. Ändere einen Vorschlag nur, wenn die Daten es hergeben:
+- Hat sich der Bedarf erhöht (z.B. Proteinlücke deutlich größer geworden), benenne das ausdrücklich in der Begründung.
+- Hat er sich verringert, benenne auch das — und lass den Vorschlag weg, wenn er dadurch hinfällig wird.
+- Ist ein früher vorgeschlagenes Supplement inzwischen regelmäßig in Einnahme, schlage es nicht erneut vor.
+
+Anzahl: Nenne genau so viele Vorschläge, wie sachlich begründet sind. Es gibt keine Mindest- oder Höchstzahl. Ein einziger gut begründeter Vorschlag ist besser als fünf beliebige; sind aufgrund der Ernährungslage viele sinnvoll, nenne auch viele.
+
+Bereits eingenommene Supplements:
+- Was regelmäßig (an fast allen Tagen des letzten Monats) eingenommen wird, ist erledigt — schlage es nicht erneut vor.
+- Was auf der Liste steht, aber unregelmäßig eingenommen wird, nimm mit kind="consistency" auf: die Empfehlung ist dann nicht ein neues Produkt, sondern die regelmäßige Einnahme des vorhandenen. Nenne in der Begründung konkret, an wie vielen Tagen es genommen wurde, und wofür die Regelmäßigkeit nötig ist (z.B. Kreatin wirkt nur bei täglicher Einnahme über Wochen).
+
+Gewichte neue Vorschläge und Begründungen zu etwa drei Vierteln auf Basis der tatsächlichen Ernährungsdaten (z.B. "der Proteinbedarf wird im Schnitt um X g/Tag verfehlt" oder "kaum fettreicher Fisch/Omega-3-Quellen erkennbar") und zu einem Viertel auf Basis allgemein anerkannter, zum Körperziel passender Supplements auch ohne direkten Datenbezug (z.B. ist Kreatin bei Muskelaufbau generell gut belegt, unabhängig von den geloggten Mahlzeiten).
 
 Bleibe bei allgemein anerkannten, gut belegten Supplements und breiten, üblichen Dosierungsspannen aus der Literatur — keine individuelle medizinische Beratung, keine ungewöhnlichen/riskanten Kombinationen oder Hochdosierungen. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema, auf Deutsch.`
+
 
 /**
  * Generates 2–5 supplement suggestions grounded mostly in the user's actual
@@ -584,10 +603,27 @@ export async function estimateSupplementRecommendations(
       ? `Tagesziel: ${Math.round(input.dailyTargets.kcal)} kcal, ${Math.round(input.dailyTargets.protein)}g Protein, ${Math.round(input.dailyTargets.carbs)}g Carbs, ${Math.round(input.dailyTargets.fat)}g Fett`
       : 'Kein Tagesziel hinterlegt (keine Körperwerte eingerichtet).',
     `Tatsächlicher Durchschnitt der letzten ${input.periodDays} Tage: ${Math.round(input.averageIntake.kcal)} kcal, ${Math.round(input.averageIntake.protein)}g Protein, ${Math.round(input.averageIntake.carbs)}g Carbs, ${Math.round(input.averageIntake.fat)}g Fett`,
-    input.alreadyTaking.length > 0
-      ? `Bereits eingenommene Supplements (nicht erneut vorschlagen): ${input.alreadyTaking.join(', ')}`
-      : 'Der Nutzer nimmt aktuell keine Supplements.',
+    input.established.length > 0
+      ? `Wird regelmäßig eingenommen (NICHT erneut vorschlagen): ${input.established.join(', ')}`
+      : 'Kein Supplement wird derzeit regelmäßig eingenommen.',
+    input.irregular.length > 0
+      ? `Steht auf der Liste, wird aber unregelmäßig eingenommen (als kind="consistency" aufnehmen): ${input.irregular
+          .map((i) => `${i.name} (an ${i.daysTaken} von ${i.daysTracked} Tagen)`)
+          .join(', ')}`
+      : 'Kein Supplement wird unregelmäßig eingenommen.',
   ]
+
+  if (input.previous && input.previous.length > 0) {
+    lines.push(
+      '',
+      'Deine Vorschläge vom letzten Mal — übernimm sie unverändert, solange die Daten keinen Anlass für eine Änderung geben:',
+      ...input.previous.map((p) => `- ${p.supplementName}: ${p.reasoning}`),
+      '',
+      input.nutritionChange
+        ? `Veränderung der Ernährungsdaten seitdem: ${input.nutritionChange}. Passe betroffene Vorschläge an und benenne die Veränderung in der Begründung.`
+        : 'An den Ernährungsdaten hat sich seitdem nichts Wesentliches geändert — die Begründungen sollen daher inhaltlich gleich bleiben.',
+    )
+  }
 
   const parsed = await callGemini({
     systemPrompt: SUPPLEMENT_RECOMMENDATION_SYSTEM_PROMPT,
@@ -604,6 +640,7 @@ export async function estimateSupplementRecommendations(
       ? s.suggestedTimesOfDay.filter((t: unknown): t is SupplementTimeOfDay => SUPPLEMENT_TIME_ENUM.includes(t as SupplementTimeOfDay))
       : [],
     reasoning: String(s.reasoning ?? ''),
+    kind: s.kind === 'consistency' ? 'consistency' : 'new',
   }))
 }
 
@@ -720,5 +757,6 @@ export async function estimateRecipeSuggestions(input: {
     category: MEAL_TYPE_ENUM.includes(s.category) ? s.category : 'lunch',
     description: String(s.description ?? ''),
     reasoning: String(s.reasoning ?? ''),
+    kind: s.kind === 'consistency' ? 'consistency' : 'new',
   }))
 }
