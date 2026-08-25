@@ -44,7 +44,7 @@ export function SupplementsPage() {
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       <h1 className="mb-4 text-2xl font-bold tracking-tight text-ink">Supplements</h1>
 
-      <div className="glass-subtle mb-5 flex gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5">
+      <div className="glass-subtle glass-subtle-themed mb-5 flex gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5">
         {TABS.map(({ key, label }) => (
           <button
             key={key}
@@ -56,7 +56,7 @@ export function SupplementsPage() {
             {tab === key && (
               <motion.span
                 layoutId="supplements-tab-pill"
-                className="absolute inset-0 rounded-full bg-accent/20"
+                className="absolute inset-0 rounded-full bg-section-20"
                 transition={prefersReducedMotion ? { duration: 0 } : SPRING_SNAPPY}
               />
             )}
@@ -95,7 +95,7 @@ function TodayTab() {
       {mySupplements === undefined || logEntries === undefined ? (
         <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
       ) : mySupplements.length === 0 ? (
-        <div className="glass-subtle flex flex-col items-center gap-3 rounded-3xl px-6 py-10 text-center">
+        <div className="glass-subtle glass-subtle-themed flex flex-col items-center gap-3 rounded-3xl px-6 py-10 text-center">
           <p className="text-sm text-ink-soft">
             Noch keine Supplements auf deiner Liste. Füge welche über den Katalog hinzu, oder lass dir unter
             „Vorschläge" welche empfehlen.
@@ -145,7 +145,7 @@ function CatalogTab() {
               <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">
                 {SUPPLEMENT_CATEGORY_LABELS[category]}
               </h2>
-              <div className="glass-subtle flex flex-col divide-y divide-line/60 overflow-hidden rounded-3xl">
+              <div className="glass-subtle glass-subtle-themed flex flex-col divide-y divide-line/60 overflow-hidden rounded-3xl">
                 {inCategory.map((s) => {
                   const already = myBySupplementId.has(s.id)
                   return (

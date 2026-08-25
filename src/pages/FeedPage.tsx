@@ -86,7 +86,7 @@ export function FeedPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
-      <div className="glass-subtle mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
+      <div className="glass-subtle glass-subtle-themed mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
         <button
           onClick={() => setDateKey((k) => addDays(k, -1))}
           className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-white"
@@ -116,7 +116,7 @@ export function FeedPage() {
         </button>
       </div>
 
-      <div className="glass-subtle mb-6 rounded-3xl p-5 shadow-sm shadow-black/5">
+      <div className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-5 shadow-sm shadow-black/5">
         <NutrientRings kcal={totals.kcal} protein={totals.protein} carbs={totals.carbs} fat={totals.fat} targets={targets} />
       </div>
 
@@ -130,7 +130,7 @@ export function FeedPage() {
             return (
               <section key={type}>
                 <div className="mb-2 flex items-center gap-2">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/12 text-accent">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-section-12 text-section">
                     <MealTypeIcon type={type} className="h-3.5 w-3.5" />
                   </span>
                   <h2 className="text-lg font-semibold text-ink">{MEAL_TYPE_LABELS[type]}</h2>

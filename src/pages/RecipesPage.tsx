@@ -33,14 +33,14 @@ export function RecipesPage() {
       <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
         <h1 className="mb-4 text-2xl font-bold tracking-tight text-ink">Rezepte</h1>
 
-        <div className="glass-subtle divide-y divide-line/60 overflow-hidden rounded-3xl shadow-sm shadow-black/5">
+        <div className="glass-subtle glass-subtle-themed divide-y divide-line/60 overflow-hidden rounded-3xl shadow-sm shadow-black/5">
           {MEAL_TYPE_ORDER.map((type) => (
             <Link
               key={type}
               to={`/recipes/${type}`}
               className="flex items-center gap-3 px-4 py-3.5 active:bg-bg/60"
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/12 text-accent">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-section-12 text-section">
                 <MealTypeIcon type={type} />
               </span>
               <span className="flex-1 text-sm font-medium text-ink">{MEAL_TYPE_LABELS[type]}</span>
@@ -52,7 +52,7 @@ export function RecipesPage() {
         {recentMeals && recentMeals.length > 0 && (
           <div className="mt-6">
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Zuletzt</h2>
-            <div className="glass-subtle flex flex-col divide-y divide-line/60 overflow-hidden rounded-3xl">
+            <div className="glass-subtle glass-subtle-themed flex flex-col divide-y divide-line/60 overflow-hidden rounded-3xl">
               {recentMeals.map((meal) => (
                 <button
                   key={meal.id}
@@ -60,7 +60,7 @@ export function RecipesPage() {
                   onClick={() => setEditorRequest({ kind: 'meal', meal })}
                   className="flex items-center gap-3 px-4 py-3 text-left"
                 >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/12 text-accent">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-section-12 text-section">
                     <MealTypeIcon type={meal.mealType} />
                   </span>
                   <div className="min-w-0 flex-1">
