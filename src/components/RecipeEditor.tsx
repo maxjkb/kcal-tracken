@@ -80,6 +80,10 @@ export function RecipeEditor({
       onClose={onClose}
       sheetClassName="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-surface sm:rounded-3xl"
       closeOnBackdropClick={false}
+      // Opens part-way: the title, the field and the actions are what matter on
+      // arrival, while the suggestions below are there to be pulled up, not to
+      // bury the page the moment the sheet appears.
+      detents={[0.6, 1]}
     >
       <RecipeEditorContent category={category} initial={initial} fromMeal={fromMeal} seed={seed} />
     </Sheet>

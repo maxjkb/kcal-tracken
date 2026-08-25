@@ -35,8 +35,13 @@ export function useSwipeBack(onBack: (() => void) | null, onForward?: (() => voi
     onPointerDown(event: React.PointerEvent) {
       if ((!onBack && !onForward) || event.pointerType === 'mouse') return
       const target = event.target as HTMLElement
-      // Text fields own horizontal drags (caret, selection); explicit opt-outs win too.
-      if (target.closest('input, textarea, [contenteditable="true"], [data-no-swipe]')) return
+      // Only genuinely drag-operated controls are excluded. Carving out every
+      // text field would gut the gesture where it's needed most: the editors'
+      // second step is almost entirely inputs, so "swipe right to go back"
+      // would have worked nowhere on the screen it belongs to. On mobile a
+      // horizontal drag over a field isn't a selection gesture anyway —
+      // selection goes through long-press and handles.
+      if (target.closest('input[type="range"], select, [data-no-swipe]')) return
       gesture.current = {
         x: event.clientX,
         y: event.clientY,
