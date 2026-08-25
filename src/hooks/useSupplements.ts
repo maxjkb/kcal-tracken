@@ -7,9 +7,10 @@ import {
   type MySupplement,
   type Supplement,
   type SupplementLogEntry,
+  type SupplementAdvisorRun,
+  type SupplementRecommendation,
   type SupplementTimeOfDay,
 } from '../lib/db'
-import type { SupplementRecommendation } from '../lib/gemini'
 
 /** The full catalog (seed + custom), newest custom additions first-ish — sorted by name for a stable, browsable list. */
 export function useAllSupplements(): Supplement[] | undefined {
@@ -67,6 +68,11 @@ export function useSupplementLogInRange(startKey: string, endKey: string): Suppl
     () => db.supplementLog.where('date').between(startKey, endKey, true, true).toArray(),
     [startKey, endKey],
   )
+}
+
+/** The newest stored advisor run — what the Vorschläge tab renders. Live, so the daily background refresh appears without a reload. */
+export function useLatestAdvisorRun(): SupplementAdvisorRun | undefined | null {
+  return useLiveQuery(async () => (await db.supplementAdvisorRuns.orderBy('generatedAt').last()) ?? null, [])
 }
 
 /**
