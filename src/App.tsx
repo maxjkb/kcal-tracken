@@ -16,6 +16,9 @@ import { guessMealType } from './lib/mealTypeGuess'
 
 const StatsPage = lazy(lazyRetry(() => import('./pages/StatsPage').then((m) => ({ default: m.StatsPage }))))
 const RecipesPage = lazy(lazyRetry(() => import('./pages/RecipesPage').then((m) => ({ default: m.RecipesPage }))))
+const SupplementsPage = lazy(
+  lazyRetry(() => import('./pages/SupplementsPage').then((m) => ({ default: m.SupplementsPage }))),
+)
 const RecipeCategoryPage = lazy(
   lazyRetry(() => import('./pages/RecipeCategoryPage').then((m) => ({ default: m.RecipeCategoryPage }))),
 )
@@ -25,9 +28,9 @@ const RecipeDetailPage = lazy(
 
 const recipesFallback = <p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>
 
-// Only the three main-page roots get the decorative top gradient — not their
+// Only the four main-page roots get the decorative top gradient — not their
 // sub-pages (recipe category/detail, settings, …).
-const TOP_GRADIENT_PATHS = ['/', '/recipes', '/stats']
+const TOP_GRADIENT_PATHS = ['/', '/recipes', '/supplements', '/stats']
 
 export default function App() {
   const [addingMeal, setAddingMeal] = useState(false)
@@ -81,6 +84,14 @@ export default function App() {
             element={
               <Suspense fallback={recipesFallback}>
                 <RecipeDetailPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/supplements"
+            element={
+              <Suspense fallback={<p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>}>
+                <SupplementsPage />
               </Suspense>
             }
           />

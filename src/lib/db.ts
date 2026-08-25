@@ -92,9 +92,88 @@ export const MEAL_TYPE_LABELS: Record<MealType, string> = {
 
 export const MEAL_TYPE_ORDER: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack']
 
+/**
+ * When during the day a supplement is taken. Deliberately its own set of
+ * boundaries, not reused from meal-type time guessing — "Nachts" (e.g.
+ * magnesium before bed) has no equivalent among meals, which never has a
+ * genuine late-night category.
+ */
+export type SupplementTimeOfDay = 'morning' | 'noon' | 'evening' | 'night'
+
+export const SUPPLEMENT_TIME_LABELS: Record<SupplementTimeOfDay, string> = {
+  morning: 'Morgens',
+  noon: 'Mittags',
+  evening: 'Abends',
+  night: 'Nachts',
+}
+
+export const SUPPLEMENT_TIME_ORDER: SupplementTimeOfDay[] = ['morning', 'noon', 'evening', 'night']
+
+export type SupplementCategory = 'build_muscle' | 'recovery' | 'general_health'
+
+export const SUPPLEMENT_CATEGORY_LABELS: Record<SupplementCategory, string> = {
+  build_muscle: 'Muskelaufbau',
+  recovery: 'Erholung',
+  general_health: 'Allgemeine Gesundheit',
+}
+
+/**
+ * A known supplement — the catalog entry. Both the built-in seed list
+ * (`lib/supplementSeed.ts`) and anything the user adds manually live in this
+ * same table; `isCustom` is purely informational (e.g. to label it in the
+ * catalog), both behave identically everywhere else.
+ */
+export interface Supplement {
+  id: string
+  name: string
+  category: SupplementCategory
+  /** Short one-line description of what it's commonly used for. */
+  description: string
+  /** Typical dosage as free text (e.g. "3–5 g") — units vary too much (g/mg/IE/Kapseln) for a structured amount+unit pair to pay off here. */
+  typicalDosage: string
+  isCustom: boolean
+  createdAt: number
+}
+
+/**
+ * One supplement the user has actually added to their own routine —
+ * references a `Supplement` catalog entry plus the user's personal dosage
+ * and the times of day they take it. `timesOfDay` drives how many check
+ * slots show up for this entry in the daily checklist — a supplement taken
+ * once a day only ever shows one slot, not four mostly-irrelevant ones.
+ */
+export interface MySupplement {
+  id: string
+  supplementId: string
+  timesOfDay: SupplementTimeOfDay[]
+  /** Personal dosage note, prefilled from the catalog's typicalDosage but freely editable. */
+  dosage: string
+  createdAt: number
+}
+
+/**
+ * One taken check-in for one (supplement, day, time-of-day) slot. Only
+ * positive check-ins are ever stored — same principle as meals never
+ * getting an "empty" placeholder row: a slot with no matching entry reads
+ * as "not taken (yet)", not as an explicit false needing its own row.
+ * Whether that then renders as pending or missed is a pure function of the
+ * current time relative to the slot's window, computed at render time.
+ */
+export interface SupplementLogEntry {
+  id: string
+  mySupplementId: string
+  /** Local date key (YYYY-MM-DD) this check-in belongs to. */
+  date: string
+  timeOfDay: SupplementTimeOfDay
+  checkedAt: number
+}
+
 class KcalDatabase extends Dexie {
   meals!: EntityTable<Meal, 'id'>
   recipes!: EntityTable<Recipe, 'id'>
+  supplements!: EntityTable<Supplement, 'id'>
+  mySupplements!: EntityTable<MySupplement, 'id'>
+  supplementLog!: EntityTable<SupplementLogEntry, 'id'>
 
   constructor() {
     super('kcal-tracker')
@@ -104,6 +183,13 @@ class KcalDatabase extends Dexie {
     this.version(2).stores({
       meals: 'id, date, mealType, createdAt',
       recipes: 'id, category, createdAt',
+    })
+    this.version(3).stores({
+      meals: 'id, date, mealType, createdAt',
+      recipes: 'id, category, createdAt',
+      supplements: 'id, name, category, createdAt',
+      mySupplements: 'id, supplementId, createdAt',
+      supplementLog: 'id, mySupplementId, date, [mySupplementId+date+timeOfDay]',
     })
   }
 }
@@ -115,6 +201,18 @@ export function newMealId(): string {
 }
 
 export function newRecipeId(): string {
+  return crypto.randomUUID()
+}
+
+export function newSupplementId(): string {
+  return crypto.randomUUID()
+}
+
+export function newMySupplementId(): string {
+  return crypto.randomUUID()
+}
+
+export function newSupplementLogId(): string {
   return crypto.randomUUID()
 }
 

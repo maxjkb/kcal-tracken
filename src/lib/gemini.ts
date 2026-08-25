@@ -1,5 +1,6 @@
 import { getApiKey } from './settings'
 import { searchFoodDatabaseMany, type FoodDatabaseMatch } from './foodDatabase'
+import type { SupplementCategory, SupplementTimeOfDay } from './db'
 
 const DEFAULT_MODEL = 'gemini-3.6-flash'
 const MODEL_STORAGE_KEY = 'kcal-tracker:gemini-model'
@@ -492,4 +493,148 @@ export async function estimateSingleIngredient(input: string): Promise<SingleIng
     fat: round1(Number(parsed.fat) || 0),
     note: parsed.note ? String(parsed.note) : undefined,
   }
+}
+
+// --- Supplements -------------------------------------------------------
+
+const SUPPLEMENT_TIME_ENUM: SupplementTimeOfDay[] = ['morning', 'noon', 'evening', 'night']
+const SUPPLEMENT_CATEGORY_ENUM: SupplementCategory[] = ['build_muscle', 'recovery', 'general_health']
+
+export interface SupplementRecommendationInput {
+  /** German label of the user's body goal, e.g. "Muskelaufbau" — as freeform text so this file stays decoupled from lib/bodyProfile.ts. */
+  goalLabel: string
+  /** Computed daily targets, or null if no body profile is set yet. */
+  dailyTargets: { kcal: number; protein: number; carbs: number; fat: number } | null
+  /** Actual average daily intake over the analyzed period, from logged meals. */
+  averageIntake: { kcal: number; protein: number; carbs: number; fat: number }
+  /** How many days averageIntake covers — gives the model honest context on how much signal it actually has. */
+  periodDays: number
+  /** Names of supplements already on the user's list, so the model doesn't just re-suggest them. */
+  alreadyTaking: string[]
+}
+
+export interface SupplementRecommendation {
+  supplementName: string
+  category: SupplementCategory
+  suggestedDosage: string
+  suggestedTimesOfDay: SupplementTimeOfDay[]
+  reasoning: string
+}
+
+const SUPPLEMENT_RECOMMENDATION_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    suggestions: {
+      type: 'ARRAY',
+      description: '2 bis 5 konkrete, unterschiedliche Supplement-Vorschläge — lieber wenige gut begründete als viele beliebige.',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          supplementName: {
+            type: 'STRING',
+            description: 'Name des Supplements auf Deutsch, z.B. "Kreatin (Monohydrat)" oder "Omega-3".',
+          },
+          category: {
+            type: 'STRING',
+            enum: SUPPLEMENT_CATEGORY_ENUM,
+            description: 'build_muscle = Muskelaufbau/Kraft/Leistung, recovery = Erholung/Schlaf/Stress, general_health = allgemeine Gesundheit.',
+          },
+          suggestedDosage: {
+            type: 'STRING',
+            description: 'Übliche Dosierung als Text in einer allgemein anerkannten Spanne, z.B. "3–5 g täglich" — keine individuell-medizinische Dosierungsempfehlung.',
+          },
+          suggestedTimesOfDay: {
+            type: 'ARRAY',
+            items: { type: 'STRING', enum: SUPPLEMENT_TIME_ENUM },
+            description: 'Zu welcher/n Tageszeit(en) dieses Supplement üblicherweise eingenommen wird — meist genau eine, bei mehrfach täglicher Einnahme auch mehrere.',
+          },
+          reasoning: {
+            type: 'STRING',
+            description:
+              'Kurze, konkrete Begründung auf Deutsch (1-3 Sätze) — soweit möglich mit Bezug auf die tatsächlichen Nährwertdaten des Nutzers (z.B. eine erkennbare Lücke), sonst auf das Körperziel gestützt.',
+          },
+        },
+        required: ['supplementName', 'category', 'suggestedDosage', 'suggestedTimesOfDay', 'reasoning'],
+      },
+    },
+  },
+  required: ['suggestions'],
+}
+
+const SUPPLEMENT_RECOMMENDATION_SYSTEM_PROMPT = `Du bist ein Ernährungsassistent, der Nahrungsergänzungsmittel (Supplements) vorschlägt. Du bekommst das Körperziel des Nutzers sowie seine tatsächlichen Ernährungsdaten der letzten Zeit (Ziel- vs. Ist-Werte für Kalorien/Protein/Kohlenhydrate/Fett) und eine Liste bereits eingenommener Supplements.
+
+Gewichte deine Vorschläge und Begründungen zu etwa drei Vierteln auf Basis der tatsächlichen Ernährungsdaten (z.B. "der Proteinbedarf wird im Schnitt um X g/Tag verfehlt" oder "kaum fettreicher Fisch/Omega-3-Quellen erkennbar") und zu einem Viertel auf Basis allgemein anerkannter, zum Körperziel passender Supplements auch ohne direkten Datenbezug (z.B. ist Kreatin bei Muskelaufbau generell gut belegt, unabhängig von den geloggten Mahlzeiten). Schlage keine bereits eingenommenen Supplements erneut vor.
+
+Bleibe bei allgemein anerkannten, gut belegten Supplements und breiten, üblichen Dosierungsspannen aus der Literatur — keine individuelle medizinische Beratung, keine ungewöhnlichen/riskanten Kombinationen oder Hochdosierungen. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema, auf Deutsch.`
+
+/**
+ * Generates 2–5 supplement suggestions grounded mostly in the user's actual
+ * recent nutrition data (see the weighting instruction in the system
+ * prompt above), refreshed only on explicit user request — never
+ * auto-triggered on every meal save, both to respect the free API quota
+ * and because a suggestion list that shuffles itself on its own would feel
+ * less like a considered recommendation and more like noise.
+ */
+export async function estimateSupplementRecommendations(
+  input: SupplementRecommendationInput,
+): Promise<SupplementRecommendation[]> {
+  const lines = [
+    `Körperziel: ${input.goalLabel}`,
+    input.dailyTargets
+      ? `Tagesziel: ${Math.round(input.dailyTargets.kcal)} kcal, ${Math.round(input.dailyTargets.protein)}g Protein, ${Math.round(input.dailyTargets.carbs)}g Carbs, ${Math.round(input.dailyTargets.fat)}g Fett`
+      : 'Kein Tagesziel hinterlegt (keine Körperwerte eingerichtet).',
+    `Tatsächlicher Durchschnitt der letzten ${input.periodDays} Tage: ${Math.round(input.averageIntake.kcal)} kcal, ${Math.round(input.averageIntake.protein)}g Protein, ${Math.round(input.averageIntake.carbs)}g Carbs, ${Math.round(input.averageIntake.fat)}g Fett`,
+    input.alreadyTaking.length > 0
+      ? `Bereits eingenommene Supplements (nicht erneut vorschlagen): ${input.alreadyTaking.join(', ')}`
+      : 'Der Nutzer nimmt aktuell keine Supplements.',
+  ]
+
+  const parsed = await callGemini({
+    systemPrompt: SUPPLEMENT_RECOMMENDATION_SYSTEM_PROMPT,
+    parts: [{ text: lines.join('\n') }],
+    responseSchema: SUPPLEMENT_RECOMMENDATION_SCHEMA,
+  })
+
+  const raw = Array.isArray(parsed.suggestions) ? parsed.suggestions : []
+  return raw.map((s) => ({
+    supplementName: String(s.supplementName ?? 'Supplement'),
+    category: SUPPLEMENT_CATEGORY_ENUM.includes(s.category) ? s.category : 'general_health',
+    suggestedDosage: String(s.suggestedDosage ?? ''),
+    suggestedTimesOfDay: Array.isArray(s.suggestedTimesOfDay)
+      ? s.suggestedTimesOfDay.filter((t: unknown): t is SupplementTimeOfDay => SUPPLEMENT_TIME_ENUM.includes(t as SupplementTimeOfDay))
+      : [],
+    reasoning: String(s.reasoning ?? ''),
+  }))
+}
+
+const SUPPLEMENT_TIMING_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    timesOfDay: {
+      type: 'ARRAY',
+      items: { type: 'STRING', enum: SUPPLEMENT_TIME_ENUM },
+      description: 'Zu welcher/n Tageszeit(en) dieses Supplement üblicherweise eingenommen wird — meist genau eine.',
+    },
+  },
+  required: ['timesOfDay'],
+}
+
+const SUPPLEMENT_TIMING_SYSTEM_PROMPT = `Du bist ein Ernährungsassistent. Der Nutzer nennt den Namen eines Nahrungsergänzungsmittels. Nenne, zu welcher/n Tageszeit(en) es laut allgemein üblicher Praxis sinnvollerweise eingenommen wird (z.B. Magnesium eher abends, Kreatin zu einer beliebigen aber täglich gleichen Zeit, Omega-3 zu einer Mahlzeit). Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema.`
+
+/**
+ * Standalone timing suggestion for a supplement the user is adding
+ * manually — independent of whether it was itself an AI suggestion. Doesn't
+ * need any of the user's food data, just general knowledge about that one
+ * supplement, so it's a much smaller/cheaper call than the full
+ * recommendation pass above.
+ */
+export async function estimateSupplementTiming(supplementName: string): Promise<SupplementTimeOfDay[]> {
+  const parsed = await callGemini({
+    systemPrompt: SUPPLEMENT_TIMING_SYSTEM_PROMPT,
+    parts: [{ text: supplementName.trim() }],
+    responseSchema: SUPPLEMENT_TIMING_SCHEMA,
+  })
+  const raw = Array.isArray(parsed.timesOfDay) ? parsed.timesOfDay : []
+  const times = raw.filter((t: unknown): t is SupplementTimeOfDay => SUPPLEMENT_TIME_ENUM.includes(t as SupplementTimeOfDay))
+  return times.length > 0 ? times : ['morning']
 }

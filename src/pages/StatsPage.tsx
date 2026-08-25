@@ -18,6 +18,7 @@ import { ChevronIcon } from '../components/ChevronIcon'
 import { ConcentricRings, NutrientRings } from '../components/NutrientRings'
 import { DayPickerModal, MonthPickerModal, YearPickerModal } from '../components/DatePickerModal'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
+import { SupplementAdherenceCard } from '../components/SupplementAdherenceCard'
 import {
   bucketByDay,
   bucketByMonth,
@@ -276,6 +277,8 @@ export function StatsPage() {
         </div>
       </div>
       )}
+
+      <SupplementAdherenceCard startKey={startKey} endKey={endKey} />
 
       {pickerOpen && period === 'day' && (
         <DayPickerModal
