@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-const MIN_HEIGHT_PX = 76 // ~3 rows
+const DEFAULT_MIN_HEIGHT_PX = 76 // ~3 rows
 const MAX_HEIGHT_PX = 220 // beyond this, scroll instead of growing further
 
 /**
@@ -15,12 +15,15 @@ export function AutoGrowTextarea({
   placeholder,
   disabled,
   className = '',
+  minHeight = DEFAULT_MIN_HEIGHT_PX,
 }: {
   value: string
   onChange: (value: string) => void
   placeholder?: string
   disabled?: boolean
   className?: string
+  /** Floor for the auto-grown height — used to align the field with a control column beside it. */
+  minHeight?: number
 }) {
   const ref = useRef<HTMLTextAreaElement>(null)
 
@@ -28,9 +31,9 @@ export function AutoGrowTextarea({
     const el = ref.current
     if (!el) return
     el.style.height = 'auto'
-    const next = Math.min(Math.max(el.scrollHeight, MIN_HEIGHT_PX), MAX_HEIGHT_PX)
+    const next = Math.min(Math.max(el.scrollHeight, minHeight), MAX_HEIGHT_PX)
     el.style.height = `${next}px`
-  }, [value])
+  }, [value, minHeight])
 
   return (
     <textarea
@@ -39,7 +42,7 @@ export function AutoGrowTextarea({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      style={{ minHeight: MIN_HEIGHT_PX, maxHeight: MAX_HEIGHT_PX }}
+      style={{ minHeight, maxHeight: MAX_HEIGHT_PX }}
       className={`resize-none overflow-y-auto ${className}`}
     />
   )

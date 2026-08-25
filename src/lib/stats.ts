@@ -1,4 +1,4 @@
-import { toLocalDateKey } from './db'
+import { toLocalDateKey, type Nutrition } from './db'
 
 export type Period = 'day' | 'week' | 'month' | 'year'
 
@@ -65,24 +65,45 @@ export function formatPeriodLabel(period: Period, anchorKey: string): string {
   return String(anchor.getFullYear())
 }
 
-export interface DayBucket {
+/**
+ * One point on a statistics chart.
+ *
+ * Carries all four macros, not just kcal: tapping a point opens the same
+ * nutrient rings the rest of the app uses, and a bucket that only knew its
+ * calories would have had to go back to the database to answer that.
+ */
+export interface StatBucket {
   key: string
   label: string
   kcal: number
+  protein: number
+  carbs: number
+  fat: number
 }
 
-export function bucketByDay(startKey: string, endKey: string, kcalByDate: Map<string, number>): DayBucket[] {
-  const buckets: DayBucket[] = []
+/** Alias kept for readability at call sites that deal specifically in days. */
+export type DayBucket = StatBucket
+
+const EMPTY: Nutrition = { kcal: 0, protein: 0, carbs: 0, fat: 0 }
+
+function addInto(target: StatBucket, add: Nutrition | undefined): void {
+  if (!add) return
+  target.kcal += add.kcal
+  target.protein += add.protein
+  target.carbs += add.carbs
+  target.fat += add.fat
+}
+
+export function bucketByDay(startKey: string, endKey: string, byDate: Map<string, Nutrition>): StatBucket[] {
+  const buckets: StatBucket[] = []
   let cur = parseDateKey(startKey)
   const end = parseDateKey(endKey)
   while (cur <= end) {
     const key = toLocalDateKey(cur)
-    buckets.push({
-      key,
-      // Day number only — the month is shown once as a heading above the chart instead.
-      label: String(cur.getDate()),
-      kcal: kcalByDate.get(key) ?? 0,
-    })
+    // Day number only — the month is shown once as a heading above the chart instead.
+    const bucket: StatBucket = { key, label: String(cur.getDate()), ...EMPTY }
+    addInto(bucket, byDate.get(key))
+    buckets.push(bucket)
     cur = new Date(cur)
     cur.setDate(cur.getDate() + 1)
   }
@@ -102,31 +123,27 @@ export function monthHeadingLabel(startKey: string, endKey: string): string {
   return startLabel === endLabel ? startLabel : `${startLabel}/${endLabel}`
 }
 
-export interface MonthBucket {
-  key: string
-  label: string
-  kcal: number
-}
+export type MonthBucket = StatBucket
 
 export const MONTH_LABELS = [
   'Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez',
 ]
 
-export function bucketByMonth(year: number, kcalByDate: Map<string, number>): MonthBucket[] {
-  const sums = new Array(12).fill(0)
-  for (const [dateKey, kcal] of kcalByDate) {
+export function bucketByMonth(year: number, byDate: Map<string, Nutrition>): StatBucket[] {
+  const buckets: StatBucket[] = MONTH_LABELS.map((label, i) => ({
+    key: `${year}-${String(i + 1).padStart(2, '0')}`,
+    label,
+    ...EMPTY,
+  }))
+  for (const [dateKey, nutrition] of byDate) {
     const [y, m] = dateKey.split('-').map(Number)
-    if (y === year) sums[m - 1] += kcal
+    if (y === year) addInto(buckets[m - 1], nutrition)
   }
-  return sums.map((kcal, i) => ({ key: `${year}-${String(i + 1).padStart(2, '0')}`, label: MONTH_LABELS[i], kcal }))
+  return buckets
 }
 
-export interface WeekBucket {
-  /** Monday date-key of this week — usable as the anchor when drilling into the Woche view. */
-  key: string
-  label: string
-  kcal: number
-}
+/** `key` is the Monday date-key of the week — usable as the anchor when drilling into the Woche view. */
+export type WeekBucket = StatBucket
 
 /** ISO-8601 week number (1–53) for a date, based on the Monday-start week containing it. */
 function isoWeekNumber(date: Date): number {
@@ -140,17 +157,17 @@ function isoWeekNumber(date: Date): number {
 }
 
 /** Buckets a range (typically a month) into calendar weeks (Monday-start) — used for the Monat chart, where each bar is a clickable week. Labeled "KW{n}" (short enough for ~5 bars to fit without overlapping, unlike a full date range). */
-export function bucketByWeek(startKey: string, endKey: string, kcalByDate: Map<string, number>): WeekBucket[] {
-  const buckets = new Map<string, WeekBucket>()
+export function bucketByWeek(startKey: string, endKey: string, byDate: Map<string, Nutrition>): StatBucket[] {
+  const buckets = new Map<string, StatBucket>()
   let cur = parseDateKey(startKey)
   const end = parseDateKey(endKey)
   while (cur <= end) {
     const weekStart = startOfWeek(cur)
     const weekKey = toLocalDateKey(weekStart)
     if (!buckets.has(weekKey)) {
-      buckets.set(weekKey, { key: weekKey, label: `KW${isoWeekNumber(weekStart)}`, kcal: 0 })
+      buckets.set(weekKey, { key: weekKey, label: `KW${isoWeekNumber(weekStart)}`, ...EMPTY })
     }
-    buckets.get(weekKey)!.kcal += kcalByDate.get(toLocalDateKey(cur)) ?? 0
+    addInto(buckets.get(weekKey)!, byDate.get(toLocalDateKey(cur)))
     cur = new Date(cur)
     cur.setDate(cur.getDate() + 1)
   }
@@ -188,3 +205,4 @@ export function computeDailyMacroAverages(startKey: string, endKey: string, tota
     fat: totals.fat / days,
   }
 }
+

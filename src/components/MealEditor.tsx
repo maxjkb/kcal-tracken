@@ -341,7 +341,7 @@ function MealEditorContent({
           style={{ transform: `translateX(-${step === 'review' ? 100 : 0}%)` }}
         >
           {/* Step 1: input */}
-          <div className="w-full shrink-0 overflow-y-auto px-5 pb-5">
+          <div className="w-full shrink-0 overflow-y-auto overflow-x-hidden px-5 pb-5">
             {pickingRecipe ? (
               <div className="flex flex-col gap-4">
                 <button
@@ -394,6 +394,10 @@ function MealEditorContent({
                         value={description}
                         onChange={setDescription}
                         disabled={cleaningUp}
+                        // Two 44px buttons and the 8px gap between them: the
+                        // field now starts level with the mic and ends level
+                        // with the send arrow instead of stopping short of it.
+                        minHeight={96}
                         placeholder="z.B. 200g Hähnchenbrust, 150g Reis, etwas Brokkoli und 1 EL Olivenöl"
                         className={`w-full rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none ${cleaningUp ? 'opacity-50' : ''}`}
                       />
@@ -454,7 +458,7 @@ function MealEditorContent({
           </div>
 
           {/* Step 2: review */}
-          <div className="w-full shrink-0 overflow-y-auto px-5 pb-5">
+          <div className="w-full shrink-0 overflow-y-auto overflow-x-hidden px-5 pb-5">
             <div className="flex flex-col gap-4">
               <label className="flex flex-col gap-1">
                 <span className="text-xs text-ink-soft">Datum</span>
@@ -603,13 +607,25 @@ function MealSuggestions({ mealType, onPick }: { mealType: MealType; onPick: (s:
             key={s.title}
             type="button"
             onClick={() => onPick(s)}
-            className="flex items-center justify-between gap-3 rounded-2xl border border-line px-3 py-2.5 text-left transition active:bg-bg"
+            className="flex w-full items-center justify-between gap-3 rounded-2xl border border-line px-3 py-2.5 text-left transition active:bg-bg"
           >
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-medium text-ink">{s.title}</span>
-              <span className="text-xs text-ink-soft">
-                {Math.round(s.nutrition.kcal)} kcal
-                {s.count > 1 && ` · ${s.count}× erfasst`}
+            {/* `flex-1` alongside `min-w-0` is what actually lets this shrink.
+                With min-w-0 alone the column still sized to its content, so a
+                long meal title pushed the row wider than the sheet — and since
+                the step pane scrolls, the whole sheet could be dragged
+                sideways. */}
+            <span className="min-w-0 flex-1">
+              {/* Two lines, then ellipsis: one line cut most real titles off
+                  mid-dish, and these are picked by reading them. */}
+              <span className="block text-sm font-medium leading-snug text-ink line-clamp-2">{s.title}</span>
+              {/* The same badges the Feed uses, so a meal looks the same
+                  wherever it appears — recognising it here is the whole point
+                  of the list. */}
+              <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <MacroBadge type="kcal" value={s.nutrition.kcal} size="sm" />
+                <MacroRingBadge type="protein" value={s.nutrition.protein} size="sm" />
+                <MacroRingBadge type="carbs" value={s.nutrition.carbs} size="sm" />
+                <MacroRingBadge type="fat" value={s.nutrition.fat} size="sm" />
               </span>
             </span>
             <span className="shrink-0 text-ink-faint">

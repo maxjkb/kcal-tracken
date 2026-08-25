@@ -1,23 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
 import { useMealSummariesInRange, type MealSummary } from '../hooks/useMeals'
-import { MEAL_TYPE_LABELS, toLocalDateKey } from '../lib/db'
+import { MEAL_TYPE_LABELS, toLocalDateKey, type Nutrition } from '../lib/db'
 import { ChevronIcon } from '../components/ChevronIcon'
 import { ConcentricRings, NutrientRings } from '../components/NutrientRings'
 import { DayPickerModal, MonthPickerModal, YearPickerModal } from '../components/DatePickerModal'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { SupplementAdherenceCard } from '../components/SupplementAdherenceCard'
+import { KcalTrendChart } from '../components/KcalTrendChart'
+import type { StatBucket } from '../lib/stats'
 import { PageHeader, HeaderButton } from '../components/PageHeader'
 import { BouncingDots } from '../components/BouncingDots'
 import {
@@ -49,6 +40,10 @@ export function StatsPage() {
   const [period, setPeriod] = useState<Period>('week')
   const [anchorKey, setAnchorKey] = useState(() => toLocalDateKey(new Date()))
   const [pickerOpen, setPickerOpen] = useState(false)
+  // Which of the two summaries the area below expands on. Chart first: the
+  // shape over time is what the period views exist for, the macro breakdown is
+  // the follow-up question.
+  const [view, setView] = useState<'trend' | 'nutrients'>('trend')
   const { startKey, endKey } = getPeriodRange(period, anchorKey)
   const meals = useMealSummariesInRange(startKey, endKey)
   const [exporting, setExporting] = useState(false)
@@ -78,10 +73,17 @@ export function StatsPage() {
     }
   }
 
-  const kcalByDate = new Map<string, number>()
+  // Per-day totals across all four macros, not just kcal: the chart's points
+  // are tappable and open the full nutrient rings for that day or week.
+  const nutritionByDate = new Map<string, Nutrition>()
   const totals = { kcal: 0, protein: 0, carbs: 0, fat: 0 }
   for (const m of meals ?? []) {
-    kcalByDate.set(m.date, (kcalByDate.get(m.date) ?? 0) + m.nutrition.kcal)
+    const day = nutritionByDate.get(m.date) ?? { kcal: 0, protein: 0, carbs: 0, fat: 0 }
+    day.kcal += m.nutrition.kcal
+    day.protein += m.nutrition.protein
+    day.carbs += m.nutrition.carbs
+    day.fat += m.nutrition.fat
+    nutritionByDate.set(m.date, day)
     totals.kcal += m.nutrition.kcal
     totals.protein += m.nutrition.protein
     totals.carbs += m.nutrition.carbs
@@ -107,9 +109,9 @@ export function StatsPage() {
   // Woche bars = days (click → that day's Tag view); Monat bars = weeks
   // (click → that week's Woche view); Jahr points = months (click → that
   // month's Monat view) — each period's chart drills into the next-finer one.
-  const dayData = period === 'week' ? bucketByDay(startKey, endKey, kcalByDate) : []
-  const weekData = period === 'month' ? bucketByWeek(startKey, endKey, kcalByDate) : []
-  const monthData = period === 'year' ? bucketByMonth(Number(anchorKey.slice(0, 4)), kcalByDate) : []
+  const dayData = period === 'week' ? bucketByDay(startKey, endKey, nutritionByDate) : []
+  const weekData = period === 'month' ? bucketByWeek(startKey, endKey, nutritionByDate) : []
+  const monthData = period === 'year' ? bucketByMonth(Number(anchorKey.slice(0, 4)), nutritionByDate) : []
   const barData = period === 'week' ? dayData : period === 'month' ? weekData : []
   const perMealData =
     period === 'day'
@@ -212,6 +214,8 @@ export function StatsPage() {
         <StatTile
           value={Math.round(period === 'day' ? perMealAverages.kcal : dailyAverage).toLocaleString('de-DE')}
           label={period === 'day' ? 'Ø kcal / Mahlzeit' : 'Ø kcal / Tag'}
+          selected={period !== 'day' && view === 'trend'}
+          onSelect={period === 'day' ? undefined : () => setView('trend')}
         />
         <RingTile
           kcal={ringValues.kcal}
@@ -220,6 +224,8 @@ export function StatsPage() {
           fat={ringValues.fat}
           targets={dailyTargets}
           caption={period === 'day' ? 'Nährwerte' : 'Ø Nährwerte/Tag'}
+          selected={period !== 'day' && view === 'nutrients'}
+          onSelect={period === 'day' ? undefined : () => setView('nutrients')}
         />
       </div>
 
@@ -240,63 +246,48 @@ export function StatsPage() {
             />
           )}
         </div>
-      ) : (
-      <div className="rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
-        {(period === 'week' || period === 'month') && meals !== undefined && barData.length > 0 && (
-          <div className="mb-2 text-xs font-semibold text-ink-soft">{monthHeadingLabel(startKey, endKey)}</div>
-        )}
-        <div className="h-56">
+      ) : view === 'nutrients' ? (
+        /* The Feed's own daily breakdown, applied to the period's average —
+           same rings, same colours, same percent-of-target readout, so the
+           number in the tile above and the detail below are visibly the same
+           thing at two levels of zoom. */
+        <div className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
           {meals === undefined ? (
-            <p className="flex h-full items-center justify-center text-sm text-ink-soft">Lädt…</p>
-          ) : period === 'year' ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={monthData}
-                margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
-                onClick={(state) => handleMonthPointClick(monthData.find((d) => d.label === state?.activeLabel)?.key)}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e5ea" vertical={false} />
-                <XAxis dataKey="label" stroke="#6e6e73" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#6e6e73" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip
-                  contentStyle={{ background: '#ffffff', border: '1px solid #e5e5ea', borderRadius: 12 }}
-                  labelStyle={{ color: '#1d1d1f' }}
-                  formatter={(v) => [`${Math.round(Number(v))} kcal`, 'Gesamt']}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="kcal"
-                  stroke="#0a84ff"
-                  strokeWidth={2.5}
-                  dot={{ r: 3, fill: '#0a84ff', cursor: 'pointer' }}
-                  activeDot={{ r: 5, cursor: 'pointer' }}
-                  cursor="pointer"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e5ea" vertical={false} />
-                <XAxis dataKey="label" stroke="#6e6e73" fontSize={11} tickLine={false} axisLine={false} interval={0} />
-                <YAxis stroke="#6e6e73" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip
-                  contentStyle={{ background: '#ffffff', border: '1px solid #e5e5ea', borderRadius: 12 }}
-                  labelStyle={{ color: '#1d1d1f' }}
-                  formatter={(v) => [`${Math.round(Number(v))} kcal`, 'Kalorien']}
-                />
-                <Bar
-                  dataKey="kcal"
-                  fill="#0a84ff"
-                  radius={[6, 6, 0, 0]}
-                  cursor="pointer"
-                  onClick={(data) => handleBarClick((data as { payload?: { key: string } })?.payload)}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            <NutrientRings
+              kcal={dailyAverage}
+              protein={macroAverages.protein}
+              carbs={macroAverages.carbs}
+              fat={macroAverages.fat}
+              targets={dailyTargets}
+            />
           )}
         </div>
-      </div>
+      ) : (
+        <div className="rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+          {(period === 'week' || period === 'month') && meals !== undefined && barData.length > 0 && (
+            <div className="mb-2 text-xs font-semibold text-ink-soft">{monthHeadingLabel(startKey, endKey)}</div>
+          )}
+          {/* min-h rather than a fixed h-56: the detail panel opens inside this
+              box, and a fixed height would squeeze the chart instead of letting
+              the card grow. */}
+          <div className="min-h-56">
+            {meals === undefined ? (
+              <p className="flex h-56 items-center justify-center text-sm text-ink-soft">Lädt…</p>
+            ) : (
+              <KcalTrendChart
+                data={period === 'year' ? monthData : barData}
+                unitLabel={period === 'year' ? 'Monat' : period === 'month' ? 'Woche' : 'Tag'}
+                targets={dailyTargets}
+                emptyLabel="Keine Einträge in diesem Zeitraum."
+                onSelectBucket={(bucket: StatBucket) =>
+                  period === 'year' ? handleMonthPointClick(bucket.key) : handleBarClick({ key: bucket.key })
+                }
+              />
+            )}
+          </div>
+        </div>
       )}
 
       <SupplementAdherenceCard startKey={startKey} endKey={endKey} />
@@ -348,12 +339,40 @@ export function StatsPage() {
   )
 }
 
-function StatTile({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="flex h-24 flex-col items-center justify-center rounded-3xl bg-surface p-3 text-center shadow-sm shadow-black/5">
+/**
+ * One tile of the stat row.
+ *
+ * When `onSelect` is given the tile becomes the control that chooses what the
+ * area below shows, and `selected` marks which one is active. The numbers were
+ * already the two summaries of the period, so making them the switch keeps the
+ * page from growing a separate row of tabs that says the same thing twice.
+ */
+function StatTile({
+  value,
+  label,
+  selected,
+  onSelect,
+}: {
+  value: string
+  label: string
+  selected?: boolean
+  onSelect?: () => void
+}) {
+  const body = (
+    <>
       <div className="text-xl font-bold text-ink">{value}</div>
       <div className="text-[10px] text-ink-soft">{label}</div>
-    </div>
+    </>
+  )
+  const shell = `flex h-24 w-full flex-col items-center justify-center rounded-3xl p-3 text-center shadow-sm shadow-black/5 transition ${
+    selected ? 'bg-surface ring-2 ring-inset ring-accent' : 'bg-surface'
+  }`
+
+  if (!onSelect) return <div className={shell}>{body}</div>
+  return (
+    <button type="button" onClick={onSelect} aria-pressed={selected} className={shell}>
+      {body}
+    </button>
   )
 }
 
@@ -365,6 +384,8 @@ function RingTile({
   fat,
   targets,
   caption,
+  selected,
+  onSelect,
 }: {
   kcal: number
   protein: number
@@ -372,12 +393,24 @@ function RingTile({
   fat: number
   targets: { kcal: number; protein: number; carbs: number; fat: number } | null
   caption: string
+  selected?: boolean
+  onSelect?: () => void
 }) {
-  return (
-    <div className="flex h-24 flex-col items-center justify-center gap-1 rounded-3xl bg-surface p-2 text-center shadow-sm shadow-black/5">
+  const body = (
+    <>
       <ConcentricRings kcal={kcal} protein={protein} carbs={carbs} fat={fat} targets={targets} size="compact" />
       <div className="text-[10px] leading-tight text-ink-soft">{caption}</div>
-    </div>
+    </>
+  )
+  const shell = `flex h-24 w-full flex-col items-center justify-center gap-1 rounded-3xl p-2 text-center shadow-sm shadow-black/5 transition ${
+    selected ? 'bg-surface ring-2 ring-inset ring-accent' : 'bg-surface'
+  }`
+
+  if (!onSelect) return <div className={shell}>{body}</div>
+  return (
+    <button type="button" onClick={onSelect} aria-pressed={selected} className={shell}>
+      {body}
+    </button>
   )
 }
 
