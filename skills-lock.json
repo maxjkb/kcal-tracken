@@ -25,6 +25,12 @@
       "skillPath": "skills/apple-design/SKILL.md",
       "computedHash": "8b94db67cb9edaad5f1501010804caa610131f1d2dfda0a27664b2e858deade3"
     },
+    "apple-hig-review": {
+      "source": "dickwu/apple-design-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "7622f57bcf61f9e49575ac3504f7be71442a155ff28a6da09aaefb6965e677a4"
+    },
     "ask-sonner": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
