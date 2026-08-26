@@ -20,7 +20,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     version: '1.13.0',
     date: '2026-08-26',
     highlights: [
-      'Mikronährstoff-Balken neu gestaltet: Abkürzung (z. B. „Fe") in Akzentfarbe über dem Balken, Name darunter, keine Prozentzahlen mehr — stattdessen ein Zeiger auf einem hell-zu-dunkel-Verlauf.',
+      'Mikronährstoff-Balken neu gestaltet: Abkürzung (z. B. „Fe") in Akzentfarbe über dem Balken, Name darunter, keine Prozentzahlen mehr — stattdessen ein Zeiger auf einem hell-zu-dunkel-Verlauf in drei Dritteln.',
       'Statistik: Makronährstoffe stehen wieder oben, Mikronährstoffe darunter.',
       'Mikronährstoffe werden jetzt auch rückwirkend für bereits eingetragene Mahlzeiten grob nachgeschätzt.',
     ],

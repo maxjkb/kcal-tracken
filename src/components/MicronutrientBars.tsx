@@ -47,6 +47,26 @@ const BAND_SR_LABEL: Record<'low' | 'average' | 'good', string> = {
 const MAX_RATIO_FOR_POSITION = 1.5
 
 /**
+ * The track is three segments with a hairline gap between them at the
+ * one-third marks, rather than one continuous bar — a visible "lower
+ * third / middle third / upper third" split. Each segment shows its own
+ * slice of the SAME overall gradient (same colors, same 0%→100% light-to-
+ * dark span) via background-size/-position, so the three pieces still read
+ * as one continuous ramp interrupted only by the gaps, not three unrelated
+ * bars. The gap itself shows the track's own neutral base color — chosen
+ * deliberately over a drawn tick/line: a tick would need to contrast against
+ * wherever it happens to land on ten different colored gradients, and a gap
+ * needs no contrast at all, since nothing is painted there to see (see the
+ * A/B/C/D design comparison this converged from — variant A, picked for
+ * exactly this reason).
+ */
+const THIRDS = [
+  { flexBasis: 'calc(33.333% - 1.33px)', bgSize: '300% 100%', bgPosition: '0% 0' },
+  { flexBasis: 'calc(33.333% - 1.33px)', bgSize: '300% 100%', bgPosition: '50% 0' },
+  { flexBasis: 'calc(33.333% - 1.33px)', bgSize: '300% 100%', bgPosition: '100% 0' },
+]
+
+/**
  * The Statistik page's micronutrient section: one identity-colored gradient
  * track per curated nutrient, light-to-dark left-to-right, with a marker
  * pinned at the rolling week's average intake — no number, no percentage,
@@ -97,12 +117,25 @@ function MicronutrientTile({ status }: { status: MicronutrientStatus }) {
       {/* The gradient itself is static — always the full light-to-dark span —
           only the marker moves. That's deliberate: it reads as a slider/gauge
           the value is pinned to, not as a fill draining in or out. */}
-      <div className="relative h-2 w-full overflow-hidden rounded-full bg-line/60">
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{ background: `linear-gradient(to right, color-mix(in srgb, ${colorVar} 15%, transparent), ${colorVar})` }}
-          aria-hidden="true"
-        />
+      <div className="relative h-2 w-full" aria-hidden="true">
+        <div className="flex h-full gap-[2px]">
+          {THIRDS.map((third, i) => (
+            <div
+              key={i}
+              className="h-full overflow-hidden rounded-full bg-line/60"
+              style={{ flex: `0 0 ${third.flexBasis}` }}
+            >
+              <div
+                className="h-full w-full"
+                style={{
+                  background: `linear-gradient(to right, color-mix(in srgb, ${colorVar} 15%, transparent), ${colorVar})`,
+                  backgroundSize: third.bgSize,
+                  backgroundPosition: third.bgPosition,
+                }}
+              />
+            </div>
+          ))}
+        </div>
         {pct !== null && (
           <span
             className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface shadow-sm shadow-black/20"

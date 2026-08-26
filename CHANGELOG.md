@@ -18,15 +18,22 @@ Alle Versionen ab hier sind zusätzlich als Git-Tag (`vX.Y.Z`) auf dem jeweilige
   Fe, Mg, Ca, Zn, K, I — sonst die übliche Vitamin-Kurzform: D, B12, B9, C)
   in der jeweiligen Akzentfarbe des Nährstoffs, darunter der ausgeschriebene
   deutsche Name, klein und ausgegraut. Keine Prozentzahlen mehr.
-- Neue Balken-Darstellung statt Füllstand: ein durchgehender, in der
-  jeweiligen Nährstofffarbe hell-zu-dunkel verlaufender Track (immer voll
-  sichtbar) mit einem Zeiger, der je nach 7-Tage-Schnitt weiter links (wenig)
-  oder rechts (viel) sitzt — statt eines sich füllenden Balkens mit
+- Neue Balken-Darstellung statt Füllstand: ein in der jeweiligen
+  Nährstofffarbe hell-zu-dunkel verlaufender Track (immer voll sichtbar) mit
+  einem Zeiger, der je nach 7-Tage-Schnitt weiter links (wenig) oder rechts
+  (viel) sitzt — statt eines sich füllenden Balkens mit
   gering/durchschnittlich/gut-Text am Ende. Der qualitative Text bleibt für
   Screenreader erhalten (sr-only), ist aber nicht mehr sichtbar aufgedruckt.
   10 neue, feste Akzentfarben (eine pro Nährstoff, keine der vier
   Makro-Farben doppelt verwendet, da die Makro-Ringe auf derselben Seite
   direkt daneben stehen).
+- Der Track ist in drei Segmente mit einer Haarlinien-Lücke bei je einem
+  Drittel geteilt, damit unteres/mittleres/oberes Drittel erkennbar sind —
+  gewählt nach Vergleich von vier durchgespielten Ansätzen (Lücken-Segmente,
+  zweifarbige Striche, Lineal-Punkte, Zeiger-Zustand): die Lücke braucht
+  anders als eine aufgemalte Markierung keinen Kontrast gegen den Verlauf,
+  weil nichts auf ihm liegt — funktioniert dadurch strukturell gegen alle
+  zehn Nährstofffarben, ohne pro Farbe geprüft werden zu müssen.
 - Statistik: Reihenfolge zurückgetauscht — Makronährstoffe wieder oben,
   Mikronährstoffe darunter (Tag- und Nährstoff-Ansicht).
 - Bereits vor diesem Feature eingetragene Mahlzeiten fließen jetzt ebenfalls
