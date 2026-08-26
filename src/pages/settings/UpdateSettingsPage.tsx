@@ -10,21 +10,29 @@ type CheckState = 'idle' | 'checking' | 'uptodate' | 'available' | 'unsupported'
  *
  * A plain "press Cmd+R" note would be advice, not a feature — and on an
  * installed PWA there is no Cmd+R at all. This talks to the service worker
- * instead: it asks it to re-check the server for a newer build, and if one is
- * waiting, activating it and reloading is a single button.
+ * instead: it asks it to re-check the server for a newer build right now,
+ * rather than waiting on the browser's own update schedule.
  *
- * The check is real. `update()` refetches the service worker script, so
- * "Aktuell" here means the server was asked just now — not that nothing has
- * been noticed passively.
+ * vite.config.ts registers with `registerType: 'autoUpdate'`, which matters
+ * for what this page can and can't show: a found update installs and
+ * reloads the page BY ITSELF (via vite-plugin-pwa's own "activated" →
+ * `window.location.reload()` — see registerSW in
+ * node_modules/vite-plugin-pwa/dist/client/build/register.js) — there is no
+ * separate "install now" step for a person to trigger, unlike
+ * `registerType: 'prompt'`. Concretely: the hook's `needRefresh` flag is
+ * *only* ever set in `'prompt'` mode; under `'autoUpdate'` it never becomes
+ * true, so a button gated on it can never render. This page used to have
+ * exactly that button — dead code that could never appear — and has been
+ * cut. What's left instead: a real, working "Auf Updates prüfen" button
+ * (`registration.update()` is a genuine fetch-and-compare against the
+ * server) plus a native `updatefound` listener, attached before the call, to
+ * tell the difference between "nothing new" and "found one, installing".
  */
 export function UpdateSettingsPage() {
   const [state, setState] = useState<CheckState>('idle')
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null)
 
-  const {
-    needRefresh: [needRefresh],
-    updateServiceWorker,
-  } = useRegisterSW({
+  useRegisterSW({
     onRegisteredSW(_url, r) {
       setRegistration(r ?? null)
       if (!r) setState('unsupported')
@@ -34,11 +42,6 @@ export function UpdateSettingsPage() {
     },
   })
 
-  // Derived, not synced through an effect: a waiting worker is the answer
-  // regardless of what the button last said, and expressing that as a plain
-  // expression avoids a second render just to correct the first.
-  const effective: CheckState = needRefresh ? 'available' : state
-
   async function handleCheck() {
     if (!registration) {
       setState('unsupported')
@@ -46,11 +49,19 @@ export function UpdateSettingsPage() {
     }
     setState('checking')
     try {
+      // Attached before update() rather than after: `updatefound` can fire
+      // as part of update()'s own work, and a listener added afterward could
+      // miss it.
+      let found = false
+      const onUpdateFound = () => {
+        found = true
+      }
+      registration.addEventListener('updatefound', onUpdateFound)
       await registration.update()
-      // update() resolves once the server has been asked. A worker that was
-      // found flips needRefresh, which `effective` above picks up; otherwise
-      // this really is the newest build.
-      setState('uptodate')
+      registration.removeEventListener('updatefound', onUpdateFound)
+      // A found update is already on its way to installing itself — under
+      // autoUpdate there's nothing left here to trigger; see the note above.
+      setState(found ? 'available' : 'uptodate')
     } catch {
       setState('unsupported')
     }
@@ -71,32 +82,29 @@ export function UpdateSettingsPage() {
           nachsehen, ob eine neuere Version bereitsteht.
         </p>
 
-        {effective === 'available' ? (
-          <button
-            type="button"
-            onClick={() => void updateServiceWorker(true)}
-            className="glass-accent w-full rounded-2xl px-4 py-3 text-sm font-semibold transition"
-          >
-            Neue Version installieren und neu laden
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={handleCheck}
-            disabled={effective === 'checking'}
-            className="w-full rounded-2xl bg-bg px-4 py-3 text-sm font-medium text-ink transition hover:bg-line disabled:opacity-50"
-          >
-            {effective === 'checking' ? 'Wird geprüft…' : 'Auf Updates prüfen'}
-          </button>
-        )}
+        {/* One button, always — under registerType: 'autoUpdate' there is no
+            separate "now install it" step for a person to trigger (see the
+            component doc comment above), so there is nothing a second button
+            here could ever do. */}
+        <button
+          type="button"
+          onClick={handleCheck}
+          disabled={state === 'checking'}
+          className="w-full rounded-2xl bg-bg px-4 py-3 text-sm font-medium text-ink transition hover:bg-line disabled:opacity-50"
+        >
+          {state === 'checking' ? 'Wird geprüft…' : 'Auf Updates prüfen'}
+        </button>
 
-        {effective === 'uptodate' && (
+        {state === 'uptodate' && (
           <p className="mt-3 text-xs font-medium text-ink-soft">Du hast bereits die neueste Version.</p>
         )}
-        {effective === 'available' && (
-          <p className="mt-3 text-xs font-medium text-accent">Eine neuere Version steht bereit.</p>
+        {state === 'available' && (
+          <p className="mt-3 text-xs font-medium text-accent">
+            Neue Version gefunden — sie installiert sich jetzt im Hintergrund und lädt die App in Kürze von selbst
+            neu.
+          </p>
         )}
-        {effective === 'unsupported' && (
+        {state === 'unsupported' && (
           <p className="mt-3 text-xs text-ink-soft">
             Automatische Prüfung ist hier nicht verfügbar — im Browser hilft ein Neuladen der Seite
             (auf dem Mac <span className="font-medium text-ink">Cmd + R</span>, unter Windows{' '}

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { motion, useMotionValue, useReducedMotion, useTransform } from 'motion/react'
 import { SECTION_TABS, sectionIndexForPath } from '../lib/sections'
@@ -81,6 +82,23 @@ function SelectionPill({ progress, activeIndex }: { progress: ReturnType<typeof 
  * tab and onto the next, the outgoing icon fades back to grey and the incoming
  * one to white in step with it — rather than both snapping at the moment the
  * route changes.
+ *
+ * `gate` closes to 0 whenever `activeIndex` is -1 (Einstellungen, outside the
+ * four sections) and reopens to 1 the moment a section tab is active again.
+ * It exists because `progress` alone can't express "no tab is active": it's
+ * shared app-wide and frozen at whatever section was last active — Settings
+ * isn't part of the swipe chain (see SwipeNavigator's `if (!inSection)
+ * return`), so `progress` simply keeps the last value (e.g. 2 for Feed)
+ * rather than resetting. `useTransform`'s distance formula below has no
+ * numeric input that reads as "none of the four" — clampIndex keeps it
+ * in-range, and every value in that range is within 1 of *some* tab — so
+ * without this gate, the previously-active icon kept rendering fully white
+ * on Settings, with no coloured pill behind it to explain why (a
+ * `useMotionValue` seeded once at mount, not a plain prop, precisely so a
+ * later `activeIndex` change can still update it via `.set()` below —
+ * assigning to a plain variable wouldn't re-render this or feed the
+ * transform). See BottomNav's own module — plain `activeIndex !== -1` is
+ * enough to unmount the pill itself, so this is TabIcon-only.
  */
 function TabIcon({
   Icon,
@@ -97,8 +115,13 @@ function TabIcon({
 }) {
   const fallback = useMotionValue(activeIndex)
   const source = progress ?? fallback
-  // 1 directly under the pill, 0 a full tab away — the pill's own coverage.
-  const opacity = useTransform(source, (value) => Math.max(0, 1 - Math.abs(clampIndex(value) - index)))
+  const gate = useMotionValue(activeIndex === -1 ? 0 : 1)
+  useEffect(() => {
+    gate.set(activeIndex === -1 ? 0 : 1)
+  }, [activeIndex, gate])
+  // 1 directly under the pill, 0 a full tab away — the pill's own coverage —
+  // multiplied by `gate` so "no section active" reliably means "no icon lit".
+  const opacity = useTransform([source, gate], ([value, g]: number[]) => g * Math.max(0, 1 - Math.abs(clampIndex(value) - index)))
 
   if (prefersReducedMotion) {
     return (

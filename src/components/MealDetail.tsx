@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { formatIngredientAmount, MEAL_TYPE_LABELS, type Meal } from '../lib/db'
+import { formatIngredientAmount, MEAL_TYPE_LABELS, MICRONUTRIENT_LABELS, type Meal } from '../lib/db'
+import { getBodyProfile } from '../lib/bodyProfile'
+import { notableMicronutrients } from '../lib/micronutrients'
 import { MacroBadge, MacroRingBadge } from './MacroBadge'
 import { Sheet } from './Sheet'
 import { Collapse } from './Collapse'
@@ -33,6 +35,13 @@ function MealDetailContent({ meal, onEdit }: { meal: Meal; onEdit: () => void })
   const [descriptionOpen, setDescriptionOpen] = useState(false)
   const [ingredientsOpen, setIngredientsOpen] = useState(false)
 
+  // Requires a body profile (for sex, which iron's reference value needs) —
+  // same gate the rolling Statistik bands use. Meals logged before
+  // micronutrient estimation existed, or added without ever running the AI
+  // estimate, simply show no badges rather than a misleading empty state.
+  const bodyProfile = getBodyProfile()
+  const notableKeys = meal.micronutrients && bodyProfile ? notableMicronutrients(meal.micronutrients, bodyProfile.sex) : []
+
   return (
     <>
       <div className="mb-4 flex items-center justify-between">
@@ -49,6 +58,24 @@ function MealDetailContent({ meal, onEdit }: { meal: Meal; onEdit: () => void })
         <MacroRingBadge type="carbs" value={meal.nutrition.carbs} />
         <MacroRingBadge type="fat" value={meal.nutrition.fat} />
       </div>
+
+      {/* Mikronährstoffe treated as meal-detail-only information rather
+          than a Feed-level summary, per the same brainstorm this shipped
+          from — a per-meal "notable source of" read, not the weekly band
+          the Statistik page shows (see lib/micronutrients.ts for why the
+          two use different rules). */}
+      {notableKeys.length > 0 && (
+        <div className="mb-5">
+          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft">Gute Quelle für</span>
+          <div className="flex flex-wrap gap-1.5">
+            {notableKeys.map((key) => (
+              <span key={key} className="rounded-full bg-good/15 px-2.5 py-1 text-xs font-medium text-good">
+                {MICRONUTRIENT_LABELS[key]}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {meal.description && (
         <div className="mb-5">

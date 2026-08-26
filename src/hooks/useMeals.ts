@@ -46,7 +46,7 @@ export function useMealSuggestions(forType: MealType, limit: number): MealSugges
 }
 
 /** The fields the statistics and the PDF export actually read — deliberately without `photo`. */
-export type MealSummary = Pick<Meal, 'id' | 'date' | 'mealType' | 'nutrition' | 'createdAt'>
+export type MealSummary = Pick<Meal, 'id' | 'date' | 'mealType' | 'nutrition' | 'micronutrients' | 'createdAt'>
 
 /**
  * Meals in a range, reduced to the fields the statistics need.
@@ -69,7 +69,14 @@ export function useMealSummariesInRange(startKey: string, endKey: string): MealS
       .where('date')
       .between(startKey, endKey, true, true)
       .each((m) => {
-        summaries.push({ id: m.id, date: m.date, mealType: m.mealType, nutrition: m.nutrition, createdAt: m.createdAt })
+        summaries.push({
+          id: m.id,
+          date: m.date,
+          mealType: m.mealType,
+          nutrition: m.nutrition,
+          micronutrients: m.micronutrients,
+          createdAt: m.createdAt,
+        })
       })
     return summaries.sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt)
   }, [startKey, endKey])

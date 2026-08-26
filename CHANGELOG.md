@@ -10,6 +10,76 @@ die vielen `0.x`-Schritte.
 
 Alle Versionen ab hier sind zusätzlich als Git-Tag (`vX.Y.Z`) auf dem jeweiligen Merge-Commit hinterlegt.
 
+## [1.12.1] - 2026-08-26
+
+### Fixes
+- Bedienleiste: das zuletzt aktive Symbol (z. B. Feed) blieb weiß eingefärbt,
+  sobald man über den Header zu Einstellungen wechselte — obwohl die blaue
+  Pille selbst dabei korrekt verschwand. Ursache: die geteilte
+  Positionsangabe für Pille und Symbol-Einfärbung wird beim Verlassen der
+  vier Hauptbereiche bewusst nicht zurückgesetzt (sonst würde die
+  Seiten-Wisch-Position springen), aber die Symbol-Einfärbung folgte dieser
+  eingefrorenen Position ohne eigene Prüfung. Jetzt schließt sich ein
+  zusätzliches Gate, sobald kein Hauptbereich aktiv ist, und öffnet sich
+  wieder, sobald ein Tab in der Bedienleiste angetippt wird.
+- Einstellungen → Aktualisierung: Der zweite Button ("Neue Version
+  installieren und neu laden") konnte nie erscheinen — die App registriert
+  den Service Worker mit `registerType: 'autoUpdate'`, wobei eine gefundene
+  neue Version sich selbstständig installiert und neu lädt, ohne dass die
+  dafür nötige Bedingung (`needRefresh`) in diesem Modus jemals eintritt.
+  Toter Code entfernt. Der verbleibende "Auf Updates prüfen"-Button ist
+  echt und funktioniert (`registration.update()` fragt den Server aktiv ab)
+  und erkennt jetzt über einen `updatefound`-Listener zuverlässig, ob eine
+  neue Version gefunden wurde, statt das nur zu behaupten.
+
+## [1.12.0] - 2026-08-26
+
+### Mikronährstoffe
+- Neue Kernliste von 10 Mikronährstoffen (Vitamin D, B12, Folat, C, Calcium,
+  Eisen, Magnesium, Zink, Kalium, Jod) — ausgewählt nach DGE-„kritische
+  Nährstoffe" plus breiter Alltagsrelevanz. Gemini schätzt sie pro Mahlzeit
+  grob mit (gleicher Aufruf wie die bestehende Kalorien-/Makro-Schätzung,
+  kein zusätzlicher Kontingent-Verbrauch), Rezepte ebenso.
+- Bewusst KEINE exakten Werte oder Prozentangaben in der Oberfläche —
+  stattdessen eine Einordnung in gut/durchschnittlich/unterrepräsentiert je
+  Nährstoff, gemittelt über die letzten 7 Tage mit geschätzten Mahlzeiten
+  (entspricht der DACH-Referenzwert-Logik: wochenweise erreicht, nicht
+  tagesgenau). Ein Text-KI-Schätzwert als scheinbar exakte Zahl wäre falsche
+  Präzision gewesen; die Bänder sind ehrlicher.
+- Referenzwerte nach DACH, geschlechtsspezifisch nur bei Eisen (gut belegter
+  ~2-facher Unterschied) — kein Ziel-basiertes (Abnehmen/Muskelaufbau/…)
+  Anpassen der anderen neun, weil die Evidenz dafür zu dünn ist, um sie als
+  Fakt auszuspielen.
+- Mahlzeit-Detail: neue "Gute Quelle für"-Badges — welche Mikronährstoffe
+  diese eine Mahlzeit spürbar beisteuert (mind. ein Drittel des Tagesbedarfs).
+- Statistik: neue, kompakte Mikronährstoff-Balken (Tag- und Nährstoff-
+  Ansicht), oberhalb der bestehenden Makronährstoff-Ringe — Makros bleiben
+  vollständig erhalten, rutschen aber eine Stufe tiefer.
+- Supplement-Empfehlungen beziehen jetzt auch unterrepräsentierte
+  Mikronährstoffe als eigenständigen Grund mit ein, nicht nur die
+  Makro-Lücken wie bisher.
+
+## [1.11.0] - 2026-08-26
+
+### Feed
+- Neue Glühbirne oben rechts (neben Einstellungen und "+"): "Was jetzt
+  essen"-Tipps. Kurze, konkrete Zutatenkategorien (z. B. "Thunfisch,
+  Hähnchenbrust oder Hüttenkäse") statt vollständiger Rezepte, ausgerichtet
+  an der verbleibenden Tageslücke (kcal/Protein/Kohlenhydrate/Fett), dem
+  bereits Gegessenen und der aktuellen Tageszeit — Snack-Ideen sind dabei
+  jederzeit erlaubt, andere Vorschläge richten sich nach Frühstück/Mittag/
+  Nachmittag/Abend. Aktualisiert sich automatisch bei jedem Wechsel dieser
+  vier Tageszeit-Phasen, nicht bei jedem Öffnen.
+
+## [1.10.0] - 2026-08-26
+
+### Mahlzeit-Editor
+- Vorschläge lassen sich jetzt statt direkt zu übernehmen auch bearbeiten:
+  ein Stift-Symbol pro Vorschlag füllt die ursprüngliche Beschreibung ins
+  Textfeld statt der gespeicherten Nährwerte, damit z. B. "das übliche
+  Frühstück, aber mit einer Banane dazu" neu geschätzt werden kann, statt
+  die alten Zahlen unverändert zu übernehmen.
+
 ## [1.9.0] - 2026-08-25
 
 ### Einstellungen

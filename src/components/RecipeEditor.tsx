@@ -6,6 +6,7 @@ import {
   type Ingredient,
   type Meal,
   type MealType,
+  type Micronutrients,
   type Nutrition,
   type Recipe,
   type RecipeStep,
@@ -105,6 +106,7 @@ interface RecipeDraft {
   title: string
   nutrition: Nutrition
   ingredients: Ingredient[]
+  micronutrients: Micronutrients | undefined
   steps: RecipeStep[]
   manuallyEdited: boolean
 }
@@ -139,6 +141,7 @@ function RecipeEditorContent({
     title: initial?.title ?? fromMeal?.title ?? seed?.title ?? '',
     nutrition: initial?.nutrition ?? fromMeal?.nutrition ?? EMPTY_NUTRITION,
     ingredients: initial?.ingredients ?? fromMeal?.ingredients ?? [],
+    micronutrients: initial?.micronutrients ?? fromMeal?.micronutrients,
     steps: initial?.steps ?? [],
     manuallyEdited: initial?.manuallyEdited ?? Boolean(fromMeal),
   }
@@ -154,6 +157,12 @@ function RecipeEditorContent({
   const [title, setTitle] = useState(restored?.title ?? baseline.title)
   const [nutrition, setNutrition] = useState<Nutrition>(restored?.nutrition ?? baseline.nutrition)
   const [ingredients, setIngredients] = useState<Ingredient[]>(restored?.ingredients ?? baseline.ingredients)
+  // Estimated once per AI pass, at recipe level — see the same note on
+  // MealEditor's micronutrients state for why ingredient/step edits below
+  // don't try to rescale it.
+  const [micronutrients, setMicronutrients] = useState<Micronutrients | undefined>(
+    restored ? restored.micronutrients : baseline.micronutrients,
+  )
   const [steps, setSteps] = useState<RecipeStep[]>(restored?.steps ?? baseline.steps)
   const [estimating, setEstimating] = useState(false)
   const [cleaningUp, setCleaningUp] = useState(false)
@@ -174,6 +183,7 @@ function RecipeEditorContent({
     title,
     nutrition,
     ingredients,
+    micronutrients,
     steps,
     manuallyEdited,
   }
@@ -188,6 +198,7 @@ function RecipeEditorContent({
     setTitle(baseline.title)
     setNutrition(baseline.nutrition)
     setIngredients(baseline.ingredients)
+    setMicronutrients(baseline.micronutrients)
     setSteps(baseline.steps)
     setManuallyEdited(baseline.manuallyEdited)
     setRestoredNotice(false)
@@ -228,6 +239,7 @@ function RecipeEditorContent({
       setTitle((current) => current || result.suggestedTitle)
       setNutrition({ kcal: result.kcal, protein: result.protein, carbs: result.carbs, fat: result.fat })
       setIngredients(result.ingredients)
+      setMicronutrients(result.micronutrients)
       setSteps(result.steps.map((text, i) => ({ order: i, text })))
       setManuallyEdited(false)
       setHasResult(true)
@@ -304,6 +316,7 @@ function RecipeEditorContent({
       ingredients,
       steps: steps.filter((s) => s.text.trim().length > 0).map((s, i) => ({ order: i, text: s.text.trim() })),
       nutrition,
+      micronutrients,
       manuallyEdited,
       createdAt: initial?.createdAt ?? now,
       updatedAt: now,
