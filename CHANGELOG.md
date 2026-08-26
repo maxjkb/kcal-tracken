@@ -10,6 +10,28 @@ die vielen `0.x`-Schritte.
 
 Alle Versionen ab hier sind zusätzlich als Git-Tag (`vX.Y.Z`) auf dem jeweiligen Merge-Commit hinterlegt.
 
+## [1.12.1] - 2026-08-26
+
+### Fixes
+- Bedienleiste: das zuletzt aktive Symbol (z. B. Feed) blieb weiß eingefärbt,
+  sobald man über den Header zu Einstellungen wechselte — obwohl die blaue
+  Pille selbst dabei korrekt verschwand. Ursache: die geteilte
+  Positionsangabe für Pille und Symbol-Einfärbung wird beim Verlassen der
+  vier Hauptbereiche bewusst nicht zurückgesetzt (sonst würde die
+  Seiten-Wisch-Position springen), aber die Symbol-Einfärbung folgte dieser
+  eingefrorenen Position ohne eigene Prüfung. Jetzt schließt sich ein
+  zusätzliches Gate, sobald kein Hauptbereich aktiv ist, und öffnet sich
+  wieder, sobald ein Tab in der Bedienleiste angetippt wird.
+- Einstellungen → Aktualisierung: Der zweite Button ("Neue Version
+  installieren und neu laden") konnte nie erscheinen — die App registriert
+  den Service Worker mit `registerType: 'autoUpdate'`, wobei eine gefundene
+  neue Version sich selbstständig installiert und neu lädt, ohne dass die
+  dafür nötige Bedingung (`needRefresh`) in diesem Modus jemals eintritt.
+  Toter Code entfernt. Der verbleibende "Auf Updates prüfen"-Button ist
+  echt und funktioniert (`registration.update()` fragt den Server aktiv ab)
+  und erkennt jetzt über einen `updatefound`-Listener zuverlässig, ob eine
+  neue Version gefunden wurde, statt das nur zu behaupten.
+
 ## [1.12.0] - 2026-08-26
 
 ### Mikronährstoffe
