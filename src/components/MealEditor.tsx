@@ -225,6 +225,17 @@ function MealEditorContent({
     setStep('review')
   }
 
+  // Same routine meal, but not quite today's version of it — "the usual, plus
+  // a banana" — so this stays on step one with the description filled in
+  // rather than jumping to numbers that no longer match what's about to be
+  // eaten. Re-running the estimate (not just editing the old numbers by hand)
+  // is the point: the text is what changed, so the text should drive it.
+  function handleEditSuggestion(suggestion: MealSuggestion) {
+    setTitle(suggestion.title)
+    setDescription(suggestion.description)
+    setHasResult(false)
+  }
+
   async function handleDictationDone(rawText: string) {
     setCleaningUp(true)
     setError(null)
@@ -453,7 +464,7 @@ function MealEditorContent({
 
                 {error && <p className="text-sm font-medium text-danger">{error}</p>}
 
-                <MealSuggestions mealType={mealType} onPick={handleSelectSuggestion} />
+                <MealSuggestions mealType={mealType} onPick={handleSelectSuggestion} onEdit={handleEditSuggestion} />
               </div>
             )}
           </div>
@@ -587,13 +598,23 @@ function ForwardIcon() {
  * Ranked by what tends to be logged at this time of day, what's logged often,
  * and what was logged recently (see lib/mealSuggestions.ts). Picking one skips
  * straight to the review step: it's a meal that already has its numbers, so
- * there is nothing left to estimate.
+ * there is nothing left to estimate. The pencil is the escape hatch for "the
+ * usual, but not quite" — it drops the description back into step one instead,
+ * so it can be amended and re-estimated rather than reusing stale numbers.
  *
  * Renders nothing at all until there's history worth offering — an empty
  * "Vorschläge" heading on a fresh install would be a promise the app can't
  * keep yet.
  */
-function MealSuggestions({ mealType, onPick }: { mealType: MealType; onPick: (s: MealSuggestion) => void }) {
+function MealSuggestions({
+  mealType,
+  onPick,
+  onEdit,
+}: {
+  mealType: MealType
+  onPick: (s: MealSuggestion) => void
+  onEdit: (s: MealSuggestion) => void
+}) {
   const suggestions = useMealSuggestions(mealType, 6)
   if (!suggestions || suggestions.length === 0) return null
 
@@ -602,38 +623,60 @@ function MealSuggestions({ mealType, onPick }: { mealType: MealType; onPick: (s:
       <span className="mb-1.5 block text-xs text-ink-soft">Vorschläge</span>
       <StaggeredList className="flex flex-col gap-1.5">
         {suggestions.map((s) => (
-          <button
-            key={s.title}
-            type="button"
-            onClick={() => onPick(s)}
-            className="flex w-full items-center justify-between gap-3 rounded-2xl border border-line px-3 py-2.5 text-left transition active:bg-bg"
-          >
-            {/* `flex-1` alongside `min-w-0` is what actually lets this shrink.
-                With min-w-0 alone the column still sized to its content, so a
-                long meal title pushed the row wider than the sheet — and since
-                the step pane scrolls, the whole sheet could be dragged
-                sideways. */}
-            <span className="min-w-0 flex-1">
-              {/* Two lines, then ellipsis: one line cut most real titles off
-                  mid-dish, and these are picked by reading them. */}
-              <span className="block text-sm font-medium leading-snug text-ink line-clamp-2">{s.title}</span>
-              {/* The same badges the Feed uses, so a meal looks the same
-                  wherever it appears — recognising it here is the whole point
-                  of the list. */}
-              <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                <MacroBadge type="kcal" value={s.nutrition.kcal} size="sm" />
-                <MacroRingBadge type="protein" value={s.nutrition.protein} size="sm" />
-                <MacroRingBadge type="carbs" value={s.nutrition.carbs} size="sm" />
-                <MacroRingBadge type="fat" value={s.nutrition.fat} size="sm" />
+          <div key={s.title} className="flex items-center gap-1 rounded-2xl border border-line pr-1.5">
+            <button
+              type="button"
+              onClick={() => onPick(s)}
+              className="flex min-w-0 flex-1 items-center justify-between gap-3 py-2.5 pl-3 text-left transition active:opacity-70"
+            >
+              {/* `flex-1` alongside `min-w-0` is what actually lets this
+                  shrink. With min-w-0 alone the column still sized to its
+                  content, so a long meal title pushed the row wider than the
+                  sheet — and since the step pane scrolls, the whole sheet
+                  could be dragged sideways. */}
+              <span className="min-w-0 flex-1">
+                {/* Two lines, then ellipsis: one line cut most real titles off
+                    mid-dish, and these are picked by reading them. */}
+                <span className="block text-sm font-medium leading-snug text-ink line-clamp-2">{s.title}</span>
+                {/* The same badges the Feed uses, so a meal looks the same
+                    wherever it appears — recognising it here is the whole
+                    point of the list. */}
+                <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <MacroBadge type="kcal" value={s.nutrition.kcal} size="sm" />
+                  <MacroRingBadge type="protein" value={s.nutrition.protein} size="sm" />
+                  <MacroRingBadge type="carbs" value={s.nutrition.carbs} size="sm" />
+                  <MacroRingBadge type="fat" value={s.nutrition.fat} size="sm" />
+                </span>
               </span>
-            </span>
-            <span className="shrink-0 text-ink-faint">
-              <ChevronIcon direction="right" className="h-4 w-4" />
-            </span>
-          </button>
+              <span className="shrink-0 text-ink-faint">
+                <ChevronIcon direction="right" className="h-4 w-4" />
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onEdit(s)}
+              aria-label={`„${s.title}" bearbeiten statt direkt übernehmen`}
+              title="Vor dem Übernehmen bearbeiten"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-faint transition active:scale-95 active:bg-bg hover:text-ink"
+            >
+              <EditIcon />
+            </button>
+          </div>
         ))}
       </StaggeredList>
     </div>
+  )
+}
+
+function EditIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M16.5 4.5l3 3L7 20H4v-3L16.5 4.5z"
+      />
+    </svg>
   )
 }
 

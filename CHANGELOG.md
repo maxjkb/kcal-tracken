@@ -10,6 +10,15 @@ die vielen `0.x`-Schritte.
 
 Alle Versionen ab hier sind zusätzlich als Git-Tag (`vX.Y.Z`) auf dem jeweiligen Merge-Commit hinterlegt.
 
+## [1.10.0] - 2026-08-26
+
+### Mahlzeit-Editor
+- Vorschläge lassen sich jetzt statt direkt zu übernehmen auch bearbeiten:
+  ein Stift-Symbol pro Vorschlag füllt die ursprüngliche Beschreibung ins
+  Textfeld statt der gespeicherten Nährwerte, damit z. B. "das übliche
+  Frühstück, aber mit einer Banane dazu" neu geschätzt werden kann, statt
+  die alten Zahlen unverändert zu übernehmen.
+
 ## [1.9.0] - 2026-08-25
 
 ### Einstellungen

@@ -16,6 +16,13 @@ export interface MealSuggestion {
   title: string
   nutrition: Nutrition
   ingredients?: Ingredient[]
+  /**
+   * The free-text description behind the newest logged instance, so picking
+   * a suggestion to *edit* has something to start from. Falls back to a
+   * comma list built from the ingredients when the meal was logged without
+   * one (e.g. picked from a recipe) — still better than an empty field.
+   */
+  description: string
   /** The meal type this was most often logged as, used to preselect it. */
   mealType: MealType
   /** How many times this meal has been logged in the window. */
@@ -25,6 +32,11 @@ export interface MealSuggestion {
 
 function normalizeTitle(title: string): string {
   return title.trim().toLowerCase()
+}
+
+function describeIngredients(ingredients: Ingredient[] | undefined): string {
+  if (!ingredients || ingredients.length === 0) return ''
+  return ingredients.map((ing) => `${ing.amount}${ing.unit} ${ing.name}`).join(', ')
 }
 
 /**
@@ -71,6 +83,7 @@ export function rankMealSuggestions(meals: Meal[], forType: MealType, limit: num
         title: newest.title,
         nutrition: newest.nutrition,
         ingredients: newest.ingredients,
+        description: newest.description.trim() || describeIngredients(newest.ingredients),
         mealType: dominantType,
         count: group.meals.length,
         lastUsedAt,

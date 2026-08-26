@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.10.0',
+    date: '2026-08-26',
+    highlights: [
+      'Mahlzeit-Vorschläge im Editor: Stift-Symbol übernimmt die Beschreibung statt der alten Zahlen, damit "das Übliche, aber heute mit Banane" neu geschätzt werden kann.',
+    ],
+  },
+  {
     version: '1.9.0',
     date: '2026-08-25',
     highlights: [
