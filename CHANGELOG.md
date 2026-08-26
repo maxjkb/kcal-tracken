@@ -10,6 +10,18 @@ die vielen `0.x`-Schritte.
 
 Alle Versionen ab hier sind zusätzlich als Git-Tag (`vX.Y.Z`) auf dem jeweiligen Merge-Commit hinterlegt.
 
+## [1.11.0] - 2026-08-26
+
+### Feed
+- Neue Glühbirne oben rechts (neben Einstellungen und "+"): "Was jetzt
+  essen"-Tipps. Kurze, konkrete Zutatenkategorien (z. B. "Thunfisch,
+  Hähnchenbrust oder Hüttenkäse") statt vollständiger Rezepte, ausgerichtet
+  an der verbleibenden Tageslücke (kcal/Protein/Kohlenhydrate/Fett), dem
+  bereits Gegessenen und der aktuellen Tageszeit — Snack-Ideen sind dabei
+  jederzeit erlaubt, andere Vorschläge richten sich nach Frühstück/Mittag/
+  Nachmittag/Abend. Aktualisiert sich automatisch bei jedem Wechsel dieser
+  vier Tageszeit-Phasen, nicht bei jedem Öffnen.
+
 ## [1.10.0] - 2026-08-26
 
 ### Mahlzeit-Editor

@@ -7,6 +7,7 @@ import { requestPersistentStorage } from './lib/persistence.ts'
 import { initSyncIfSignedIn } from './lib/sync.ts'
 import { syncSupplementCatalog } from './lib/supplementSeed.ts'
 import { refreshAdvisorIfStale } from './lib/supplementAdvisor.ts'
+import { refreshTipsIfStale } from './lib/tips.ts'
 
 // Fire-and-forget: ask the browser to exempt this origin's storage (API key,
 // meals) from automatic eviction. Safe to call on every load.
@@ -22,6 +23,11 @@ void syncSupplementCatalog()
 // needing a button press. Deliberately not awaited and never throws — see
 // refreshAdvisorIfStale.
 void refreshAdvisorIfStale()
+
+// Fire-and-forget: refreshes the "was jetzt essen"-tips once per meal-time
+// slot (breakfast/lunch/snack/dinner), on the first launch inside that slot,
+// same reasoning and same silence as refreshAdvisorIfStale above.
+void refreshTipsIfStale()
 
 // A no-op touchstart listener is the standard trick to make iOS Safari
 // actually apply the :active pseudo-class on tap — without it, iOS treats

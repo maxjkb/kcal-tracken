@@ -1,6 +1,6 @@
 import { getApiKey } from './settings'
 import { searchFoodDatabaseMany, type FoodDatabaseMatch } from './foodDatabase'
-import type { MealType, SupplementCategory, SupplementRecommendation, SupplementTimeOfDay } from './db'
+import type { MealType, Nutrition, SupplementCategory, SupplementRecommendation, SupplementTimeOfDay, TipSuggestion } from './db'
 
 import { DEFAULT_MODEL, markExhausted, modelOrder } from './geminiModels'
 import { recordUsage } from './usageQuota'
@@ -825,5 +825,99 @@ export async function estimateRecipeSuggestions(input: {
     category: MEAL_TYPE_ENUM.includes(s.category) ? s.category : 'lunch',
     description: String(s.description ?? ''),
     reasoning: String(s.reasoning ?? ''),
+  }))
+}
+
+// --- Tipps für jetzt ------------------------------------------------------
+
+export type { TipSuggestion } from './db'
+
+const TIP_FOCUS_ENUM = ['kcal', 'protein', 'carbs', 'fat', 'general'] as const
+
+const NUTRITION_TIPS_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    tips: {
+      type: 'ARRAY',
+      description:
+        '2 bis 3 kurze, konkrete Tipps, was der Nutzer als Nächstes essen könnte. Lieber ein einziger wirklich passender Tipp als mehrere beliebige — ist die Ernährung des Tages bereits ausgewogen, ist auch eine leere Liste richtig.',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          focus: {
+            type: 'STRING',
+            enum: TIP_FOCUS_ENUM,
+            description: 'Welche Lücke dieser Tipp schließt. "general" nur für Hinweise ohne klaren Makro-Bezug (z.B. Timing, Flüssigkeit).',
+          },
+          suggestion: {
+            type: 'STRING',
+            description:
+              'Kurzer, konkreter Vorschlag mit 2-4 tatsächlichen Lebensmitteln/Zutatenkategorien, z.B. "Thunfisch, Hähnchenbrust oder Hüttenkäse" oder "2 gekochte Eier" — KEIN vollständiges Rezept, keine Zubereitungsschritte.',
+          },
+          reason: {
+            type: 'STRING',
+            description: 'Ein kurzer Satz, warum das jetzt passt (z.B. verbleibende Lücke, Tageszeit).',
+          },
+        },
+        required: ['focus', 'suggestion', 'reason'],
+      },
+    },
+  },
+  required: ['tips'],
+}
+
+const NUTRITION_TIPS_SYSTEM_PROMPT = `Du bist ein Ernährungsassistent. Der Nutzer bekommt "Was jetzt essen"-Tipps angezeigt: kurze, konkrete Vorschläge für Lebensmittel/Zutatenkategorien (keine vollständigen Rezepte), die die noch offenen Tagesziele sinnvoll füllen — passend zur aktuellen Tageszeit.
+
+Du bekommst: die aktuelle Tageszeit-Phase (Frühstück/Mittagessen/Nachmittags-Snack/Abendessen), die Tagesziele (kcal/Protein/Kohlenhydrate/Fett), was davon heute schon gegessen wurde, sowie die Titel der heute bereits geloggten Mahlzeiten.
+
+Regeln:
+- Rechne die verbleibende Lücke je Makro selbst aus (Ziel minus bereits Gegessenes) und richte die Tipps danach aus. Ist ein Makro schon erreicht oder überschritten, schlage dort nichts Zusätzliches vor.
+- Passe die Tipps an die Tageszeit an: zur Frühstücks-/Mittags-/Abendzeit dürfen es auch zu dieser Mahlzeit passende Ideen sein, nicht nur einzelne Snacks. Snack-Ideen (schnell, ohne Zubereitung) sind dagegen zu JEDER Tageszeit passend und dürfen jederzeit dabei sein.
+- Schlage nichts vor, das laut den bereits geloggten Mahlzeiten-Titeln erkennbar schon gegessen wurde.
+- Nenne konkrete Lebensmittel oder kurze Kombinationen, keine vollständigen Rezepte mit Zubereitungsschritten — das hier ist "was jetzt greifen", nicht "was kochen".
+- Ist die Ernährung des Tages bereits ausgewogen bzw. gibt es keine sinnvolle Lücke mehr, gib eine leere "tips"-Liste zurück statt beliebige Tipps zu erfinden.
+- Halte jeden Tipp kurz (ein Satz Vorschlag, ein Satz Begründung).
+
+Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema, auf Deutsch.`
+
+export interface NutritionTipsInput {
+  /** German label of the current time-of-day slot, e.g. "Frühstück" — freeform text so this file stays decoupled from lib/db.ts's MealType labels. */
+  slotLabel: string
+  dailyTargets: Nutrition | null
+  consumedSoFar: Nutrition
+  /** Titles of meals already logged today, so the model doesn't suggest something already eaten. */
+  loggedTitles: string[]
+}
+
+/**
+ * Generates 0–3 short "what to eat next" tips grounded in today's actual
+ * remaining macro gaps and the current time-of-day slot — food categories,
+ * not recipes. Refreshed per time-of-day slot rather than once a day (see
+ * lib/tips.ts), since the whole point is that a breakfast-time gap doesn't
+ * still get suggested at dinner.
+ */
+export async function estimateNutritionTips(input: NutritionTipsInput): Promise<TipSuggestion[]> {
+  const lines = [
+    `Aktuelle Tageszeit-Phase: ${input.slotLabel}`,
+    input.dailyTargets
+      ? `Tagesziel: ${Math.round(input.dailyTargets.kcal)} kcal, ${Math.round(input.dailyTargets.protein)}g Protein, ${Math.round(input.dailyTargets.carbs)}g Kohlenhydrate, ${Math.round(input.dailyTargets.fat)}g Fett`
+      : 'Kein Tagesziel hinterlegt (keine Körperwerte eingerichtet) — richte dich an allgemein üblichen Portionen aus.',
+    `Bereits heute gegessen: ${Math.round(input.consumedSoFar.kcal)} kcal, ${Math.round(input.consumedSoFar.protein)}g Protein, ${Math.round(input.consumedSoFar.carbs)}g Kohlenhydrate, ${Math.round(input.consumedSoFar.fat)}g Fett`,
+    input.loggedTitles.length > 0
+      ? `Heute bereits geloggte Mahlzeiten: ${input.loggedTitles.join(', ')}`
+      : 'Heute wurde noch nichts geloggt.',
+  ]
+
+  const parsed = await callGemini({
+    systemPrompt: NUTRITION_TIPS_SYSTEM_PROMPT,
+    parts: [{ text: lines.join('\n') }],
+    responseSchema: NUTRITION_TIPS_SCHEMA,
+  })
+
+  const raw = Array.isArray(parsed.tips) ? parsed.tips : []
+  return raw.map((t) => ({
+    focus: TIP_FOCUS_ENUM.includes(t.focus) ? t.focus : 'general',
+    suggestion: String(t.suggestion ?? ''),
+    reason: String(t.reason ?? ''),
   }))
 }

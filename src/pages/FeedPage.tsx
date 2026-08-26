@@ -12,6 +12,7 @@ import { Collapse } from '../components/Collapse'
 import { MealTypeBadge } from '../components/MealTypeBadge'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { PageHeader } from '../components/PageHeader'
+import { TipsButton } from '../components/TipsSheet'
 
 function sumNutrition(meals: Meal[]) {
   return meals.reduce(
@@ -87,7 +88,7 @@ export function FeedPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-28">
-      <PageHeader title="Feed" />
+      <PageHeader title="Feed" actions={isToday && <TipsButton />} />
 
       {/* The date bar sits below the title rather than beside it: every other
           main page opens with a bare title on its own line, and Feed matching

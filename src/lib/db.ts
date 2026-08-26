@@ -240,6 +240,46 @@ export interface SupplementAdvisorRun {
   context: SupplementAdvisorContext
 }
 
+/**
+ * One "was jetzt essen"-tip, grounded in today's remaining macro gaps and the
+ * current time-of-day slot rather than a full recipe — a food category or two
+ * (e.g. "Thunfisch, Hähnchenbrust oder Hüttenkäse"), not a dish to cook.
+ */
+export interface TipSuggestion {
+  /** Which target this tip closes — drives the icon shown. 'general' for anything not tied to one macro (e.g. a timing nudge). */
+  focus: 'kcal' | 'protein' | 'carbs' | 'fat' | 'general'
+  /** Short, concrete suggestion naming actual foods. */
+  suggestion: string
+  /** One-sentence reason, e.g. why this closes a gap or fits the time of day. */
+  reason: string
+}
+
+/** What one tips run was based on — kept alongside the tips themselves purely for future reference, never re-sent to the model (unlike the supplement advisor, tips have no "keep the previous wording stable" requirement, so nothing reads this back). */
+export interface TipsContext {
+  slot: MealType
+  dailyTargets: Nutrition | null
+  consumedSoFar: Nutrition
+  loggedTitles: string[]
+}
+
+/**
+ * One time-slot's worth of tips, kept for a couple of days.
+ *
+ * Keyed by (date, slot) rather than just date: refreshing "per meal window"
+ * (breakfast/lunch/snack/dinner — the same four buckets lib/mealTypeGuess.ts
+ * already uses to default a new meal's type) is the whole point, so a run
+ * from this morning must not be mistaken for still current at dinner time.
+ */
+export interface TipsRun {
+  id: string
+  /** Local date key (YYYY-MM-DD). */
+  date: string
+  slot: MealType
+  generatedAt: number
+  tips: TipSuggestion[]
+  context: TipsContext
+}
+
 class KcalDatabase extends Dexie {
   meals!: EntityTable<Meal, 'id'>
   recipes!: EntityTable<Recipe, 'id'>
@@ -247,6 +287,7 @@ class KcalDatabase extends Dexie {
   mySupplements!: EntityTable<MySupplement, 'id'>
   supplementLog!: EntityTable<SupplementLogEntry, 'id'>
   supplementAdvisorRuns!: EntityTable<SupplementAdvisorRun, 'id'>
+  tipRuns!: EntityTable<TipsRun, 'id'>
 
   constructor() {
     super('kcal-tracker')
@@ -271,6 +312,15 @@ class KcalDatabase extends Dexie {
       mySupplements: 'id, supplementId, createdAt',
       supplementLog: 'id, mySupplementId, date, [mySupplementId+date+timeOfDay]',
       supplementAdvisorRuns: 'id, date, generatedAt',
+    })
+    this.version(5).stores({
+      meals: 'id, date, mealType, createdAt',
+      recipes: 'id, category, createdAt',
+      supplements: 'id, name, category, createdAt',
+      mySupplements: 'id, supplementId, createdAt',
+      supplementLog: 'id, mySupplementId, date, [mySupplementId+date+timeOfDay]',
+      supplementAdvisorRuns: 'id, date, generatedAt',
+      tipRuns: 'id, date, generatedAt, [date+slot]',
     })
   }
 }
@@ -298,6 +348,10 @@ export function newSupplementLogId(): string {
 }
 
 export function newSupplementAdvisorRunId(): string {
+  return crypto.randomUUID()
+}
+
+export function newTipsRunId(): string {
   return crypto.randomUUID()
 }
 

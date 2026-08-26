@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.11.0',
+    date: '2026-08-26',
+    highlights: [
+      'Neu im Feed: Glühbirne oben rechts mit "Was jetzt essen"-Tipps — konkrete Zutaten statt Rezepte, passend zu offenen Tageszielen und Tageszeit, aktualisiert sich automatisch zu Frühstück/Mittag/Snack/Abend.',
+    ],
+  },
+  {
     version: '1.10.0',
     date: '2026-08-26',
     highlights: [
