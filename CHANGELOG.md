@@ -10,6 +10,33 @@ die vielen `0.x`-Schritte.
 
 Alle Versionen ab hier sind zusätzlich als Git-Tag (`vX.Y.Z`) auf dem jeweiligen Merge-Commit hinterlegt.
 
+## [1.12.0] - 2026-08-26
+
+### Mikronährstoffe
+- Neue Kernliste von 10 Mikronährstoffen (Vitamin D, B12, Folat, C, Calcium,
+  Eisen, Magnesium, Zink, Kalium, Jod) — ausgewählt nach DGE-„kritische
+  Nährstoffe" plus breiter Alltagsrelevanz. Gemini schätzt sie pro Mahlzeit
+  grob mit (gleicher Aufruf wie die bestehende Kalorien-/Makro-Schätzung,
+  kein zusätzlicher Kontingent-Verbrauch), Rezepte ebenso.
+- Bewusst KEINE exakten Werte oder Prozentangaben in der Oberfläche —
+  stattdessen eine Einordnung in gut/durchschnittlich/unterrepräsentiert je
+  Nährstoff, gemittelt über die letzten 7 Tage mit geschätzten Mahlzeiten
+  (entspricht der DACH-Referenzwert-Logik: wochenweise erreicht, nicht
+  tagesgenau). Ein Text-KI-Schätzwert als scheinbar exakte Zahl wäre falsche
+  Präzision gewesen; die Bänder sind ehrlicher.
+- Referenzwerte nach DACH, geschlechtsspezifisch nur bei Eisen (gut belegter
+  ~2-facher Unterschied) — kein Ziel-basiertes (Abnehmen/Muskelaufbau/…)
+  Anpassen der anderen neun, weil die Evidenz dafür zu dünn ist, um sie als
+  Fakt auszuspielen.
+- Mahlzeit-Detail: neue "Gute Quelle für"-Badges — welche Mikronährstoffe
+  diese eine Mahlzeit spürbar beisteuert (mind. ein Drittel des Tagesbedarfs).
+- Statistik: neue, kompakte Mikronährstoff-Balken (Tag- und Nährstoff-
+  Ansicht), oberhalb der bestehenden Makronährstoff-Ringe — Makros bleiben
+  vollständig erhalten, rutschen aber eine Stufe tiefer.
+- Supplement-Empfehlungen beziehen jetzt auch unterrepräsentierte
+  Mikronährstoffe als eigenständigen Grund mit ein, nicht nur die
+  Makro-Lücken wie bisher.
+
 ## [1.11.0] - 2026-08-26
 
 ### Feed

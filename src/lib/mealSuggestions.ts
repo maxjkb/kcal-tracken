@@ -1,4 +1,4 @@
-import type { Ingredient, Meal, MealType, Nutrition } from './db'
+import type { Ingredient, Meal, MealType, Micronutrients, Nutrition } from './db'
 
 /** How far back the history is read. Long enough for a weekly rhythm to show, short enough that food you've moved on from drops out. */
 export const SUGGESTION_HISTORY_DAYS = 90
@@ -16,6 +16,7 @@ export interface MealSuggestion {
   title: string
   nutrition: Nutrition
   ingredients?: Ingredient[]
+  micronutrients?: Micronutrients
   /**
    * The free-text description behind the newest logged instance, so picking
    * a suggestion to *edit* has something to start from. Falls back to a
@@ -83,6 +84,7 @@ export function rankMealSuggestions(meals: Meal[], forType: MealType, limit: num
         title: newest.title,
         nutrition: newest.nutrition,
         ingredients: newest.ingredients,
+        micronutrients: newest.micronutrients,
         description: newest.description.trim() || describeIngredients(newest.ingredients),
         mealType: dominantType,
         count: group.meals.length,

@@ -17,6 +17,16 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.12.0',
+    date: '2026-08-26',
+    highlights: [
+      'Mikronährstoffe: 10 wichtige Vitamine/Mineralstoffe werden jetzt mitgeschätzt — als gut/durchschnittlich/unterrepräsentiert statt exakter Werte, gemittelt über die letzte Woche.',
+      'Mahlzeit-Detail zeigt jetzt "Gute Quelle für"-Badges für Mikronährstoffe.',
+      'Statistik: neue Mikronährstoff-Übersicht (kleine Balken), Makronährstoffe rutschen dafür eine Stufe tiefer.',
+      'Supplement-Empfehlungen berücksichtigen jetzt auch unterrepräsentierte Mikronährstoffe, nicht nur Makros.',
+    ],
+  },
+  {
     version: '1.11.0',
     date: '2026-08-26',
     highlights: [

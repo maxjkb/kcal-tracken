@@ -7,6 +7,8 @@ import { ConcentricRings, NutrientRings } from '../components/NutrientRings'
 import { DayPickerModal, MonthPickerModal, YearPickerModal } from '../components/DatePickerModal'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { SupplementAdherenceCard } from '../components/SupplementAdherenceCard'
+import { MicronutrientBars } from '../components/MicronutrientBars'
+import { useMicronutrientOverview } from '../hooks/useMicronutrients'
 import { KcalTrendChart } from '../components/KcalTrendChart'
 import type { StatBucket } from '../lib/stats'
 import { PageHeader, HeaderButton } from '../components/PageHeader'
@@ -105,6 +107,11 @@ export function StatsPage() {
 
   const bodyProfile = getBodyProfile()
   const dailyTargets = bodyProfile ? computeDailyTargets(bodyProfile) : null
+  // Always the trailing week ending at the period's own end date, regardless
+  // of which period (Tag/Woche/Monat/Jahr) is selected: the bands are a
+  // "how am I doing lately" read, not a value to sum or average further over
+  // a longer browsed range the way kcal/macros are above.
+  const microOverview = useMicronutrientOverview(endKey)
 
   // Woche bars = days (click → that day's Tag view); Monat bars = weeks
   // (click → that week's Woche view); Jahr points = months (click → that
@@ -230,40 +237,57 @@ export function StatsPage() {
       </div>
 
       {period === 'day' ? (
-        <div className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
-          {meals === undefined ? (
-            <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
-          ) : perMealData.length === 0 ? (
-            <p className="py-10 text-center text-sm text-ink-soft">Keine Mahlzeiten an diesem Tag.</p>
-          ) : (
-            <NutrientRings
-              kcal={totals.kcal}
-              protein={totals.protein}
-              carbs={totals.carbs}
-              fat={totals.fat}
-              targets={dailyTargets}
-              perMeal={perMealAverages}
-            />
-          )}
-        </div>
+        <>
+          {/* Mikronährstoffe first, Makronährstoffe demoted below it — per
+              the same brainstorm this shipped from: macros stay available
+              here, they just aren't the first thing the eye lands on. */}
+          <div className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Mikronährstoffe</h3>
+            <MicronutrientBars overview={microOverview} />
+          </div>
+          <div className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Makronährstoffe</h3>
+            {meals === undefined ? (
+              <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
+            ) : perMealData.length === 0 ? (
+              <p className="py-10 text-center text-sm text-ink-soft">Keine Mahlzeiten an diesem Tag.</p>
+            ) : (
+              <NutrientRings
+                kcal={totals.kcal}
+                protein={totals.protein}
+                carbs={totals.carbs}
+                fat={totals.fat}
+                targets={dailyTargets}
+                perMeal={perMealAverages}
+              />
+            )}
+          </div>
+        </>
       ) : view === 'nutrients' ? (
-        /* The Feed's own daily breakdown, applied to the period's average —
-           same rings, same colours, same percent-of-target readout, so the
-           number in the tile above and the detail below are visibly the same
-           thing at two levels of zoom. */
-        <div className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
-          {meals === undefined ? (
-            <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
-          ) : (
-            <NutrientRings
-              kcal={dailyAverage}
-              protein={macroAverages.protein}
-              carbs={macroAverages.carbs}
-              fat={macroAverages.fat}
-              targets={dailyTargets}
-            />
-          )}
-        </div>
+        <>
+          <div className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Mikronährstoffe</h3>
+            <MicronutrientBars overview={microOverview} />
+          </div>
+          {/* The Feed's own daily breakdown, applied to the period's average —
+              same rings, same colours, same percent-of-target readout, so the
+              number in the tile above and the detail below are visibly the
+              same thing at two levels of zoom. */}
+          <div className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Makronährstoffe</h3>
+            {meals === undefined ? (
+              <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
+            ) : (
+              <NutrientRings
+                kcal={dailyAverage}
+                protein={macroAverages.protein}
+                carbs={macroAverages.carbs}
+                fat={macroAverages.fat}
+                targets={dailyTargets}
+              />
+            )}
+          </div>
+        </>
       ) : (
         <div className="rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
           {(period === 'week' || period === 'month') && meals !== undefined && barData.length > 0 && (

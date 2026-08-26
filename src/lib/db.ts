@@ -9,6 +9,71 @@ export interface Nutrition {
   fat: number // g
 }
 
+/**
+ * The curated set of micronutrients Tracke estimates — the ones the DGE
+ * itself names as the population's most common shortfalls (Vitamin D, B12,
+ * Folat, Magnesium, Eisen, Calcium), plus Vitamin C, Zink, Kalium and Jod for
+ * broader everyday coverage. Deliberately not the full ~30-entry DACH table:
+ * a text/photo estimate is already loose for macros, and asking for every
+ * known micronutrient would multiply that looseness without the UI being
+ * able to show it honestly. See lib/micronutrients.ts for how these numbers
+ * turn into the "gut/durchschnittlich/unterrepräsentiert" bands actually
+ * shown — the numbers themselves are never displayed.
+ */
+export type MicronutrientKey =
+  | 'vitaminD'
+  | 'vitaminB12'
+  | 'folate'
+  | 'vitaminC'
+  | 'calcium'
+  | 'iron'
+  | 'magnesium'
+  | 'zinc'
+  | 'potassium'
+  | 'iodine'
+
+export const MICRONUTRIENT_ORDER: MicronutrientKey[] = [
+  'vitaminD',
+  'vitaminB12',
+  'folate',
+  'vitaminC',
+  'calcium',
+  'iron',
+  'magnesium',
+  'zinc',
+  'potassium',
+  'iodine',
+]
+
+export const MICRONUTRIENT_LABELS: Record<MicronutrientKey, string> = {
+  vitaminD: 'Vitamin D',
+  vitaminB12: 'Vitamin B12',
+  folate: 'Folat',
+  vitaminC: 'Vitamin C',
+  calcium: 'Calcium',
+  iron: 'Eisen',
+  magnesium: 'Magnesium',
+  zinc: 'Zink',
+  potassium: 'Kalium',
+  iodine: 'Jod',
+}
+
+export const MICRONUTRIENT_UNITS: Record<MicronutrientKey, string> = {
+  vitaminD: 'µg',
+  vitaminB12: 'µg',
+  folate: 'µg',
+  vitaminC: 'mg',
+  calcium: 'mg',
+  iron: 'mg',
+  magnesium: 'mg',
+  zinc: 'mg',
+  potassium: 'mg',
+  iodine: 'µg',
+}
+
+/** One meal's or recipe's estimated micronutrient content, same units as MICRONUTRIENT_UNITS. */
+export type Micronutrients = Record<MicronutrientKey, number>
+
 export interface Ingredient {
   name: string
   /** Numeric quantity actually consumed (matches the nutrition values below), editable by the user. */
@@ -46,6 +111,14 @@ export interface Meal {
   nutrition: Nutrition
   /** Per-ingredient breakdown from the AI estimate, if any. Read-only detail info — reflects the estimate at the time it ran, not necessarily in sync with later manual edits to `nutrition`. */
   ingredients?: Ingredient[]
+  /**
+   * Estimated micronutrient content, if this meal ever went through an AI
+   * estimate. Undefined for meals entered before this existed and for
+   * purely manual entries (nothing ever asked Gemini) — both are simply
+   * left out of the rolling micronutrient average rather than counted as
+   * zero, so an old meal doesn't drag every band down to "unterrepräsentiert".
+   */
+  micronutrients?: Micronutrients
   /** Optional overall AI remark about the whole meal (e.g. an assumption made), only when relevant. */
   note?: string
   /** Whether nutrition values were ever manually edited by the user. */
@@ -77,6 +150,8 @@ export interface Recipe {
   /** Preparation steps, in order — structured by the AI from free text, freely editable afterward. */
   steps: RecipeStep[]
   nutrition: Nutrition
+  /** Estimated micronutrient content — see Meal.micronutrients. Carried over onto the logged Meal when this recipe is picked in the editor. */
+  micronutrients?: Micronutrients
   /** Whether nutrition values were ever manually edited by the user. */
   manuallyEdited: boolean
   createdAt: number
@@ -219,6 +294,8 @@ export interface SupplementAdvisorContext {
   periodDays: number
   /** Names taken on at least ESTABLISHED_DAYS of the last 30 days. */
   established: string[]
+  /** Micronutrients whose rolling 7-day average sits in the "unterrepräsentiert" band (see lib/micronutrients.ts) — German labels, empty when there's no body profile or no such gap. */
+  lowMicronutrients: string[]
 }
 
 /**

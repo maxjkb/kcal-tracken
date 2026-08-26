@@ -6,6 +6,7 @@ import {
   type Ingredient,
   type Meal,
   type MealType,
+  type Micronutrients,
   type Nutrition,
   type Recipe,
 } from '../lib/db'
@@ -54,6 +55,7 @@ interface MealDraft {
   title: string
   nutrition: Nutrition
   ingredients: Ingredient[] | undefined
+  micronutrients: Micronutrients | undefined
   note: string | undefined
   manuallyEdited: boolean
 }
@@ -136,6 +138,7 @@ function MealEditorContent({
     title: initial?.title ?? '',
     nutrition: initial?.nutrition ?? EMPTY_NUTRITION,
     ingredients: initial?.ingredients,
+    micronutrients: initial?.micronutrients,
     note: initial?.note,
     manuallyEdited: initial?.manuallyEdited ?? false,
   }
@@ -155,6 +158,16 @@ function MealEditorContent({
   const [ingredients, setIngredients] = useState<Ingredient[] | undefined>(
     restored ? restored.ingredients : baseline.ingredients,
   )
+  // Estimated once per AI pass, at meal level (see MICRONUTRIENT_SCHEMA in
+  // lib/gemini.ts) — never rescaled when an ingredient amount is nudged
+  // afterward, the same tradeoff db.ts already documents for `ingredients`
+  // itself: it reflects the estimate at the time it ran, not necessarily in
+  // sync with later manual tweaks. Not worth solving here — there is no
+  // per-ingredient micronutrient breakdown to rescale from, and these only
+  // ever feed a rolling weekly band, not an exact daily number.
+  const [micronutrients, setMicronutrients] = useState<Micronutrients | undefined>(
+    restored ? restored.micronutrients : baseline.micronutrients,
+  )
   const [estimating, setEstimating] = useState(false)
   const [cleaningUp, setCleaningUp] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -173,6 +186,7 @@ function MealEditorContent({
     title,
     nutrition,
     ingredients,
+    micronutrients,
     note,
     manuallyEdited,
   }
@@ -189,6 +203,7 @@ function MealEditorContent({
     setTitle(baseline.title)
     setNutrition(baseline.nutrition)
     setIngredients(baseline.ingredients)
+    setMicronutrients(baseline.micronutrients)
     setNote(baseline.note)
     setManuallyEdited(baseline.manuallyEdited)
     setRestoredNotice(false)
@@ -208,6 +223,12 @@ function MealEditorContent({
     setTitle(recipe.title)
     setNutrition(recipe.nutrition)
     setIngredients(recipe.ingredients)
+    // Recipes saved before micronutrient estimation existed carry none —
+    // stays undefined rather than a fake all-zero value, same reasoning as
+    // Meal.micronutrients itself (see db.ts): "never estimated" and
+    // "estimated as roughly zero" are different facts, and only the first
+    // is true here.
+    setMicronutrients(recipe.micronutrients)
     setNote(undefined)
     setManuallyEdited(false)
     setHasResult(true)
@@ -219,6 +240,7 @@ function MealEditorContent({
     setTitle(suggestion.title)
     setNutrition(suggestion.nutrition)
     setIngredients(suggestion.ingredients)
+    setMicronutrients(suggestion.micronutrients)
     setNote(undefined)
     setManuallyEdited(false)
     setHasResult(true)
@@ -263,6 +285,7 @@ function MealEditorContent({
       setTitle((current) => current || result.suggestedTitle)
       setNutrition({ kcal: result.kcal, protein: result.protein, carbs: result.carbs, fat: result.fat })
       setIngredients(result.ingredients)
+      setMicronutrients(result.micronutrients)
       setNote(result.note)
       setManuallyEdited(false)
       setHasResult(true)
@@ -299,6 +322,7 @@ function MealEditorContent({
       photo,
       nutrition,
       ingredients,
+      micronutrients,
       note,
       manuallyEdited,
       createdAt: initial?.createdAt ?? now,

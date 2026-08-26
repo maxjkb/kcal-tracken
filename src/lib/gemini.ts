@@ -1,6 +1,15 @@
 import { getApiKey } from './settings'
 import { searchFoodDatabaseMany, type FoodDatabaseMatch } from './foodDatabase'
-import type { MealType, Nutrition, SupplementCategory, SupplementRecommendation, SupplementTimeOfDay, TipSuggestion } from './db'
+import {
+  MICRONUTRIENT_ORDER,
+  type MealType,
+  type Micronutrients,
+  type Nutrition,
+  type SupplementCategory,
+  type SupplementRecommendation,
+  type SupplementTimeOfDay,
+  type TipSuggestion,
+} from './db'
 
 import { DEFAULT_MODEL, markExhausted, modelOrder } from './geminiModels'
 import { recordUsage } from './usageQuota'
@@ -57,7 +66,43 @@ export interface NutritionEstimate {
   protein: number
   carbs: number
   fat: number
+  micronutrients: Micronutrients
   note?: string
+}
+
+/**
+ * Shared by meal- and recipe estimation. Unlike kcal/protein/carbs/fat,
+ * micronutrients are estimated once for the WHOLE meal rather than derived
+ * by summing a per-ingredient breakdown — there is no per-ingredient
+ * micronutrient field, so asking for one here would just double the schema
+ * for numbers nobody reads at that granularity. These are never shown to
+ * the user as raw figures either; lib/micronutrients.ts turns a rolling
+ * average of them into a "gut/durchschnittlich/unterrepräsentiert" band per
+ * nutrient, which is the whole reason a rough per-meal estimate is good
+ * enough here.
+ */
+const MICRONUTRIENT_SCHEMA = {
+  type: 'OBJECT',
+  description:
+    'Grobe GESAMT-Schätzung der Mikronährstoffe der ganzen Mahlzeit (nicht pro Zutat) auf Basis üblicher Nährwerttabellen. Dient nur einem internen Grobabgleich mit dem Tagesbedarf über mehrere Tage gemittelt — wird dem Nutzer nie als exakte Zahl angezeigt, daher reicht eine realistische Schätzung ohne übertriebene Präzision.',
+  properties: {
+    vitaminD: { type: 'NUMBER', description: 'Vitamin D in µg.' },
+    vitaminB12: { type: 'NUMBER', description: 'Vitamin B12 in µg.' },
+    folate: { type: 'NUMBER', description: 'Folat (Vitamin B9) in µg.' },
+    vitaminC: { type: 'NUMBER', description: 'Vitamin C in mg.' },
+    calcium: { type: 'NUMBER', description: 'Calcium in mg.' },
+    iron: { type: 'NUMBER', description: 'Eisen in mg.' },
+    magnesium: { type: 'NUMBER', description: 'Magnesium in mg.' },
+    zinc: { type: 'NUMBER', description: 'Zink in mg.' },
+    potassium: { type: 'NUMBER', description: 'Kalium in mg.' },
+    iodine: { type: 'NUMBER', description: 'Jod in µg.' },
+  },
+  required: ['vitaminD', 'vitaminB12', 'folate', 'vitaminC', 'calcium', 'iron', 'magnesium', 'zinc', 'potassium', 'iodine'],
+}
+
+function parseMicronutrients(raw: unknown): Micronutrients {
+  const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  return Object.fromEntries(MICRONUTRIENT_ORDER.map((key) => [key, round1(Number(obj[key]) || 0)])) as Micronutrients
 }
 
 const NUTRITION_RESPONSE_SCHEMA = {
@@ -93,15 +138,16 @@ const NUTRITION_RESPONSE_SCHEMA = {
         required: ['name', 'amount', 'unit', 'kcal', 'protein', 'carbs', 'fat'],
       },
     },
+    micronutrients: MICRONUTRIENT_SCHEMA,
     note: {
       type: 'STRING',
       description: 'NUR falls eine übergreifende Annahme zur gesamten Mahlzeit nötig war — sonst weglassen.',
     },
   },
-  required: ['suggestedTitle', 'ingredients'],
+  required: ['suggestedTitle', 'ingredients', 'micronutrients'],
 }
 
-const SYSTEM_PROMPT = `Du bist ein Ernährungsassistent. Der Nutzer beschreibt eine Mahlzeit (Text und/oder Foto) auf Deutsch, ggf. mit ungefähren Mengenangaben in Gramm oder Haushaltsmaßen. Zerlege die Mahlzeit in ihre einzelnen Zutaten und schätze für JEDE Zutat einzeln die Nährwerte auf Basis üblicher Standard-Nährwerttabellen (wie z.B. USDA oder gängige Lebensmitteldatenbanken) für die TATSÄCHLICH VERZEHRTE Menge (nicht pro 100g). "amount" muss diese verzehrte Menge als reine Zahl enthalten (die Einheit kommt separat in "unit"), passend zu den angegebenen Nährwerten — wurde z.B. nur die Hälfte einer zubereiteten Soße gegessen, ist "amount" die gegessene Teilmenge, nicht die zubereitete Gesamtmenge. Wenn Mengenangaben fehlen, nimm plausible durchschnittliche Portionsgrößen an. Schreibe eine "note" nur dort, wo wirklich eine relevante Annahme getroffen wurde (z.B. "Nudeln ungekocht angenommen", "nur die Hälfte der zubereiteten Menge gegessen") — bei eindeutigen Zutaten bleibt "note" weg. Betrifft eine Annahme eine EINZELNE Zutat, schreibe sie IMMER in die "note" dieser Zutat, niemals in die übergreifende "note" der Mahlzeit — die übergreifende "note" ist ausschließlich für Annahmen reserviert, die sich nicht einer einzelnen Zutat zuordnen lassen. Werden dir zusätzlich Referenz-Nährwerte aus einer Lebensmitteldatenbank mitgegeben, nutze diese bevorzugt für Zutaten, auf die sie wirklich zutreffen (auf die verzehrte Menge skaliert) — ignoriere sie für Zutaten, auf die sie nicht passen. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema.`
+const SYSTEM_PROMPT = `Du bist ein Ernährungsassistent. Der Nutzer beschreibt eine Mahlzeit (Text und/oder Foto) auf Deutsch, ggf. mit ungefähren Mengenangaben in Gramm oder Haushaltsmaßen. Zerlege die Mahlzeit in ihre einzelnen Zutaten und schätze für JEDE Zutat einzeln die Nährwerte auf Basis üblicher Standard-Nährwerttabellen (wie z.B. USDA oder gängige Lebensmitteldatenbanken) für die TATSÄCHLICH VERZEHRTE Menge (nicht pro 100g). "amount" muss diese verzehrte Menge als reine Zahl enthalten (die Einheit kommt separat in "unit"), passend zu den angegebenen Nährwerten — wurde z.B. nur die Hälfte einer zubereiteten Soße gegessen, ist "amount" die gegessene Teilmenge, nicht die zubereitete Gesamtmenge. Wenn Mengenangaben fehlen, nimm plausible durchschnittliche Portionsgrößen an. Schätze zusätzlich in "micronutrients" GROB die Mikronährstoffe der GESAMTEN Mahlzeit (nicht pro Zutat) — diese dienen nur einem internen Abgleich über mehrere Tage gemittelt und werden nie als exakte Zahl angezeigt, eine realistische Schätzung reicht. Schreibe eine "note" nur dort, wo wirklich eine relevante Annahme getroffen wurde (z.B. "Nudeln ungekocht angenommen", "nur die Hälfte der zubereiteten Menge gegessen") — bei eindeutigen Zutaten bleibt "note" weg. Betrifft eine Annahme eine EINZELNE Zutat, schreibe sie IMMER in die "note" dieser Zutat, niemals in die übergreifende "note" der Mahlzeit — die übergreifende "note" ist ausschließlich für Annahmen reserviert, die sich nicht einer einzelnen Zutat zuordnen lassen. Werden dir zusätzlich Referenz-Nährwerte aus einer Lebensmitteldatenbank mitgegeben, nutze diese bevorzugt für Zutaten, auf die sie wirklich zutreffen (auf die verzehrte Menge skaliert) — ignoriere sie für Zutaten, auf die sie nicht passen. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema.`
 
 const FOOD_EXTRACTION_SCHEMA = {
   type: 'OBJECT',
@@ -382,6 +428,7 @@ export async function estimateNutrition(params: {
     suggestedTitle: String(parsed.suggestedTitle ?? 'Mahlzeit'),
     ingredients,
     ...totals,
+    micronutrients: parseMicronutrients(parsed.micronutrients),
     note: parsed.note ? String(parsed.note) : undefined,
   }
 }
@@ -415,6 +462,7 @@ export interface RecipeEstimate {
   protein: number
   carbs: number
   fat: number
+  micronutrients: Micronutrients
   note?: string
 }
 
@@ -432,15 +480,16 @@ const RECIPE_RESPONSE_SCHEMA = {
         'Zubereitungsschritte in sinnvoller, chronologischer Reihenfolge — jeder Schritt ein eigener, kurzer, klarer Satz auf Deutsch (z.B. "Nudeln in Salzwasser bissfest kochen."). Fasse zusammengehörige Handgriffe zu einem Schritt zusammen, statt jede Kleinigkeit einzeln aufzuführen.',
       items: { type: 'STRING' },
     },
+    micronutrients: MICRONUTRIENT_SCHEMA,
     note: {
       type: 'STRING',
       description: 'NUR falls eine übergreifende Annahme zum gesamten Rezept nötig war — sonst weglassen.',
     },
   },
-  required: ['suggestedTitle', 'ingredients', 'steps'],
+  required: ['suggestedTitle', 'ingredients', 'steps', 'micronutrients'],
 }
 
-const RECIPE_SYSTEM_PROMPT = `Du bist ein Ernährungsassistent. Der Nutzer beschreibt ein Rezept (Text) auf Deutsch, das er als Vorlage für zukünftige Mahlzeiten speichern möchte, ggf. mit ungefähren Mengenangaben in Gramm oder Haushaltsmaßen. Zerlege das Rezept in seine einzelnen Zutaten und schätze für JEDE Zutat einzeln die Nährwerte auf Basis üblicher Standard-Nährwerttabellen (wie z.B. USDA oder gängige Lebensmitteldatenbanken) für die im Rezept verwendete Menge (nicht pro 100g). "amount" muss diese Menge als reine Zahl enthalten (die Einheit kommt separat in "unit"), passend zu den angegebenen Nährwerten. Wenn Mengenangaben fehlen, nimm plausible durchschnittliche Mengen für eine Portion an. Schreibe eine "note" nur dort, wo wirklich eine relevante Annahme getroffen wurde — bei eindeutigen Zutaten bleibt "note" weg; betrifft eine Annahme eine EINZELNE Zutat, schreibe sie in die "note" dieser Zutat, niemals in die übergreifende "note". Strukturiere zusätzlich die Zubereitung in "steps": klare, sinnvoll geordnete Einzelschritte, jeder ein eigener kurzer Satz. Werden dir zusätzlich Referenz-Nährwerte aus einer Lebensmitteldatenbank mitgegeben, nutze diese bevorzugt für Zutaten, auf die sie wirklich zutreffen (auf die verwendete Menge skaliert). Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema.`
+const RECIPE_SYSTEM_PROMPT = `Du bist ein Ernährungsassistent. Der Nutzer beschreibt ein Rezept (Text) auf Deutsch, das er als Vorlage für zukünftige Mahlzeiten speichern möchte, ggf. mit ungefähren Mengenangaben in Gramm oder Haushaltsmaßen. Zerlege das Rezept in seine einzelnen Zutaten und schätze für JEDE Zutat einzeln die Nährwerte auf Basis üblicher Standard-Nährwerttabellen (wie z.B. USDA oder gängige Lebensmitteldatenbanken) für die im Rezept verwendete Menge (nicht pro 100g). "amount" muss diese Menge als reine Zahl enthalten (die Einheit kommt separat in "unit"), passend zu den angegebenen Nährwerten. Wenn Mengenangaben fehlen, nimm plausible durchschnittliche Mengen für eine Portion an. Schätze zusätzlich in "micronutrients" GROB die Mikronährstoffe des GESAMTEN Rezepts (nicht pro Zutat) — diese dienen nur einem internen Abgleich über mehrere Tage gemittelt und werden nie als exakte Zahl angezeigt, eine realistische Schätzung reicht. Schreibe eine "note" nur dort, wo wirklich eine relevante Annahme getroffen wurde — bei eindeutigen Zutaten bleibt "note" weg; betrifft eine Annahme eine EINZELNE Zutat, schreibe sie in die "note" dieser Zutat, niemals in die übergreifende "note". Strukturiere zusätzlich die Zubereitung in "steps": klare, sinnvoll geordnete Einzelschritte, jeder ein eigener kurzer Satz. Werden dir zusätzlich Referenz-Nährwerte aus einer Lebensmitteldatenbank mitgegeben, nutze diese bevorzugt für Zutaten, auf die sie wirklich zutreffen (auf die verwendete Menge skaliert). Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema.`
 
 export async function estimateRecipe(description: string): Promise<RecipeEstimate> {
   const parts: GeminiPart[] = [{ text: `Beschreibung des Rezepts: ${description.trim()}` }]
@@ -484,6 +533,7 @@ export async function estimateRecipe(description: string): Promise<RecipeEstimat
     ingredients,
     steps,
     ...totals,
+    micronutrients: parseMicronutrients(parsed.micronutrients),
     note: parsed.note ? String(parsed.note) : undefined,
   }
 }
@@ -580,6 +630,8 @@ export interface SupplementRecommendationInput {
   established: string[]
   /** On the list but taken patchily. These need a consistency nudge, not a new product. */
   irregular: { name: string; daysTaken: number; daysTracked: number }[]
+  /** Micronutrients (German labels) whose rolling 7-day average sits in the "unterrepräsentiert" band — empty when there's no body profile or no such gap. */
+  lowMicronutrients: string[]
   /** The previous run's suggestions with their wording, so unchanged circumstances produce unchanged advice. */
   previous: { supplementName: string; reasoning: string }[] | null
   /** Plain-language summary of how the nutrition data moved since that previous run, or null if nothing material changed. */
@@ -649,7 +701,7 @@ Bereits eingenommene Supplements:
 - Was regelmäßig (an fast allen Tagen des letzten Monats) eingenommen wird, ist erledigt — schlage es nicht erneut vor.
 - Was auf der Liste steht, aber unregelmäßig eingenommen wird, nimm mit kind="consistency" auf: die Empfehlung ist dann nicht ein neues Produkt, sondern die regelmäßige Einnahme des vorhandenen. Nenne in der Begründung konkret, an wie vielen Tagen es genommen wurde, und wofür die Regelmäßigkeit nötig ist (z.B. Kreatin wirkt nur bei täglicher Einnahme über Wochen).
 
-Gewichte neue Vorschläge und Begründungen zu etwa drei Vierteln auf Basis der tatsächlichen Ernährungsdaten (z.B. "der Proteinbedarf wird im Schnitt um X g/Tag verfehlt" oder "kaum fettreicher Fisch/Omega-3-Quellen erkennbar") und zu einem Viertel auf Basis allgemein anerkannter, zum Körperziel passender Supplements auch ohne direkten Datenbezug (z.B. ist Kreatin bei Muskelaufbau generell gut belegt, unabhängig von den geloggten Mahlzeiten).
+Gewichte neue Vorschläge und Begründungen zu etwa drei Vierteln auf Basis der tatsächlichen Ernährungsdaten (z.B. "der Proteinbedarf wird im Schnitt um X g/Tag verfehlt", "kaum fettreicher Fisch/Omega-3-Quellen erkennbar", oder ein gemeldeter Mikronährstoff-Mangel) und zu einem Viertel auf Basis allgemein anerkannter, zum Körperziel passender Supplements auch ohne direkten Datenbezug (z.B. ist Kreatin bei Muskelaufbau generell gut belegt, unabhängig von den geloggten Mahlzeiten). Ein gemeldeter Mikronährstoff-Mangel (7-Tage-Schnitt unter Referenzwert) ist ein eigenständiger, direkter Grund für einen Vorschlag — z.B. rechtfertigt "Vitamin D unterrepräsentiert" für sich allein einen Vitamin-D-Vorschlag, auch ohne dass sich das an den Makronährstoffen zeigt.
 
 Bleibe bei allgemein anerkannten, gut belegten Supplements und breiten, üblichen Dosierungsspannen aus der Literatur — keine individuelle medizinische Beratung, keine ungewöhnlichen/riskanten Kombinationen oder Hochdosierungen. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema, auf Deutsch.`
 
@@ -679,6 +731,9 @@ export async function estimateSupplementRecommendations(
           .map((i) => `${i.name} (an ${i.daysTaken} von ${i.daysTracked} Tagen)`)
           .join(', ')}`
       : 'Kein Supplement wird unregelmäßig eingenommen.',
+    input.lowMicronutrients.length > 0
+      ? `Mikronährstoffe mit erkennbarem Mangel (7-Tage-Schnitt unter Referenzwert, grobe KI-Schätzung): ${input.lowMicronutrients.join(', ')}`
+      : 'Keine erkennbare Mikronährstoff-Lücke in den letzten 7 Tagen (oder noch keine ausreichenden Daten dafür).',
   ]
 
   if (input.previous && input.previous.length > 0) {

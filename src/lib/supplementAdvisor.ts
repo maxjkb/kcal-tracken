@@ -1,5 +1,6 @@
 import {
   db,
+  MICRONUTRIENT_LABELS,
   newSupplementAdvisorRunId,
   toLocalDateKey,
   type Nutrition,
@@ -8,6 +9,7 @@ import {
 } from './db'
 import { estimateSupplementRecommendations } from './gemini'
 import { computeDailyTargets, getBodyProfile, GOAL_LABELS } from './bodyProfile'
+import { computeMicronutrientOverview } from './micronutrients'
 import { getApiKey } from './settings'
 
 /** Window the intake analysis looks back over. */
@@ -147,6 +149,15 @@ function describeNutritionChange(previous: SupplementAdvisorContext, current: Su
     changes.push(`wird inzwischen regelmäßig eingenommen: ${newlyEstablished.join(', ')}`)
   }
 
+  const newlyLow = current.lowMicronutrients.filter((n) => !previous.lowMicronutrients.includes(n))
+  if (newlyLow.length > 0) {
+    changes.push(`neu unterrepräsentiert (7-Tage-Schnitt): ${newlyLow.join(', ')}`)
+  }
+  const noLongerLow = previous.lowMicronutrients.filter((n) => !current.lowMicronutrients.includes(n))
+  if (noLongerLow.length > 0) {
+    changes.push(`nicht mehr unterrepräsentiert: ${noLongerLow.join(', ')}`)
+  }
+
   return changes.length > 0 ? changes.join('; ') : null
 }
 
@@ -178,11 +189,22 @@ async function pruneOldRuns(): Promise<void> {
  * so a manual re-trigger can't leave two competing lists for the same day.
  */
 export async function generateAdvisorRun(): Promise<SupplementAdvisorRun> {
-  const [adherence, intake] = await Promise.all([analyzeAdherence(), analyzeIntake()])
   const bodyProfile = getBodyProfile()
+  const [adherence, intake, microOverview] = await Promise.all([
+    analyzeAdherence(),
+    analyzeIntake(),
+    // Same rolling 7-day picture the Statistik page shows — no separate,
+    // hidden window here, so "why is this suggested" always matches what's
+    // visible elsewhere in the app. Skipped without a body profile, same
+    // gate the bands themselves need (iron's reference value depends on sex).
+    bodyProfile ? computeMicronutrientOverview(toLocalDateKey(new Date()), bodyProfile.sex) : null,
+  ])
 
   const established = adherence.filter((a) => a.established)
   const irregular = adherence.filter((a) => !a.established)
+  const lowMicronutrients = (microOverview?.statuses ?? [])
+    .filter((s) => s.band === 'low')
+    .map((s) => MICRONUTRIENT_LABELS[s.key])
 
   const context: SupplementAdvisorContext = {
     goalLabel: bodyProfile ? GOAL_LABELS[bodyProfile.goal] : 'Kein Ziel hinterlegt',
@@ -190,6 +212,7 @@ export async function generateAdvisorRun(): Promise<SupplementAdvisorRun> {
     averageIntake: intake.average,
     periodDays: intake.periodDays,
     established: established.map((a) => a.name),
+    lowMicronutrients,
   }
 
   const previousRun = await getLatestAdvisorRun()
@@ -202,6 +225,7 @@ export async function generateAdvisorRun(): Promise<SupplementAdvisorRun> {
     periodDays: context.periodDays,
     established: context.established,
     irregular: irregular.map((a) => ({ name: a.name, daysTaken: a.daysTaken, daysTracked: a.daysTracked })),
+    lowMicronutrients: context.lowMicronutrients,
     previous: previousRun ? previousRun.suggestions.map((s) => ({ supplementName: s.supplementName, reasoning: s.reasoning })) : null,
     nutritionChange,
   })

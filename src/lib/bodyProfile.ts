@@ -1,4 +1,5 @@
 import { pushProfileChange } from './sync'
+import type { Micronutrients } from './db'
 
 const STORAGE_KEY = 'kcal-tracker:body-profile'
 
@@ -144,5 +145,59 @@ export function computeDailyTargets(profile: BodyProfile): DailyTargets {
     carbs: Math.round(carbsG),
     fat: Math.round(fatG),
   }
+}
+
+/**
+ * DACH reference daily intakes for the curated micronutrient set (adult,
+ * general population — not pregnancy/age-adjusted). Unisex values, chosen as
+ * a practical midpoint where DACH itself splits by sex (e.g. Magnesium
+ * 300 f / 350 m) — deliberate scope decision: the estimate feeding these is
+ * already loose, and sex-specific values everywhere would claim a precision
+ * the pipeline doesn't have. Iron is the one exception, kept sex-specific
+ * below: the DACH gap there is roughly 2x (menstrual loss), not a rounding
+ * difference, and this app already asks for sex on every profile — folding
+ * that well-evidenced case in costs nothing a general "goal-based" adjustment
+ * would (see the brainstorm this shipped from: goal-adjusted micronutrient
+ * needs are far less established than macro needs, so this app doesn't
+ * pretend otherwise for the other nine).
+ *
+ * Units match MICRONUTRIENT_UNITS in db.ts (µg or mg per nutrient).
+ */
+const MICRONUTRIENT_REFERENCE: Micronutrients = {
+  vitaminD: 20,
+  vitaminB12: 4,
+  folate: 300,
+  vitaminC: 100,
+  calcium: 1000,
+  iron: 10, // overwritten per sex in computeMicronutrientTargets — this is the male/default value
+  magnesium: 325,
+  zinc: 9,
+  potassium: 4000,
+  iodine: 200,
+}
+
+const IRON_REFERENCE_BY_SEX: Record<Sex, number> = { male: 10, female: 15 }
+
+export type MicronutrientTargets = Micronutrients
+
+/** Daily reference intake per curated micronutrient, sex-adjusted for iron only (see MICRONUTRIENT_REFERENCE above). */
+export function computeMicronutrientTargets(sex: Sex): MicronutrientTargets {
+  return { ...MICRONUTRIENT_REFERENCE, iron: IRON_REFERENCE_BY_SEX[sex] }
+}
+
+export type MicronutrientBand = 'low' | 'average' | 'good'
+
+/** Below this fraction of the reference intake, a rolling average counts as "unterrepräsentiert". */
+const BAND_LOW_THRESHOLD = 0.67
+/** At or above this fraction, it counts as "gut" rather than merely "durchschnittlich". */
+const BAND_GOOD_THRESHOLD = 1.1
+
+/** Turns a rolling-average intake into one of the three bands the UI actually shows — see lib/micronutrients.ts for where the average itself comes from. */
+export function bandForIntake(averageIntake: number, target: number): MicronutrientBand {
+  if (target <= 0) return 'average'
+  const ratio = averageIntake / target
+  if (ratio < BAND_LOW_THRESHOLD) return 'low'
+  if (ratio >= BAND_GOOD_THRESHOLD) return 'good'
+  return 'average'
 }
 
