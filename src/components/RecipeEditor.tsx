@@ -20,7 +20,7 @@ import { NutritionFields } from './NutritionFields'
 import { NumberField } from './NumberField'
 import { AutoGrowTextarea } from './AutoGrowTextarea'
 import { BouncingDots } from './BouncingDots'
-import { MacroBadge, MacroRingBadge } from './MacroBadge'
+import { MacroChips } from './MacroChips'
 import { Link } from 'react-router-dom'
 import { Sheet } from './Sheet'
 import { useSheetClose } from '../hooks/useSheetClose'
@@ -487,10 +487,7 @@ function RecipeEditorContent({
                           </div>
                         </div>
                         <div className="mt-1.5 flex flex-wrap gap-1.5">
-                          <MacroBadge type="kcal" value={ing.kcal} size="sm" />
-                          <MacroRingBadge type="protein" value={ing.protein} size="sm" />
-                          <MacroRingBadge type="carbs" value={ing.carbs} size="sm" />
-                          <MacroRingBadge type="fat" value={ing.fat} size="sm" />
+                          <MacroChips kcal={ing.kcal} protein={ing.protein} carbs={ing.carbs} fat={ing.fat} size="sm" />
                         </div>
                         {ing.note && <p className="mt-1.5 text-xs italic text-ink-soft">{ing.note}</p>}
                       </div>
@@ -599,7 +596,7 @@ function RecipeEditorContent({
 
 function BackIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
     </svg>
   )
@@ -607,7 +604,7 @@ function BackIcon() {
 
 function ForwardIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
     </svg>
   )
@@ -615,7 +612,7 @@ function ForwardIcon() {
 
 function PlusIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-3.5 w-3.5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
       <path strokeLinecap="round" d="M12 5v14M5 12h14" />
     </svg>
   )

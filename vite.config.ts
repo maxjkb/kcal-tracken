@@ -23,8 +23,11 @@ export default defineConfig({
         name: 'Tracke',
         short_name: 'Tracke',
         description: 'Ernährungstracker mit KI-Nährwertschätzung',
-        theme_color: '#f2f2f7',
-        background_color: '#f2f2f7',
+        // Track --color-bg (light) in src/index.css — background_color is what
+        // iOS paints on the splash screen before the app has rendered, so a
+        // stale value here is a grey flash on every cold start.
+        theme_color: '#faf7f2',
+        background_color: '#faf7f2',
         display: 'standalone',
         start_url: '/kcal-tracken/',
         scope: '/kcal-tracken/',

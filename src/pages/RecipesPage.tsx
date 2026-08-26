@@ -4,7 +4,7 @@ import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, toLocalDateKey, type Meal } from '..
 import { ChevronIcon } from '../components/ChevronIcon'
 import { PageHeader } from '../components/PageHeader'
 import { MealTypeBadge } from '../components/MealTypeBadge'
-import { MacroBadge } from '../components/MacroBadge'
+import { MacroChip } from '../components/MacroChips'
 import { BouncingDots } from '../components/BouncingDots'
 import { RecipeEditor, type RecipeSeed } from '../components/RecipeEditor'
 import { useRecentMeals, useMealsInRange } from '../hooks/useMeals'
@@ -67,7 +67,7 @@ export function RecipesPage() {
                     <p className="truncate text-sm font-medium text-ink">{meal.title}</p>
                     <p className="text-xs text-ink-soft">{MEAL_TYPE_LABELS[meal.mealType]}</p>
                   </div>
-                  <MacroBadge type="kcal" value={meal.nutrition.kcal} size="sm" />
+                  <MacroChip metric="kcal" value={meal.nutrition.kcal} size="sm" />
                 </button>
               ))}
             </div>

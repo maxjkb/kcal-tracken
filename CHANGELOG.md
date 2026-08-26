@@ -10,6 +10,72 @@ die vielen `0.x`-Schritte.
 
 Alle Versionen ab hier sind zusätzlich als Git-Tag (`vX.Y.Z`) auf dem jeweiligen Merge-Commit hinterlegt.
 
+## [2.0.0] - 2026-08-26
+
+Komplettes UI-Redesign. Erste MAJOR-Version seit dem Rebrand — die App kann alles,
+was sie vorher konnte, sieht dabei aber durchgehend anders aus. Keine Funktion
+entfernt, keine Daten betroffen, kein Migrationsschritt nötig.
+
+### Farbe
+- Neue warme Palette: Terracotta als Akzent, dazu Lehm/Wein/Moos/Ocker für die
+  vier Nährwerte. Die bisherige Palette bestand aus Apples eigenen Systemfarben
+  auf neutralem Grau — HIG-konform, aber kaum von Apple Health zu unterscheiden.
+  Auch die Neutraltöne tragen jetzt einen Anteil des Akzents, damit Fläche und
+  Farbe als eine Palette wirken statt als Farbe auf Grau.
+- Der Farbton der App richtet sich nach der **Tageszeit** (Morgen/Mittag/Abend/
+  Nacht) statt wie bisher nach dem Bereich. Der Bereich steht schon dauerhaft in
+  der Bedienleiste; die Uhrzeit stand nirgends.
+- Kollision aufgelöst: „Fett" und „Mittagessen" waren exakt dasselbe Gelb,
+  „Kohlenhydrate" und „Snack" dasselbe Grün — laut HIG („Avoid using the same
+  color to mean different things") ein echter Fehler, kein Geschmacksthema.
+- Neue Tokens `--color-on-accent` / `--color-on-danger`: Vorder- und
+  Hintergrundfarbe farbiger Flächen sind jetzt gekoppelt. Vorher stand überall
+  hart `text-white`, was rein zufällig zur alten Helligkeit passte — mit der
+  helleren Dark-Mode-Palette lag es zwischen 1,85:1 und 2,80:1 und damit unter
+  jeder Lesbarkeitsschwelle. Jede Farbkombination wurde diesmal ausgerechnet,
+  nicht geschätzt.
+
+### Tagesform (ersetzt die vier Ringe)
+- Der Feed, die Statistik-Kachel, die Statistik-Detailansicht und das
+  Trend-Diagramm zeigen jetzt **eine** Form: vier Bögen, die vom Kern nach außen
+  zu einem gepunkteten Ziel-Ring wachsen. Ein ausgewogener Tag ist rund, ein Tag
+  mit 40 g zu wenig Protein hat eine sichtbare Delle.
+- Vier getrennte Ringe zwangen dazu, vier Dinge zu lesen, um eines zu erfahren —
+  ihre Längen liegen auf vier verschiedenen Kreisen und lassen sich nicht
+  vergleichen. Eine Form löst genau das.
+- Überall dieselbe Darstellung, statt vorher zwei verschiedene für dieselben
+  Daten (HIG, Charting Data: „Maintain continuity among multiple charts that use
+  the same data").
+- **Einmalige Erklärung** beim ersten Start, in der die Bögen einzeln wachsen und
+  benannt werden. Das ist keine Zugabe, sondern Vorgabe: HIG verlangt für eine
+  neuartige Diagrammform ausdrücklich, dass sie eingeführt wird. Jederzeit erneut
+  aufrufbar unter Einstellungen → Version & Neues.
+
+### Typografie
+- Fraunces (variable Serifenschrift mit echter optischer Größenachse) für große
+  Zahlen und Seitentitel; System-Schrift bleibt für alles Fließende und
+  Tabellarische. Genau zwei Schriften, wie von HIG verlangt.
+
+### Aufräumen
+- `MacroBadge`/`MacroRingBadge` durch `MacroChips` ersetzt: Alle sieben
+  Aufrufstellen bauten dasselbe Quartett von Hand zusammen. Die Ring-Badges
+  zeichneten außerdem einen geschlossenen Kreis ohne Fortschritt — sie liehen
+  sich die Sprache der Übersichtsgrafik, ohne deren Bedeutung zu tragen.
+- Trend-Diagramm: Linien- und Mittelwertfarbe waren feste Hex-Werte aus der alten
+  Palette und blieben deshalb beim Themenwechsel Apple-Blau und -Rot auf einer
+  ansonsten warmen Seite.
+- Icon-Strichstärken auf durchgehend 2 vereinheitlicht (vorher 2 / 2,2 / 2,4 /
+  2,5 gemischt). Die drei Checklisten-Glyphen bleiben bewusst schwerer — mit
+  Begründung im Code.
+- `theme-color` und PWA-`background_color` an die neue Grundfarbe angeglichen;
+  sonst wäre beim Start ein graues Aufblitzen geblieben.
+
+### Bewusst nicht angefasst
+- Bedienleiste, Wischnavigation, Sheet-Editoren, Federphysik und
+  Interrupt-Verhalten. HIG: ein vertrautes Muster nur brechen, wenn man beweisen
+  kann, dass es besser ist — hier konnte ich das nicht, also blieb es.
+- Funktionsumfang, Datenmodell, Gemini-Anbindung: unverändert.
+
 ## [1.12.1] - 2026-08-26
 
 ### Fixes

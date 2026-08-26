@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useMealSummariesInRange, type MealSummary } from '../hooks/useMeals'
 import { MEAL_TYPE_LABELS, toLocalDateKey, type Nutrition } from '../lib/db'
 import { ChevronIcon } from '../components/ChevronIcon'
-import { ConcentricRings, NutrientRings } from '../components/NutrientRings'
+import { DayShape } from '../components/DayShape'
+import { DaySummary } from '../components/DaySummary'
 import { DayPickerModal, MonthPickerModal, YearPickerModal } from '../components/DatePickerModal'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { SupplementAdherenceCard } from '../components/SupplementAdherenceCard'
@@ -199,7 +200,7 @@ export function StatsPage() {
       <div className="glass-subtle glass-subtle-themed mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
         <button
           onClick={() => setAnchorKey((k) => shiftAnchor(period, k, -1))}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-on-accent"
           aria-label="Vorheriger Zeitraum"
         >
           <ChevronIcon direction="left" />
@@ -209,7 +210,7 @@ export function StatsPage() {
         </button>
         <button
           onClick={() => setAnchorKey((k) => shiftAnchor(period, k, 1))}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-on-accent"
           aria-label="Nächster Zeitraum"
         >
           <ChevronIcon direction="right" />
@@ -252,14 +253,7 @@ export function StatsPage() {
             ) : perMealData.length === 0 ? (
               <p className="py-10 text-center text-sm text-ink-soft">Keine Mahlzeiten an diesem Tag.</p>
             ) : (
-              <NutrientRings
-                kcal={totals.kcal}
-                protein={totals.protein}
-                carbs={totals.carbs}
-                fat={totals.fat}
-                targets={dailyTargets}
-                perMeal={perMealAverages}
-              />
+              <DaySummary values={totals} targets={dailyTargets} caption="Tag" />
             )}
           </div>
         </>
@@ -278,12 +272,15 @@ export function StatsPage() {
             {meals === undefined ? (
               <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
             ) : (
-              <NutrientRings
-                kcal={dailyAverage}
-                protein={macroAverages.protein}
-                carbs={macroAverages.carbs}
-                fat={macroAverages.fat}
+              <DaySummary
+                values={{
+                  kcal: dailyAverage,
+                  protein: macroAverages.protein,
+                  carbs: macroAverages.carbs,
+                  fat: macroAverages.fat,
+                }}
                 targets={dailyTargets}
+                caption="Ø pro Tag"
               />
             )}
           </div>
@@ -384,7 +381,10 @@ function StatTile({
 }) {
   const body = (
     <>
-      <div className="text-xl font-bold text-ink">{value}</div>
+      {/* Display face — a stat tile's figure is one of the three places the
+          brief allows it, and tabular lining figures keep the three tiles'
+          numbers optically aligned with each other. */}
+      <div className="type-figure text-xl text-ink">{value}</div>
       <div className="text-[10px] text-ink-soft">{label}</div>
     </>
   )
@@ -400,7 +400,13 @@ function StatTile({
   )
 }
 
-/** The 3rd tile of the stat row — the compact concentric ring, the app's signature nutrient visualization, used identically across all four periods. */
+/**
+ * The 3rd tile of the stat row — the day shape at tile size, the same graphic
+ * the Feed leads with. Kept identical across all four periods, and identical
+ * to the large one below it: HIG (Charting Data) — "Maintain continuity among
+ * multiple charts that use the same data… use one chart type and consistent
+ * colors, annotations, layouts."
+ */
 function RingTile({
   kcal,
   protein,
@@ -422,7 +428,7 @@ function RingTile({
 }) {
   const body = (
     <>
-      <ConcentricRings kcal={kcal} protein={protein} carbs={carbs} fat={fat} targets={targets} size="compact" />
+      <DayShape values={{ kcal, protein, carbs, fat }} targets={targets} size={52} />
       <div className="text-[10px] leading-tight text-ink-soft">{caption}</div>
     </>
   )

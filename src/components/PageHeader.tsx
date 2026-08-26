@@ -80,7 +80,12 @@ export function PageHeader({
         style={{ opacity: edgeOpacity }}
       />
       <div className="relative flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tight text-ink">{title}</h1>
+        {/* The display face, at one of the three places the brief allows it:
+            page titles, the day-shape figure, and stat-tile numbers. Its
+            tracking comes from .type-title rather than a tracking-* utility —
+            a serif at display size needs a different value than the system
+            font's scale provides at the same size. */}
+        <h1 className="type-title text-[1.6rem] text-ink">{title}</h1>
         <div className="flex shrink-0 items-center gap-2">
           {actions}
           {showSettings && (
@@ -147,7 +152,7 @@ function PlusIcon() {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2.2}
+      strokeWidth={2}
       className="h-5 w-5"
     >
       <path strokeLinecap="round" d="M12 5v14M5 12h14" />

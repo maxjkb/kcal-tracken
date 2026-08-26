@@ -5,7 +5,7 @@ import { formatIngredientAmount } from '../lib/db'
 import { useRecipe } from '../hooks/useRecipes'
 import { RecipeEditor } from '../components/RecipeEditor'
 import { ChevronIcon } from '../components/ChevronIcon'
-import { MacroBadge, MacroRingBadge } from '../components/MacroBadge'
+import { MacroChips } from '../components/MacroChips'
 import { SlideInPage } from '../components/SlideInPage'
 import { Collapse } from '../components/Collapse'
 
@@ -15,7 +15,7 @@ function ChevronDown({ open }: { open: boolean }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2.2}
+      strokeWidth={2}
       className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`}
     >
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
@@ -75,10 +75,7 @@ export function RecipeDetailPage() {
         <h2 className="mb-3 text-xl font-semibold text-ink">{recipe.title}</h2>
 
         <div className="mb-5 flex flex-wrap items-center gap-2.5">
-          <MacroBadge type="kcal" value={recipe.nutrition.kcal} />
-          <MacroRingBadge type="protein" value={recipe.nutrition.protein} />
-          <MacroRingBadge type="carbs" value={recipe.nutrition.carbs} />
-          <MacroRingBadge type="fat" value={recipe.nutrition.fat} />
+          <MacroChips kcal={recipe.nutrition.kcal} protein={recipe.nutrition.protein} carbs={recipe.nutrition.carbs} fat={recipe.nutrition.fat} />
         </div>
 
         {recipe.ingredients.length > 0 && (

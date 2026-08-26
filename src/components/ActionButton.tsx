@@ -35,7 +35,7 @@ export function ActionButton({
       title={label}
       className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${
         primary
-          ? 'bg-accent text-white shadow-sm shadow-accent/30'
+          ? 'bg-accent text-on-accent shadow-sm shadow-accent/30'
           : active
             ? 'bg-accent/25 text-accent'
             : 'bg-accent/12 text-accent hover:bg-accent/20'

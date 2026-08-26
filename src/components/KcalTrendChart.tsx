@@ -12,12 +12,24 @@ import {
 } from 'recharts'
 import type { StatBucket } from '../lib/stats'
 import type { DailyTargets } from '../lib/bodyProfile'
-import { NutrientRings } from './NutrientRings'
+import { DaySummary } from './DaySummary'
 import { REDUCED_MOTION_TRANSITION, SPRING_DEFAULT } from '../lib/motionTokens'
 
-/** The trend line is the one thing on the chart that isn't data — red keeps it from reading as another series. */
-const TREND_COLOR = '#ff3b30'
-const LINE_COLOR = '#0a84ff'
+/*
+ * Both were hardcoded hexes from the old palette (systemBlue #0a84ff,
+ * systemRed #ff3b30) and so survived the theme swap unchanged, leaving a
+ * bright blue line on an otherwise warm page — the single most visible thing
+ * a token-based redesign can miss. They're custom properties now, which also
+ * makes them adapt to dark mode, which the literals never did.
+ *
+ * The series is kcal's own color, not a generic chart blue: this chart plots
+ * exactly one thing, calories, and that thing already has a color everywhere
+ * else in the app. The average line stays a separate hue because it isn't
+ * data — it's an annotation over the data, and it has to not read as a
+ * second series.
+ */
+const TREND_COLOR = 'var(--color-ink-soft)'
+const LINE_COLOR = 'var(--color-kcal)'
 
 /**
  * Calories over the selected period as connected points, with the period's
@@ -154,11 +166,12 @@ export function KcalTrendChart({
               <span className="text-sm font-semibold text-ink">{selected.label}</span>
               <span className="text-xs text-ink-soft">{Math.round(selected.kcal).toLocaleString('de-DE')} kcal</span>
             </div>
-            <NutrientRings
-              kcal={selected.kcal}
-              protein={selected.protein}
-              carbs={selected.carbs}
-              fat={selected.fat}
+            {/* The same day shape as the Feed and the tiles above, not a
+                second way of drawing the same four numbers — tapping a point
+                should feel like zooming into that day, which only works if
+                what you land on is recognizably the same graphic. */}
+            <DaySummary
+              values={{ kcal: selected.kcal, protein: selected.protein, carbs: selected.carbs, fat: selected.fat }}
               targets={targets}
             />
             {onSelectBucket && (

@@ -2,6 +2,25 @@
 
 @theme {
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Inter, ui-sans-serif, system-ui, sans-serif;
+  /*
+   * The one display face. Deliberately exactly one — HIG (Typography >
+   * Conveying hierarchy): "Minimize the number of typefaces you use, even in
+   * a highly customized interface."
+   *
+   * Scoped, by rule, to: the day-shape's headline number, page titles, and
+   * the stat tiles' primary figure. Never body copy, never list rows, never
+   * anything tabular — those stay on the system font, which already ships
+   * optical sizing, tracking tables, and (critically here) properly aligned
+   * lining figures. Fraunces is a variable serif with a real optical-size
+   * axis, so it holds up at display sizes the way the system font does;
+   * `font-optical-sizing: auto` below is what actually engages that axis.
+   *
+   * Only 500/600/700 are loaded (see index.html). HIG: "avoid light font
+   * weights… prefer Regular, Medium, Semibold, or Bold" — with a custom face
+   * the risk is worse than with SF, so the light cuts simply aren't
+   * available to reach for.
+   */
+  --font-display: Fraunces, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, ui-serif, serif;
 
   /* Size-specific tracking and leading, the way Apple's system font ships its
      own optical-size tables (WWDC20, "The Details of UI Typography"). Letters
@@ -34,101 +53,127 @@
   --text-2xl--line-height: 1.9rem;
   --text-2xl--letter-spacing: -0.023em;
 
-  /* Apple-inspired light palette */
-  --color-bg: #f2f2f7;
-  --color-surface: #ffffff;
-  --color-ink: #1d1d1f;
-  --color-ink-soft: #6e6e73;
-  /* Darkened from the original #aeaeb2 (1.98:1 on --color-bg — fails even
-     the loosest 3:1 non-text bar) to comfortably clear 3:1 against both
-     --color-bg and --color-surface (apple-hig-review: Accessibility —
-     minimum contrast). Still deliberately lighter than --color-ink-soft,
-     preserving the ink > ink-soft > ink-faint hierarchy — this is the
-     tertiary tier (dots, hairline icons, the faintest captions), not
-     meant to carry primary reading contrast. */
-  --color-ink-faint: #868686;
-  --color-line: #e5e5ea;
-
-  /* Main accent (buttons, nav, "+", arrows) — solid, not pastel. Kcal reuses
-     the same hue since it's now one of the four equal nutrient rings. Stays
-     the single dominant color everywhere — see --color-section below for
-     the secondary, per-area tint layered on top of it. */
-  --color-accent: #0a84ff;
-  --color-kcal: #0a84ff;
-  /* Macro badge colors — Apple Health-style. */
-  --color-protein: #ff375f;
-  --color-carbs: #34c759;
-  --color-fat: #ffcc00;
-
-  /* One colour per meal type, keyed to the time of day it names: sunrise
-     orange, midday yellow, night indigo, and green for the snack.
-     Indigo rather than a lilac purple for the evening — a lilac was tried for
-     the section theme and read as washed-out next to this palette.
-     Note the tension this creates, deliberately accepted: --color-fat is the
-     same yellow and --color-carbs the same green. The macro colours appear as
-     ring outlines with a macro glyph inside, these as filled badges behind a
-     time-of-day pictogram, so shape and context separate them — but they are
-     the same hues, and if that ever reads as one meaning rather than two, the
-     lunch and snack values are the ones to shift. */
-  --color-meal-breakfast: #ff9500;
-  --color-meal-lunch: #ffcc00;
-  --color-meal-dinner: #5e5ce6;
-  --color-meal-snack: #34c759;
-  --color-danger: #ff3b30;
-  /* Micronutrient band color — "gut", the third state alongside danger ("unterrepräsentiert")
-     and ink-faint ("durchschnittlich"). Deliberately its own token rather than reusing
-     --color-carbs, even though they're the same green: a micronutrient bar and a macro
-     ring never appear in the same visual context, but a dedicated token keeps the two
-     meanings independently adjustable later. */
-  --color-good: #34c759;
+  /*
+   * Warm "Tageslicht" palette — the redesign's core decision.
+   *
+   * The previous palette was Apple's own system set (systemBlue #0a84ff,
+   * systemPink, systemGreen, systemYellow) on neutral greys. It was
+   * HIG-correct and completely anonymous: near-indistinguishable from Apple
+   * Health. HIG (Color > Best practices) permits custom colors explicitly —
+   * "You may also want to use custom colors to enhance the visual experience
+   * of your app and express its unique personality" — it only requires they
+   * work in light/dark/increased-contrast and clear the contrast bars.
+   * Every value below was checked against those bars before it shipped.
+   *
+   * The neutrals are warm rather than grey: each carries a small amount of
+   * the accent's hue, so the ground and the accent read as one palette
+   * instead of a colored thing sitting on a neutral thing. This is a food
+   * app — paper and clay, not clinical dashboard.
+   */
+  --color-bg: #faf7f2;
+  --color-surface: #fffefb;
+  --color-ink: #221f1b;
+  --color-ink-soft: #6b635a;
+  /* Tertiary tier (hairline dots, the faintest captions) — clears the 3:1
+     non-text bar on both bg and surface while staying visibly lighter than
+     ink-soft, preserving the ink > ink-soft > ink-faint hierarchy. */
+  --color-ink-faint: #8a8177;
+  --color-line: #e9e1d6;
 
   /*
-   * One accent color per main area (Feed/Rezepte/Supplements/Statistik),
-   * chosen from Apple's own system-color set. First attempt used Indigo
-   * (Feed) and Purple (Supplements) — both read as "reddish/lilac" on
-   * review and were replaced with Cyan and Mint, so the whole set now forms
-   * one continuous cool family rather than spanning into red/violet hues:
-   * Mint(172°, Supplements) < Teal(189°, Rezepte) < Cyan(199°, Feed) <
-   * Blue(211°, accent/kcal/Statistik) — a deliberate gradation ("Abstufung")
-   * rather than four maximally-separated hues, with Mint's 35°+ gap from
-   * carbs' green (~137°) still enough to keep the two apart. Still nowhere
-   * near protein's pink (~350°), danger's red (~4°), or yellow/orange.
+   * Accent — terracotta. Two constraints pinned the exact value: white text
+   * on it needs 4.5:1 (it's a filled button), and the same color used AS
+   * text on the page background needs 4.5:1 too. #bd5138 looked right but
+   * missed the second by 0.03; #b84c33 clears both (5.10:1 and 4.77:1).
    *
-   * Statistik intentionally has no separate token — it stays on
-   * --color-accent itself, both because the request was to keep blue as the
-   * overall main color and because Statistik's own kcal rings are already
-   * that exact blue, so nothing needs to shift there.
-   *
-   * These are consumed several ways (App.tsx sets --color-section to
-   * whichever of these applies to the current route, on document.body so it
-   * also reaches body-portaled Sheets):
-   * - TopGradient's wash uses --color-section directly.
-   * - .glass-accent (every primary button/pill in the app) blends a small
-   *   amount of it into the accent blue — buttons stay recognizably blue,
-   *   with just a hint of the current area's color, per explicit request
-   *   ("die Funktionstasten... behalten das Standardblau, bekommen aber
-   *   einen kleinen minimalen Farbverlauf").
-   * - .bg-section-12/.bg-section-20 (icon-badge backgrounds, the selected
-   *   pill in a page's own segmented control) and .glass-subtle-themed (a
-   *   card's border) go further and show the area color directly,
-   *   undiluted, since neither sits under text that needs to stay
-   *   readable.
-   * - .text-section (an icon badge's glyph) uses the separate
-   *   --color-section-*-icon tokens just below instead of these — the
-   *   plain Cyan/Teal/Mint here are tuned to look good as a soft wash or
-   *   mixed mostly with blue, not as a small icon glyph directly against
-   *   the page's near-white light-mode background, where they measure as
-   *   low as ~1.9:1 (fails even the 3:1 non-text bar). The *-icon tokens
-   *   are darkened versions of the same hue, light-mode only — dark mode's
-   *   own values already clear 8:1+ against near-black, so those just
-   *   repeat the plain token.
+   * --color-on-accent is what sits ON a filled accent surface, and it is a
+   * token rather than a hardcoded white precisely because it must flip: in
+   * dark mode the accent is a light terracotta, where white text collapses
+   * to 2.80:1 and near-black reaches 6.67:1.
    */
-  --color-section-feed: #32ade6; /* Cyan */
-  --color-section-recipes: #30b0c7; /* Teal/Türkis */
-  --color-section-supplements: #00c7be; /* Mint */
-  --color-section-feed-icon: #178abf;
-  --color-section-recipes-icon: #2891a4;
-  --color-section-supplements-icon: #008f88;
+  --color-accent: #b84c33;
+  --color-on-accent: #fffefb;
+
+  /*
+   * The four macros. Same four meanings as before, but drawn from an earthy
+   * family — clay, wine, moss, ochre — rather than Apple's system set.
+   * Hues are spread far enough apart (~10° / ~330° / ~95° / ~45°) that they
+   * stay separable side by side in the day-shape, where all four arcs touch.
+   * kcal reuses the accent exactly, as before: it is the headline number,
+   * so it should read as the app's primary color, not a fifth hue.
+   */
+  --color-kcal: #b84c33;
+  --color-protein: #8f4668;
+  --color-carbs: #5f7f3f;
+  --color-fat: #b07d1c;
+
+  /*
+   * One colour per meal type, still keyed to the time of day it names, now
+   * pulled into the same warm family: sunrise, midday, dusk, and a green for
+   * the snack. The old palette had --color-fat and --color-lunch as the
+   * identical yellow, and --color-carbs and --color-snack as the identical
+   * green — one color meaning two things, which HIG (Color > Best practices)
+   * names directly: "Avoid using the same color to mean different things."
+   * That collision is resolved here: every meal tone is now distinct from
+   * every macro tone.
+   */
+  --color-meal-breakfast: #cf7a3a;
+  --color-meal-lunch: #c9a227;
+  --color-meal-dinner: #6b6396;
+  --color-meal-snack: #7d9b5a;
+  --color-danger: #b3341f;
+  /* Same job as --color-on-accent, for the filled danger surfaces (delete
+     buttons, the recording indicator). Light danger is dark enough for white
+     (6.13:1); the dark theme's lightened red is not (2.81:1) and needs near-
+     black (6.65:1). Measured, not assumed — the previous palette's hardcoded
+     `text-white` was correct only by accident of its own lightness. */
+  --color-on-danger: #fffefb;
+  /* Micronutrient band color — "gut", the third state alongside danger
+     ("unterrepräsentiert") and ink-faint ("durchschnittlich"). Its own token
+     rather than reusing --color-carbs, even though they resolve to the same
+     moss green: the two never appear in one visual context, and a separate
+     token keeps the meanings independently adjustable. */
+  --color-good: #5f7f3f;
+
+  /*
+   * The ambient tint — four tones keyed to the TIME OF DAY, replacing the
+   * previous four tones keyed to which of the four main areas you were in.
+   *
+   * The old scheme answered "where am I", a question the tab bar already
+   * answers unambiguously and permanently; the color was redundant with it.
+   * This one answers something nothing else in the app says: *when* you are.
+   * For an app opened several times a day, every time around a meal, that
+   * turns a static screenshot into something that has visibly moved since
+   * this morning. HIG (Color): "Judicious use of color can... provide visual
+   * continuity, communicate status."
+   *
+   * Deliberately kept on the SAME custom-property names (--color-section,
+   * --color-section-icon) that the old per-area scheme used, so every
+   * consumer below keeps working untouched and only the source changes —
+   * App.tsx now derives it from the clock instead of the route. The four
+   * consumers, unchanged in behavior:
+   * - .top-gradient's wash reads --color-section directly.
+   * - .glass-accent blends a little of it into the accent terracotta, so
+   *   buttons pick up the hour without ceasing to read as the app's accent.
+   * - .bg-section-12/-20 and .glass-subtle-themed show it undiluted (no
+   *   text sits on them).
+   * - .text-section reads the separate --color-section-icon token: the
+   *   plain tones are tuned to look right as a soft wash, and are far too
+   *   light to serve as a small glyph on a near-white background. The
+   *   -icon variants are darkened, light-mode only — the dark-mode tones
+   *   already clear 7:1+ on near-black, so those repeat themselves.
+   *
+   * Night is the one cool tone in an otherwise warm palette. That is the
+   * point: it is the hour that does not look like the others.
+   */
+  --color-hour-morning: #e39a5c;
+  --color-hour-midday: #d9a72e;
+  --color-hour-evening: #cf6b4a;
+  --color-hour-night: #6f6b96;
+  --color-hour-morning-icon: #a35f22;
+  --color-hour-midday-icon: #8a6a12;
+  --color-hour-evening-icon: #a34a2c;
+  --color-hour-night-icon: #575380;
 }
 
 html {
@@ -139,13 +184,45 @@ body {
   @apply antialiased;
   background: var(--color-bg);
   color: var(--color-ink);
-  /* Falls back to the plain accent blue everywhere App.tsx doesn't set an
-     explicit per-section override (Einstellungen, and before the route
-     effect below has run on first paint) — TopGradient/.glass-accent/the
-     classes below then render exactly as they did before per-area color
-     existed. */
+  /* First-paint fallback, before App.tsx's clock effect has run: the plain
+     accent, which makes the tinted classes collapse to flat accent rather
+     than flashing an arbitrary hour's color. App.tsx overwrites both on
+     document.body (not :root) so the value also reaches body-portaled
+     Sheets. */
   --color-section: var(--color-accent);
   --color-section-icon: var(--color-accent);
+}
+
+/*
+ * Engages Fraunces' optical-size axis, so the letterforms are actually
+ * redrawn for the size they're set at rather than scaled — the same thing
+ * the system font does invisibly, and the whole reason a variable serif was
+ * worth the extra request. Tracking is size-specific and set per usage
+ * below; it is never a single global value (WWDC20, "The Details of UI
+ * Typography": large text needs negative tracking, small text positive).
+ */
+.font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* Display sizes, tightened as they grow. Used only where the brief allows
+   the display face: the day-shape figure, page titles, stat-tile numbers. */
+.type-figure {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  line-height: 1;
+}
+.type-title {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  line-height: 1.1;
 }
 
 /* TopGradient's own sizing. `vh` in real mobile Safari is measured against
@@ -170,33 +247,47 @@ body {
 /* --- Dark mode — follows the device setting only (no in-app toggle) --- */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg: #000000;
-    --color-surface: #1c1c1e;
-    --color-ink: #ffffff;
-    --color-ink-soft: #98989d;
-    /* Same fix as the light value above, mirrored for the dark palette. */
-    --color-ink-faint: #767676;
-    --color-line: #38383a;
+    /* Warm near-black rather than the previous true #000: the whole palette
+       carries the accent's hue, and a pure-black ground next to warm
+       surfaces reads as a hole rather than as the same material unlit.
+       (Also what the onemore build rules call for — never pure #000/#fff.) */
+    --color-bg: #141210;
+    --color-surface: #221f1b;
+    --color-ink: #f7f3ec;
+    --color-ink-soft: #a49a8e;
+    --color-ink-faint: #7d746a;
+    --color-line: #3a352e;
 
-    --color-accent: #0a84ff;
-    --color-kcal: #0a84ff;
-    --color-carbs: #30d158;
-    --color-fat: #ffd60a;
-    --color-meal-breakfast: #ff9f0a;
-    --color-meal-lunch: #ffd60a;
-    --color-meal-dinner: #7d7aff;
-    --color-meal-snack: #30d158;
-    --color-danger: #ff453a;
-    --color-good: #30d158;
+    /* Lightened terracotta — the light-mode value is far too dark to sit on
+       a near-black ground. Which flips what can legibly sit on TOP of it:
+       white on this measures 2.80:1, near-black 6.67:1, hence
+       --color-on-accent inverting here. */
+    --color-accent: #e87d55;
+    --color-on-accent: #141210;
 
-    --color-section-feed: #64d2ff;
-    --color-section-recipes: #40cbe0;
-    --color-section-supplements: #66d4cf;
-    /* Already high-contrast against near-black, unlike the light-mode
-       values above — no separate darkened variant needed. */
-    --color-section-feed-icon: #64d2ff;
-    --color-section-recipes-icon: #40cbe0;
-    --color-section-supplements-icon: #66d4cf;
+    --color-kcal: #e87d55;
+    --color-protein: #d78ab0;
+    --color-carbs: #9dc264;
+    --color-fat: #e8b845;
+
+    --color-meal-breakfast: #f0a165;
+    --color-meal-lunch: #e0bb4a;
+    --color-meal-dinner: #9d97cf;
+    --color-meal-snack: #a8c47f;
+    --color-danger: #ff6b52;
+    --color-on-danger: #141210;
+    --color-good: #9dc264;
+
+    --color-hour-morning: #f0ac74;
+    --color-hour-midday: #e8c46a;
+    --color-hour-evening: #e8927a;
+    --color-hour-night: #a5a1cf;
+    /* Already 7.6:1+ against the near-black ground, unlike the light-mode
+       tones — no separate darkened glyph variant needed. */
+    --color-hour-morning-icon: #f0ac74;
+    --color-hour-midday-icon: #e8c46a;
+    --color-hour-evening-icon: #e8927a;
+    --color-hour-night-icon: #a5a1cf;
   }
 }
 
@@ -247,24 +338,31 @@ input[type="number"] {
 
 /* --- Liquid Glass — used sparingly for the nav bar and primary actions --- */
 
+/* Warmed from the previous pure-white rgba: on the warm ground a neutral
+   white frost read as a grey card laid on top rather than the same light
+   passing through. The shadow is warm-tinted for the same reason — a
+   blue-grey shadow under a clay-toned surface is the detail that makes a
+   palette look assembled rather than designed. */
 .glass {
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 253, 249, 0.62);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 252, 246, 0.82);
   box-shadow:
-    0 8px 32px rgba(31, 41, 55, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    0 8px 32px rgba(60, 42, 30, 0.1),
+    inset 0 1px 0 rgba(255, 253, 249, 0.9);
 }
 
 /* Solid accent-colored glass: no glow, no pastel tint on its own border —
-   fill and border are the same hue family so the edge never looks mismatched.
-   The fill is a small, deliberate gradient from the plain accent blue toward
-   --color-section (85%/15% — barely perceptible as its own color, but the
-   whole area's buttons pick up a consistent, recognizable hint of "where you
-   are" without ever stopping reading as blue). Outside a themed section
-   --color-section falls back to --color-accent itself (see body{} above),
-   so the gradient collapses to flat blue exactly as before. */
+   fill and border are the same hue family so the edge never looks
+   mismatched. The fill is a small, deliberate gradient from the plain
+   accent toward --color-section (85%/15% — barely perceptible on its own,
+   but every primary button picks up a consistent hint of the current hour
+   without ever ceasing to read as the app's terracotta). Before the clock
+   effect runs, --color-section falls back to --color-accent (see body{}),
+   so the gradient collapses to a flat accent rather than flashing.
+   `color` is a token, not a literal white: on the dark theme's lightened
+   terracotta, white text measures 2.80:1 and near-black 6.67:1. */
 .glass-accent {
   background: linear-gradient(
     135deg,
@@ -274,16 +372,16 @@ input[type="number"] {
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid color-mix(in srgb, var(--color-accent) 55%, white 45%);
-  color: #ffffff;
+  color: var(--color-on-accent);
 }
 
 /* A lighter frosted-glass treatment for cards/tiles — visible but doesn't
    fight with the badge colors and text sitting on top of it. */
 .glass-subtle {
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 253, 249, 0.58);
   backdrop-filter: blur(20px) saturate(150%);
   -webkit-backdrop-filter: blur(20px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 252, 246, 0.64);
 }
 
 /* Composes with .glass-subtle on a page's primary card/list containers — a
@@ -315,16 +413,16 @@ input[type="number"] {
 
 @media (prefers-color-scheme: dark) {
   .glass {
-    background: rgba(28, 28, 30, 0.65);
-    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(34, 31, 27, 0.68);
+    border-color: rgba(247, 243, 236, 0.12);
     box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      0 8px 32px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(247, 243, 236, 0.08);
   }
 
   .glass-subtle {
-    background: rgba(28, 28, 30, 0.55);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(34, 31, 27, 0.58);
+    border-color: rgba(247, 243, 236, 0.1);
   }
 
   /* Lower mix + no white (dark surfaces don't get a bright edge) — echoes

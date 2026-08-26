@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { formatIngredientAmount, MEAL_TYPE_LABELS, MICRONUTRIENT_LABELS, type Meal } from '../lib/db'
 import { getBodyProfile } from '../lib/bodyProfile'
 import { notableMicronutrients } from '../lib/micronutrients'
-import { MacroBadge, MacroRingBadge } from './MacroBadge'
+import { MacroChips } from './MacroChips'
 import { Sheet } from './Sheet'
 import { Collapse } from './Collapse'
 
@@ -53,10 +53,7 @@ function MealDetailContent({ meal, onEdit }: { meal: Meal; onEdit: () => void })
       <h2 className="mb-3 text-xl font-semibold text-ink">{meal.title}</h2>
 
       <div className="mb-5 flex flex-wrap items-center gap-2.5">
-        <MacroBadge type="kcal" value={meal.nutrition.kcal} />
-        <MacroRingBadge type="protein" value={meal.nutrition.protein} />
-        <MacroRingBadge type="carbs" value={meal.nutrition.carbs} />
-        <MacroRingBadge type="fat" value={meal.nutrition.fat} />
+        <MacroChips kcal={meal.nutrition.kcal} protein={meal.nutrition.protein} carbs={meal.nutrition.carbs} fat={meal.nutrition.fat} />
       </div>
 
       {/* Mikronährstoffe treated as meal-detail-only information rather
@@ -88,7 +85,7 @@ function MealDetailContent({ meal, onEdit }: { meal: Meal; onEdit: () => void })
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth={2.2}
+              strokeWidth={2}
               className={`h-4 w-4 transition-transform ${descriptionOpen ? 'rotate-180' : ''}`}
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
@@ -111,7 +108,7 @@ function MealDetailContent({ meal, onEdit }: { meal: Meal; onEdit: () => void })
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth={2.2}
+              strokeWidth={2}
               className={`h-4 w-4 transition-transform ${ingredientsOpen ? 'rotate-180' : ''}`}
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />

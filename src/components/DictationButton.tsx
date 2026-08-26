@@ -55,7 +55,7 @@ export function DictationButton({
         // text field, where a 4px size difference reads as a mistake — and 40
         // was under the 44pt minimum target size anyway.
         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${
-          listening ? 'animate-pulse bg-danger text-white shadow-sm shadow-danger/30' : 'bg-bg text-ink-soft hover:bg-line'
+          listening ? 'animate-pulse bg-danger text-on-danger shadow-sm shadow-danger/30' : 'bg-bg text-ink-soft hover:bg-line'
         }`}
       >
         {listening ? <CheckIcon /> : <MicIcon />}
@@ -76,7 +76,7 @@ function MicIcon() {
 
 function CheckIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} className="h-5 w-5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
     </svg>
   )

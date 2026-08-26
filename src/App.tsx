@@ -20,6 +20,8 @@ import { MealEditor } from './components/MealEditor'
 import { lazyRetry } from './lib/lazyRetry'
 import { toLocalDateKey } from './lib/db'
 import { guessMealType } from './lib/mealTypeGuess'
+import { TIME_OF_DAY_VARS } from './lib/timeOfDay'
+import { useTimeOfDay } from './hooks/useTimeOfDay'
 
 const RecipeCategoryPage = lazy(
   lazyRetry(() => import('./pages/RecipeCategoryPage').then((m) => ({ default: m.RecipeCategoryPage }))),
@@ -43,33 +45,26 @@ function sectionForPath(pathname: string): Section | null {
   return null
 }
 
-/** The --color-section-* custom property (see index.css) each area washes its TopGradient and
-  * .glass-accent buttons in. Statistik deliberately stays on the plain accent blue — see index.css
-  * for why — rather than getting its own token. */
-const SECTION_COLOR_VAR: Record<Section, string> = {
-  feed: 'var(--color-section-feed)',
-  recipes: 'var(--color-section-recipes)',
-  supplements: 'var(--color-section-supplements)',
-  stats: 'var(--color-accent)',
-}
-
 export default function App() {
   const [addingMeal, setAddingMeal] = useState(false)
   const location = useLocation()
   const section = sectionForPath(location.pathname)
+  const timeOfDay = useTimeOfDay()
 
   // Set on <body> rather than a wrapping element: Sheets (MealEditor, RecipeEditor, the date
   // pickers, …) portal straight to document.body, outside this component's own DOM subtree, so a
   // custom property set anywhere inside here wouldn't reach them — body is the one ancestor every
-  // portaled Sheet actually shares. useLayoutEffect (not useEffect) so the new area's color is
-  // already in place before the browser paints the route change, no one-frame flash of the old one.
+  // portaled Sheet actually shares. useLayoutEffect (not useEffect) so the tone is in place before
+  // the browser paints, no one-frame flash of the fallback.
+  //
+  // Unlike the per-area scheme this replaced, the tone is NOT cleared outside the four main areas:
+  // the hour doesn't stop being the hour because you opened Einstellungen. Only the decorative
+  // TopGradient stays scoped to the four areas (see below) — the tone itself is global.
   useLayoutEffect(() => {
-    if (section) {
-      document.body.style.setProperty('--color-section', SECTION_COLOR_VAR[section])
-    } else {
-      document.body.style.removeProperty('--color-section')
-    }
-  }, [section])
+    const { tint, icon } = TIME_OF_DAY_VARS[timeOfDay]
+    document.body.style.setProperty('--color-section', tint)
+    document.body.style.setProperty('--color-section-icon', icon)
+  }, [timeOfDay])
 
   return (
     <AddMealContext.Provider value={() => setAddingMeal(true)}>

@@ -79,8 +79,8 @@ function SelectionPill({ progress, activeIndex }: { progress: ReturnType<typeof 
 
 /**
  * Icon colour follows the same fractional index: as the pill slides off one
- * tab and onto the next, the outgoing icon fades back to grey and the incoming
- * one to white in step with it — rather than both snapping at the moment the
+ * tab and onto the next, the outgoing icon fades back to grey and the incoming one to the
+ * on-accent foreground in step with it — rather than both snapping at the moment the
  * route changes.
  *
  * `gate` closes to 0 whenever `activeIndex` is -1 (Einstellungen, outside the
@@ -125,7 +125,7 @@ function TabIcon({
 
   if (prefersReducedMotion) {
     return (
-      <span className={`relative z-10 ${index === activeIndex ? 'text-white' : 'text-ink-soft'}`}>
+      <span className={`relative z-10 ${index === activeIndex ? 'text-on-accent' : 'text-ink-soft'}`}>
         <Icon />
       </span>
     )
@@ -134,7 +134,7 @@ function TabIcon({
   return (
     <span className="relative z-10 text-ink-soft">
       <Icon />
-      <motion.span className="absolute inset-0 text-white" style={{ opacity }} aria-hidden="true">
+      <motion.span className="absolute inset-0 text-on-accent" style={{ opacity }} aria-hidden="true">
         <Icon />
       </motion.span>
     </span>

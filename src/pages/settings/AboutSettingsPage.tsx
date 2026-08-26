@@ -1,5 +1,7 @@
+import { useNavigate } from 'react-router-dom'
 import { SettingsBackHeader } from '../../components/SettingsBackHeader'
 import { CURRENT_VERSION, RELEASE_NOTES } from '../../lib/releaseNotes'
+import { resetDayShapeIntro } from '../../lib/dayShapeIntro'
 
 /**
  * Which version is running, and what each one brought.
@@ -9,6 +11,8 @@ import { CURRENT_VERSION, RELEASE_NOTES } from '../../lib/releaseNotes'
  * is the one thing a screen like this must never do.
  */
 export function AboutSettingsPage() {
+  const navigate = useNavigate()
+
   return (
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       <SettingsBackHeader title="Version & Neues" />
@@ -16,8 +20,29 @@ export function AboutSettingsPage() {
       <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
         <div className="flex items-baseline justify-between gap-3">
           <span className="text-sm text-ink-soft">Installierte Version</span>
-          <span className="text-lg font-bold text-ink">{CURRENT_VERSION}</span>
+          <span className="type-figure text-lg text-ink">{CURRENT_VERSION}</span>
         </div>
+      </section>
+
+      {/* A one-time explanation you dismissed by accident, or that ran before
+          you were paying attention, is worse than none — so the day shape's
+          introduction stays reachable rather than being genuinely one-shot. */}
+      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+        <h2 className="mb-1 text-sm font-semibold text-ink">Tagesform</h2>
+        <p className="mb-3 text-xs leading-relaxed text-ink-soft">
+          Die Übersicht im Feed zeigt deinen Tag als eine Form aus vier Bögen. Die kurze Erklärung dazu kannst du
+          dir noch einmal ansehen.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            resetDayShapeIntro()
+            navigate('/')
+          }}
+          className="w-full rounded-2xl bg-bg px-4 py-3 text-sm font-medium text-ink transition hover:bg-line"
+        >
+          Erklärung noch einmal ansehen
+        </button>
       </section>
 
       <div className="flex flex-col gap-4">

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Recipe } from '../lib/db'
 import { deleteRecipe } from '../hooks/useRecipes'
-import { MacroBadge, MacroRingBadge } from './MacroBadge'
+import { MacroChips } from './MacroChips'
 
 /** A recipe row in the Rezepte category list — same pill layout as MealCard, minus the photo (recipes never have one). */
 export function RecipeCard({ recipe, onView }: { recipe: Recipe; onView: () => void }) {
@@ -14,16 +14,13 @@ export function RecipeCard({ recipe, onView }: { recipe: Recipe; onView: () => v
       </button>
       <div className="mt-1.5 flex items-center gap-1.5">
         <button className="press-target flex min-w-0 flex-1 flex-wrap gap-1.5 text-left" onClick={onView}>
-          <MacroBadge type="kcal" value={recipe.nutrition.kcal} size="sm" />
-          <MacroRingBadge type="protein" value={recipe.nutrition.protein} size="sm" />
-          <MacroRingBadge type="carbs" value={recipe.nutrition.carbs} size="sm" />
-          <MacroRingBadge type="fat" value={recipe.nutrition.fat} size="sm" />
+          <MacroChips kcal={recipe.nutrition.kcal} protein={recipe.nutrition.protein} carbs={recipe.nutrition.carbs} fat={recipe.nutrition.fat} size="sm" />
         </button>
         {confirmingDelete ? (
           <div className="flex shrink-0 gap-1">
             <button
               onClick={() => deleteRecipe(recipe.id)}
-              className="rounded-full bg-danger px-2.5 py-1 text-xs font-medium text-white hover:opacity-90"
+              className="rounded-full bg-danger px-2.5 py-1 text-xs font-medium text-on-danger hover:opacity-90"
             >
               Löschen
             </button>

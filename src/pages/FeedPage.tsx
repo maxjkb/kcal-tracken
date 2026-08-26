@@ -6,13 +6,16 @@ import { MealCard } from '../components/MealCard'
 import { MealEditor } from '../components/MealEditor'
 import { MealDetail } from '../components/MealDetail'
 import { ChevronIcon } from '../components/ChevronIcon'
-import { MiniNutrientRings, NutrientRings } from '../components/NutrientRings'
+import { MacroChips } from '../components/MacroChips'
+import { DaySummary } from '../components/DaySummary'
 import { DayPickerModal } from '../components/DatePickerModal'
 import { Collapse } from '../components/Collapse'
 import { MealTypeBadge } from '../components/MealTypeBadge'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { PageHeader } from '../components/PageHeader'
 import { TipsButton } from '../components/TipsSheet'
+import { DayShapeIntro } from '../components/DayShapeIntro'
+import { hasSeenDayShapeIntro, markDayShapeIntroSeen } from '../lib/dayShapeIntro'
 
 function sumNutrition(meals: Meal[]) {
   return meals.reduce(
@@ -57,6 +60,10 @@ export function FeedPage() {
     { mode: 'closed' } | { mode: 'edit'; meal: Meal } | { mode: 'view'; meal: Meal }
   >({ mode: 'closed' })
   const [pickerOpen, setPickerOpen] = useState(false)
+  // Shown once, on the Feed, because that's where the shape lives. Read from
+  // storage during the initial state rather than in an effect, so it can't
+  // flash in a frame after the page has already settled.
+  const [introOpen, setIntroOpen] = useState(() => !hasSeenDayShapeIntro())
   const [collapsed, setCollapsed] = useState<Record<MealType, boolean>>({
     breakfast: false,
     lunch: false,
@@ -96,7 +103,7 @@ export function FeedPage() {
       <div className="glass-subtle glass-subtle-themed mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
         <button
           onClick={() => setDateKey((k) => addDays(k, -1))}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-on-accent"
           aria-label="Vorheriger Tag"
         >
           <ChevronIcon direction="left" />
@@ -116,15 +123,20 @@ export function FeedPage() {
         </div>
         <button
           onClick={() => setDateKey((k) => addDays(k, 1))}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-on-accent"
           aria-label="Nächster Tag"
         >
           <ChevronIcon direction="right" />
         </button>
       </div>
 
-      <div className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-5 shadow-sm shadow-black/5">
-        <NutrientRings kcal={totals.kcal} protein={totals.protein} carbs={totals.carbs} fat={totals.fat} targets={targets} />
+      <div className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-5 pb-6 shadow-sm shadow-black/5">
+        {/* No caption here on purpose: the date bar directly above already
+            says "Heute"/"Gestern"/the date, and repeating it inside the
+            shape's core just crowds the figure. Stats passes one because
+            there the same shape means different scopes (Tag vs. Ø pro Tag)
+            and nothing else on the card distinguishes them. */}
+        <DaySummary values={totals} targets={targets} />
       </div>
 
       {meals === undefined ? (
@@ -149,7 +161,7 @@ export function FeedPage() {
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
-                        strokeWidth={2.2}
+                        strokeWidth={2}
                         className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
@@ -165,16 +177,28 @@ export function FeedPage() {
                   </div>
                 </Collapse>
                 {/* Collapsed sections still show at a glance what was logged, as a
-                    compact ring row summing this category's totals for the day —
+                    compact chip row summing this category's totals for the day —
                     it disappears again once expanded, since the meal cards below
                     then show the same numbers. */}
                 <Collapse open={!isOpen && typeMeals.length > 0}>
-                  <MiniNutrientRings {...sumNutrition(typeMeals)} />
+                  <MacroChips {...sumNutrition(typeMeals)} />
                 </Collapse>
               </section>
             )
           })}
         </div>
+      )}
+
+      {introOpen && (
+        <DayShapeIntro
+          onClose={() => {
+            // Also marks it seen on a swipe-to-dismiss, not just on the
+            // button — dismissing it IS a decision, and re-showing it next
+            // launch would read as the app not listening.
+            markDayShapeIntroSeen()
+            setIntroOpen(false)
+          }}
+        />
       )}
 
       {pickerOpen && (

@@ -12,12 +12,22 @@ import { BouncingDots } from './BouncingDots'
 import { MacroIcon, type MacroType } from './MacroIcon'
 import { StaggeredList } from './StaggeredList'
 
-const FOCUS_BG: Record<TipSuggestion['focus'], string> = {
-  kcal: 'bg-kcal text-white',
-  protein: 'bg-protein text-white',
-  carbs: 'bg-carbs text-white',
-  fat: 'bg-fat text-ink',
-  general: 'bg-accent/15 text-accent',
+/*
+ * A tinted disc with the macro's own color as the glyph, rather than the
+ * solid fill this used to be. The solid version hardcoded a foreground per
+ * macro (white for three, ink for fat) tuned to the old palette's lightness;
+ * with every macro color lightened for dark mode, white lands between 1.85:1
+ * and 2.80:1 on all four. The tint keeps the disc's background near the
+ * surface, so the glyph carries the macro color at its own verified
+ * contrast and nothing has to flip per theme. Matches MacroChips, which
+ * arrived at the same treatment for the same reason.
+ */
+const FOCUS_TINT: Record<TipSuggestion['focus'], string> = {
+  kcal: 'var(--color-kcal)',
+  protein: 'var(--color-protein)',
+  carbs: 'var(--color-carbs)',
+  fat: 'var(--color-fat)',
+  general: 'var(--color-accent)',
 }
 
 /**
@@ -129,7 +139,13 @@ function TipsSheetContent({ onClose }: { onClose: () => void }) {
           <StaggeredList className="flex flex-col gap-2.5">
             {tips.map((tip, i) => (
               <div key={i} className="glass-subtle flex items-start gap-3 rounded-2xl p-3.5">
-                <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${FOCUS_BG[tip.focus]}`}>
+                <span
+                  className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+                  style={{
+                    color: FOCUS_TINT[tip.focus],
+                    background: `color-mix(in srgb, ${FOCUS_TINT[tip.focus]} 15%, transparent)`,
+                  }}
+                >
                   {tip.focus === 'general' ? (
                     <BulbIcon className="h-3.5 w-3.5" />
                   ) : (

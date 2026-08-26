@@ -127,6 +127,16 @@ function SlotButton({
   )
 }
 
+/*
+ * These three are the one deliberate exception to the app's 2px interface-icon
+ * weight. They render inside the checklist's small state circles, at roughly
+ * half the size of a normal chrome icon, where a 2px stroke reads as a hairline
+ * rather than as a mark. HIG (Icons) asks for one consistent stroke weight
+ * across an app's icons, and immediately after that for adjusting an individual
+ * icon so it "appears visually consistent with other icons" — at this size,
+ * matching the number is what would look inconsistent. They are internally
+ * consistent as a set, which is what actually shows.
+ */
 function CheckGlyph({ className }: { className: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className={className}>

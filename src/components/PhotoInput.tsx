@@ -120,7 +120,11 @@ export function PhotoPreview({ photo, onChange }: { photo: string; onChange: (da
       <button
         type="button"
         onClick={() => onChange(undefined)}
-        className="absolute right-2 top-2 rounded-full bg-ink/70 px-2.5 py-1 text-xs font-medium text-white"
+        // A fixed dark scrim, not bg-ink/70: `ink` is the *foreground* token
+        // and inverts with the theme, so in dark mode this was white text on
+        // a near-white pill. This button sits on a photograph — content that
+        // has no theme — so its scrim shouldn't have one either.
+        className="absolute right-2 top-2 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm"
       >
         Entfernen
       </button>

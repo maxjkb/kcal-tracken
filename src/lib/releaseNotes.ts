@@ -17,6 +17,17 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '2.0.0',
+    date: '2026-08-26',
+    highlights: [
+      'Komplett neues Erscheinungsbild: warme Palette (Terracotta, Lehm, Moos, Ocker) statt der bisherigen Apple-Systemfarben.',
+      'Neue Tagesform: eine einzige Form aus vier Bögen ersetzt die vier getrennten Ringe — ein Blick genügt, um zu sehen, wie der Tag lief.',
+      'Der Farbton der App richtet sich jetzt nach der Tageszeit statt nach dem Bereich, in dem du gerade bist.',
+      'Eigene Schrift für große Zahlen und Titel.',
+      'Kurze Erklärung der Tagesform beim ersten Start — jederzeit erneut aufrufbar unter Version & Neues.',
+    ],
+  },
+  {
     version: '1.12.0',
     date: '2026-08-26',
     highlights: [

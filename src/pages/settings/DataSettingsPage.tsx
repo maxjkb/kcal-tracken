@@ -162,7 +162,7 @@ export function DataSettingsPage() {
             <div className="flex gap-2">
               <button
                 onClick={handleResetAll}
-                className="flex-1 rounded-xl bg-danger py-2.5 text-sm font-medium text-white hover:opacity-90"
+                className="flex-1 rounded-xl bg-danger py-2.5 text-sm font-medium text-on-danger hover:opacity-90"
               >
                 Wirklich alles löschen
               </button>

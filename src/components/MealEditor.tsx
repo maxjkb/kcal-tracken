@@ -26,7 +26,7 @@ import { AutoGrowTextarea } from './AutoGrowTextarea'
 import { ChevronIcon } from './ChevronIcon'
 import { StaggeredList } from './StaggeredList'
 import { BouncingDots } from './BouncingDots'
-import { MacroBadge, MacroRingBadge } from './MacroBadge'
+import { MacroChips } from './MacroChips'
 import { Link } from 'react-router-dom'
 import { Sheet } from './Sheet'
 import { useSheetClose } from '../hooks/useSheetClose'
@@ -567,10 +567,7 @@ function MealEditorContent({
                           </div>
                         </div>
                         <div className="mt-1.5 flex flex-wrap gap-1.5">
-                          <MacroBadge type="kcal" value={ing.kcal} size="sm" />
-                          <MacroRingBadge type="protein" value={ing.protein} size="sm" />
-                          <MacroRingBadge type="carbs" value={ing.carbs} size="sm" />
-                          <MacroRingBadge type="fat" value={ing.fat} size="sm" />
+                          <MacroChips kcal={ing.kcal} protein={ing.protein} carbs={ing.carbs} fat={ing.fat} size="sm" />
                         </div>
                         {ing.note && <p className="mt-1.5 text-xs italic text-ink-soft">{ing.note}</p>}
                       </div>
@@ -602,7 +599,7 @@ function MealEditorContent({
 
 function BackIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
     </svg>
   )
@@ -610,7 +607,7 @@ function BackIcon() {
 
 function ForwardIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
     </svg>
   )
@@ -666,10 +663,7 @@ function MealSuggestions({
                     wherever it appears — recognising it here is the whole
                     point of the list. */}
                 <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                  <MacroBadge type="kcal" value={s.nutrition.kcal} size="sm" />
-                  <MacroRingBadge type="protein" value={s.nutrition.protein} size="sm" />
-                  <MacroRingBadge type="carbs" value={s.nutrition.carbs} size="sm" />
-                  <MacroRingBadge type="fat" value={s.nutrition.fat} size="sm" />
+                  <MacroChips kcal={s.nutrition.kcal} protein={s.nutrition.protein} carbs={s.nutrition.carbs} fat={s.nutrition.fat} size="sm" />
                 </span>
               </span>
               <span className="shrink-0 text-ink-faint">
@@ -718,7 +712,7 @@ function RecipeIcon() {
 
 function SendIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h13m0 0-5-5m5 5-5 5" />
     </svg>
   )

@@ -140,7 +140,7 @@ export function DayPickerModal({
               onClick={() => onSelect(key)}
               className={`relative flex h-9 flex-col items-center justify-center rounded-full text-sm transition ${
                 isSelected
-                  ? 'bg-accent font-semibold text-white'
+                  ? 'bg-accent font-semibold text-on-accent'
                   : inMonth
                     ? 'text-ink hover:bg-bg'
                     : 'text-ink-faint hover:bg-bg'
@@ -187,7 +187,7 @@ export function MonthPickerModal({
               key={label}
               onClick={() => onSelect(viewYear, month)}
               className={`rounded-xl py-3 text-sm font-medium transition ${
-                isSelected ? 'bg-accent text-white' : 'bg-bg text-ink hover:bg-line'
+                isSelected ? 'bg-accent text-on-accent' : 'bg-bg text-ink hover:bg-line'
               }`}
             >
               {label}
@@ -227,7 +227,7 @@ export function YearPickerModal({
             key={year}
             onClick={() => onSelect(year)}
             className={`rounded-xl py-3 text-sm font-medium transition ${
-              year === selectedYear ? 'bg-accent text-white' : 'bg-bg text-ink hover:bg-line'
+              year === selectedYear ? 'bg-accent text-on-accent' : 'bg-bg text-ink hover:bg-line'
             }`}
           >
             {year}
