@@ -200,4 +200,3 @@ export function bandForIntake(averageIntake: number, target: number): Micronutri
   if (ratio >= BAND_GOOD_THRESHOLD) return 'good'
   return 'average'
 }
-
