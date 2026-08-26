@@ -75,12 +75,37 @@
   --color-meal-dinner: #5e5ce6;
   --color-meal-snack: #34c759;
   --color-danger: #ff3b30;
-  /* Micronutrient band color — "gut", the third state alongside danger ("unterrepräsentiert")
-     and ink-faint ("durchschnittlich"). Deliberately its own token rather than reusing
-     --color-carbs, even though they're the same green: a micronutrient bar and a macro
-     ring never appear in the same visual context, but a dedicated token keeps the two
-     meanings independently adjustable later. */
+  /* Positive/"good source of" accent — MealDetail's per-meal micronutrient
+     badges. Deliberately its own token rather than reusing --color-carbs,
+     even though they're the same green: the two contexts (a meal-detail
+     badge, a macro ring) never appear together, but a dedicated token keeps
+     the meanings independently adjustable later. */
   --color-good: #34c759;
+
+  /*
+   * Micronutrient identity colors — the Statistik page's micronutrient bars
+   * (components/MicronutrientBars.tsx). One fixed hue per nutrient rather
+   * than a shared status color: since a bar's own color no longer changes
+   * with how full it is (a marker's position on a light-to-dark gradient
+   * carries that instead), each of the ten needs a color that means THIS
+   * nutrient, the same way --color-protein always means protein. None of
+   * these ten reuse a macro's hue (kcal/protein/carbs/fat): the macro rings
+   * sit on this exact page, directly above this section, so the collision
+   * risk is real rather than theoretical. Chosen loosely thematically
+   * (Vitamin D = sun orange, Eisen = blood red, Jod = ocean cyan) from
+   * Apple's system palette, which is also where the rest of this file's
+   * colors come from.
+   */
+  --color-micro-vitamind: #ff9500;
+  --color-micro-vitaminb12: #af52de;
+  --color-micro-folate: #00c7be;
+  --color-micro-vitaminc: #c98a02;
+  --color-micro-calcium: #7c8ba1;
+  --color-micro-iron: #ff3b30;
+  --color-micro-magnesium: #5e5ce6;
+  --color-micro-zinc: #30b0c7;
+  --color-micro-potassium: #a2845e;
+  --color-micro-iodine: #32ade6;
 
   /*
    * One accent color per main area (Feed/Rezepte/Supplements/Statistik),
@@ -188,6 +213,17 @@ body {
     --color-meal-snack: #30d158;
     --color-danger: #ff453a;
     --color-good: #30d158;
+
+    --color-micro-vitamind: #ff9f0a;
+    --color-micro-vitaminb12: #bf5af2;
+    --color-micro-folate: #66d4cf;
+    --color-micro-vitaminc: #e0a52e;
+    --color-micro-calcium: #98a4b8;
+    --color-micro-iron: #ff453a;
+    --color-micro-magnesium: #7d7aff;
+    --color-micro-zinc: #40cbe0;
+    --color-micro-potassium: #b79776;
+    --color-micro-iodine: #64d2ff;
 
     --color-section-feed: #64d2ff;
     --color-section-recipes: #40cbe0;

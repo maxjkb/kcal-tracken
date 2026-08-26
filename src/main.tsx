@@ -8,6 +8,7 @@ import { initSyncIfSignedIn } from './lib/sync.ts'
 import { syncSupplementCatalog } from './lib/supplementSeed.ts'
 import { refreshAdvisorIfStale } from './lib/supplementAdvisor.ts'
 import { refreshTipsIfStale } from './lib/tips.ts'
+import { backfillMissingMicronutrients } from './lib/micronutrients.ts'
 
 // Fire-and-forget: ask the browser to exempt this origin's storage (API key,
 // meals) from automatic eviction. Safe to call on every load.
@@ -28,6 +29,12 @@ void refreshAdvisorIfStale()
 // slot (breakfast/lunch/snack/dinner), on the first launch inside that slot,
 // same reasoning and same silence as refreshAdvisorIfStale above.
 void refreshTipsIfStale()
+
+// Fire-and-forget: rough micronutrient estimates for meals logged before
+// that field existed, up to a per-launch cap — see
+// backfillMissingMicronutrients. Runs every launch; becomes a cheap no-op
+// once nothing is left to fill in.
+void backfillMissingMicronutrients()
 
 // A no-op touchstart listener is the standard trick to make iOS Safari
 // actually apply the :active pseudo-class on tap — without it, iOS treats
