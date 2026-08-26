@@ -31,13 +31,20 @@ interface PerUnit {
  * progress, never rendered, and must not trigger a render of its own.
  */
 export function useIngredientScaling() {
-  const perUnit = useRef(new Map<number, PerUnit>())
+  const perUnit = useRef(new Map<string, PerUnit>())
 
   return function scaleIngredient(ingredients: Ingredient[], index: number, newAmount: number): Ingredient[] {
     const ing = ingredients[index]
     if (!ing) return ingredients
 
-    let basis = perUnit.current.get(index)
+    // Keyed by name and unit, not by position. An index-keyed cache silently
+    // outlives the ingredient it described: delete a row, or let an estimate
+    // replace the whole list, and the next amount edit rescales the ingredient
+    // now sitting at that index using the *previous* one's per-unit values —
+    // writing a plausible but wrong number into the saved meal with nothing to
+    // notice it by.
+    const cacheKey = `${ing.name}|${ing.unit}`
+    let basis = perUnit.current.get(cacheKey)
     if (!basis && ing.amount > 0) {
       basis = {
         kcal: ing.kcal / ing.amount,
@@ -45,7 +52,7 @@ export function useIngredientScaling() {
         carbs: ing.carbs / ing.amount,
         fat: ing.fat / ing.amount,
       }
-      perUnit.current.set(index, basis)
+      perUnit.current.set(cacheKey, basis)
     }
 
     // No reference yet and no way to derive one (the amount was already 0 when

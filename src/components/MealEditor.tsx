@@ -20,6 +20,7 @@ import { DictationButton } from './DictationButton'
 import { PhotoActionButton, PhotoPreview } from './PhotoInput'
 import { ActionButton } from './ActionButton'
 import { NutritionFields } from './NutritionFields'
+import { NumberField } from './NumberField'
 import { AutoGrowTextarea } from './AutoGrowTextarea'
 import { ChevronIcon } from './ChevronIcon'
 import { StaggeredList } from './StaggeredList'
@@ -521,12 +522,10 @@ function MealEditorContent({
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-medium text-ink">{ing.name}</span>
                           <div className="flex shrink-0 items-center gap-1">
-                            <input
-                              type="number"
-                              inputMode="decimal"
-                              min={0}
+                            <NumberField
                               value={ing.amount}
-                              onChange={(e) => handleIngredientAmountChange(i, Number(e.target.value) || 0)}
+                              onChange={(next: number) => handleIngredientAmountChange(i, next)}
+                              ariaLabel={`Menge für ${ing.name}`}
                               className="w-16 rounded-lg border border-line bg-bg px-1.5 py-1 text-right text-xs text-ink focus:border-accent focus:outline-none"
                             />
                             <span className="text-xs text-ink-soft">{ing.unit}</span>

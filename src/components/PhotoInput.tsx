@@ -16,10 +16,13 @@ async function downscaleImage(dataUrl: string, maxDim = 1024): Promise<string> {
     const img = new Image()
     img.onload = () => {
       const scale = Math.min(1, maxDim / Math.max(img.width, img.height))
-      if (scale === 1) {
-        resolve(dataUrl)
-        return
-      }
+      // Re-encoded even when no scaling is needed. Returning the original
+      // untouched meant a 900x900 PNG screenshot went into storage at its full
+      // few megabytes: Firestore rejects any document over 1 MiB, that
+      // rejection is swallowed by the fire-and-forget push, and the oversized
+      // meal then sits in every later reconcile batch and takes the whole sync
+      // down with it. Dimensions alone say nothing about weight; the JPEG pass
+      // is what bounds it.
       const canvas = document.createElement('canvas')
       canvas.width = Math.round(img.width * scale)
       canvas.height = Math.round(img.height * scale)
@@ -29,7 +32,10 @@ async function downscaleImage(dataUrl: string, maxDim = 1024): Promise<string> {
         return
       }
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-      resolve(canvas.toDataURL('image/jpeg', 0.85))
+      const encoded = canvas.toDataURL('image/jpeg', 0.85)
+      // Keep whichever is actually smaller — for an already-small JPEG the
+      // re-encode can come out slightly larger.
+      resolve(encoded.length < dataUrl.length ? encoded : dataUrl)
     }
     img.onerror = () => resolve(dataUrl)
     img.src = dataUrl

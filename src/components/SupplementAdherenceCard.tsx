@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { toLocalDateKey } from '../lib/db'
 import { useMySupplements, useSupplementLogInRange, useAllSupplements } from '../hooks/useSupplements'
 
@@ -25,34 +26,48 @@ export function SupplementAdherenceCard({ startKey, endKey }: { startKey: string
   const supplements = useAllSupplements()
   const logEntries = useSupplementLogInRange(startKey, endKey)
 
+  // Computed before the early returns below, and guarding internally instead.
+  // A hook after a conditional return is called in a different order on
+  // different renders, which React forbids outright.
+  const rows = useMemo(() => {
+    if (!mySupplements || !supplements || !logEntries) return []
+    const todayKey = toLocalDateKey(new Date())
+    const effectiveEndKey = endKey > todayKey ? todayKey : endKey
+    const supplementById = new Map(supplements.map((s) => [s.id, s]))
+
+    return mySupplements.map((my) => {
+      const createdKey = toLocalDateKey(new Date(my.createdAt))
+      const effectiveStartKey = createdKey > startKey ? createdKey : startKey
+      // A Set, not an array: `days.includes(...)` inside the filter below was a
+      // linear scan per log entry per supplement. On the Jahr view with twenty
+      // supplements that is a 365-element search run for each of thousands of
+      // entries, twenty times over — tens of millions of string comparisons,
+      // and redone on every render of the page.
+      const days =
+        effectiveStartKey <= effectiveEndKey
+          ? new Set(daysBetween(effectiveStartKey, effectiveEndKey))
+          : new Set<string>()
+      const totalSlots = days.size * my.timesOfDay.length
+      // Also filtered by whether the slot is still part of the routine. Without
+      // that, check-ins for a time of day the user has since removed keep
+      // counting against a denominator that no longer includes them — a
+      // supplement dropped from twice to once a day then reported 14/7, i.e.
+      // 200% adherence, and inflated the overall figure with it.
+      const activeTimes = new Set(my.timesOfDay)
+      const checkedSlots = logEntries.filter(
+        (e) => e.mySupplementId === my.id && days.has(e.date) && activeTimes.has(e.timeOfDay),
+      ).length
+      return {
+        id: my.id,
+        name: supplementById.get(my.supplementId)?.name ?? 'Supplement',
+        totalSlots,
+        checkedSlots,
+      }
+    })
+  }, [mySupplements, supplements, logEntries, startKey, endKey])
+
   if (!mySupplements || !supplements || !logEntries) return null
   if (mySupplements.length === 0) return null
-
-  const todayKey = toLocalDateKey(new Date())
-  const effectiveEndKey = endKey > todayKey ? todayKey : endKey
-  const supplementById = new Map(supplements.map((s) => [s.id, s]))
-
-  const rows = mySupplements.map((my) => {
-    const createdKey = toLocalDateKey(new Date(my.createdAt))
-    const effectiveStartKey = createdKey > startKey ? createdKey : startKey
-    const days = effectiveStartKey <= effectiveEndKey ? daysBetween(effectiveStartKey, effectiveEndKey) : []
-    const totalSlots = days.length * my.timesOfDay.length
-    // Also filtered by whether the slot is still part of the routine. Without
-    // that, check-ins for a time of day the user has since removed keep
-    // counting against a denominator that no longer includes them — a
-    // supplement dropped from twice to once a day then reported 14/7, i.e.
-    // 200% adherence, and inflated the overall figure with it.
-    const activeTimes = new Set(my.timesOfDay)
-    const checkedSlots = logEntries.filter(
-      (e) => e.mySupplementId === my.id && days.includes(e.date) && activeTimes.has(e.timeOfDay),
-    ).length
-    return {
-      id: my.id,
-      name: supplementById.get(my.supplementId)?.name ?? 'Supplement',
-      totalSlots,
-      checkedSlots,
-    }
-  })
 
   const totalSlots = rows.reduce((sum, r) => sum + r.totalSlots, 0)
   const checkedSlots = rows.reduce((sum, r) => sum + r.checkedSlots, 0)

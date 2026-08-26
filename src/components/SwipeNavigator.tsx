@@ -144,6 +144,13 @@ export function SwipeNavigator({ children }: { children: ReactNode }) {
     if (!inSection && !backHandler.current) return
     const target = event.target as HTMLElement
     if (target.closest('input[type="range"], [data-no-swipe]')) return
+    // Stop whatever is still settling. Without this the ref was assigned three
+    // times and never read: a spring mid-commit kept overwriting `x` every
+    // frame, so the page didn't follow the finger that was cancelling it, and
+    // its onComplete still navigated to the section being cancelled. Sheet.tsx
+    // has always done this; here it was written down and not wired up.
+    settling.current?.stop()
+    settling.current = null
     gesture.current = {
       startX: event.clientX,
       startY: event.clientY,

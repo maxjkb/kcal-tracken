@@ -1,5 +1,6 @@
 import type { Nutrition } from '../lib/db'
 import { MacroIcon, type MacroType } from './MacroIcon'
+import { NumberField } from './NumberField'
 
 const FIELDS: { key: keyof Nutrition; label: string; unit: string; icon: MacroType }[] = [
   { key: 'kcal', label: 'Kalorien', unit: 'kcal', icon: 'kcal' },
@@ -7,11 +8,6 @@ const FIELDS: { key: keyof Nutrition; label: string; unit: string; icon: MacroTy
   { key: 'carbs', label: 'Carbs', unit: 'g', icon: 'carbs' },
   { key: 'fat', label: 'Fett', unit: 'g', icon: 'fat' },
 ]
-
-/** Guards against floating-point display artifacts like 38.300000000000004. */
-function round1(value: number): number {
-  return Math.round(value * 10) / 10
-}
 
 export function NutritionFields({
   value,
@@ -28,12 +24,9 @@ export function NutritionFields({
             {icon && <MacroIcon type={icon} className="h-3 w-3" />}
             {label} <span className="text-ink-faint">({unit})</span>
           </span>
-          <input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            value={Number.isFinite(value[key]) ? round1(value[key]) : 0}
-            onChange={(e) => onChange({ ...value, [key]: Number(e.target.value) || 0 })}
+          <NumberField
+            value={value[key]}
+            onChange={(next: number) => onChange({ ...value, [key]: next })}
             className="rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
           />
         </label>

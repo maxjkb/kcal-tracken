@@ -21,11 +21,21 @@ export function setModel(model: string): void {
 
 export class GeminiError extends Error {
   status?: number
+  /**
+   * The API's own wording, kept alongside the message shown to the user.
+   *
+   * `message` is deliberately replaced with German copy for the common
+   * statuses, which threw away the only thing that distinguishes a spent daily
+   * quota from a per-minute burst limit — both are 429, and both used to be
+   * treated as "this model is done for today".
+   */
+  detail?: string
 
-  constructor(message: string, status?: number) {
+  constructor(message: string, status?: number, detail?: string) {
     super(message)
     this.name = 'GeminiError'
     this.status = status
+    this.detail = detail
   }
 }
 
@@ -194,6 +204,19 @@ interface GeminiResponse {
  * are thrown immediately — trying three models against a wrong API key would
  * just be three times the wait for the same message.
  */
+/**
+ * Distinguishes "you are out for today" from "you are going too fast".
+ *
+ * Google returns 429 for both, and only the message separates them. Anything
+ * ambiguous is treated as the transient case: wrongly retiring a model costs
+ * the user their chosen model for a whole day, while wrongly keeping it costs
+ * one extra failed request.
+ */
+function isDailyQuotaError(err: GeminiError): boolean {
+  const detail = (err.detail ?? '').toLowerCase()
+  return /per ?day|daily|\/d\b/.test(detail)
+}
+
 async function callGemini(params: {
   systemPrompt: string
   parts: GeminiPart[]
@@ -213,7 +236,13 @@ async function callGemini(params: {
       if (!isRateLimited) throw err
       // The request still reached the API and still counted against the day.
       recordUsage(`gemini:${model}`)
-      markExhausted(model)
+      // Only a *daily* exhaustion retires a model. A 429 is also how a
+      // per-minute burst limit answers — a few estimates in quick succession —
+      // and treating that as a spent day demoted the user's chosen model until
+      // midnight Pacific over a limit that cleared in seconds, with no way to
+      // undo it. The other models are still tried either way; only the
+      // remembering is conditional.
+      if (isDailyQuotaError(err)) markExhausted(model)
       firstRateLimitError ??= err
     }
   }
@@ -257,19 +286,26 @@ async function callGeminiRaw(
 
   if (!response.ok) {
     let message = `Gemini-API-Fehler (${response.status})`
+    let detail = ''
     try {
       const errBody = (await response.json()) as GeminiResponse
-      if (errBody?.error?.message) message = errBody.error.message
+      if (errBody?.error?.message) {
+        message = errBody.error.message
+        detail = errBody.error.message
+      }
     } catch {
       // ignore parse failure, keep generic message
     }
     if (response.status === 400 || response.status === 401 || response.status === 403) {
       message = 'API-Key ungültig oder nicht berechtigt. Bitte in den Einstellungen prüfen.'
     } else if (response.status === 429) {
-      message =
-        'Kostenloses Kontingent gerade ausgeschöpft (Rate-Limit). Das kann eine kurze Sperre von wenigen Sekunden sein — oder das tägliche Gratis-Kontingent für dieses Modell ist für heute aufgebraucht. Prüfe ggf. dein Kontingent in Google AI Studio, oder versuche es später/morgen erneut.'
+      // Now that the two cases are told apart, say which one it is instead of
+      // offering both possibilities and leaving the user to guess.
+      message = /per ?day|daily|\/d\b/.test(detail.toLowerCase())
+        ? 'Das tägliche Gratis-Kontingent für dieses Modell ist aufgebraucht. Die App wechselt automatisch auf ein anderes Modell; zurückgesetzt wird um Mitternacht pazifischer Zeit. Der Stand steht unter Einstellungen → Kontingent.'
+        : 'Zu viele Anfragen in kurzer Zeit (Minutenlimit). Das löst sich meist nach wenigen Sekunden von selbst — die App versucht es direkt mit einem anderen Modell.'
     }
-    throw new GeminiError(message, response.status)
+    throw new GeminiError(message, response.status, detail)
   }
 
   const data = (await response.json()) as GeminiResponse

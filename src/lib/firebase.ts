@@ -60,12 +60,16 @@ let firestoreApiPromise: Promise<typeof FirestoreApi> | null = null
  * Lazily loads the Firebase SDK (app/auth/firestore, ~250 KB) and creates
  * the app instance from the user's own pasted config — only once a config
  * actually exists, via dynamic import, so the SDK never enters the bundle
- * for anyone who hasn't set up sync. Returns null if no config is stored.
+ * until sync is actually touched.
+ *
+ * The null branch that used to guard "no config stored" is gone:
+ * getFirebaseConfig() has returned a non-nullable value ever since the project
+ * was baked into the app, so it could never be taken. The `| null` in the
+ * return type stays, because the call sites' own guards are cheap and a future
+ * config path could reintroduce it.
  */
 export function getFirebaseServices(): Promise<{ auth: Auth; firestore: Firestore } | null> {
   const config = getFirebaseConfig()
-  if (!config) return Promise.resolve(null)
-
   const key = JSON.stringify(config)
   if (!servicesPromise || cachedConfigKey !== key) {
     cachedConfigKey = key
@@ -87,18 +91,13 @@ export function getFirebaseServices(): Promise<{ auth: Auth; firestore: Firestor
   return servicesPromise
 }
 
-/** Cached dynamic import of the Firestore query/document functions, for sync.ts — resolves only once a config exists. */
+/** Cached dynamic import of the Firestore query/document functions, for sync.ts. */
 export function getFirestoreApi(): Promise<typeof FirestoreApi | null> {
-  if (!getFirebaseConfig()) return Promise.resolve(null)
   if (!firestoreApiPromise) firestoreApiPromise = import('firebase/firestore')
   return firestoreApiPromise
 }
 
 export function onAuthChange(callback: (user: User | null) => void): () => void {
-  if (!getFirebaseConfig()) {
-    callback(null)
-    return () => {}
-  }
   let unsubscribe: (() => void) | null = null
   let cancelled = false
   Promise.all([getFirebaseServices(), import('firebase/auth')]).then(([services, authApi]) => {
