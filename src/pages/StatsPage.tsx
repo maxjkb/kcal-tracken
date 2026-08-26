@@ -238,14 +238,12 @@ export function StatsPage() {
 
       {period === 'day' ? (
         <>
-          {/* Mikronährstoffe first, Makronährstoffe demoted below it — per
-              the same brainstorm this shipped from: macros stay available
-              here, they just aren't the first thing the eye lands on. */}
+          {/* Makronährstoffe first, Mikronährstoffe below on scroll — back to
+              this order after trying micros-first: kcal/protein/carbs/fat is
+              still the number people check first on a given day, with the
+              micronutrient picture as the deeper, second-glance layer below
+              it rather than the very first thing on the page. */}
           <div className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Mikronährstoffe</h3>
-            <MicronutrientBars overview={microOverview} />
-          </div>
-          <div className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Makronährstoffe</h3>
             {meals === undefined ? (
               <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
@@ -262,18 +260,18 @@ export function StatsPage() {
               />
             )}
           </div>
-        </>
-      ) : view === 'nutrients' ? (
-        <>
-          <div className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
+          <div className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Mikronährstoffe</h3>
             <MicronutrientBars overview={microOverview} />
           </div>
+        </>
+      ) : view === 'nutrients' ? (
+        <>
           {/* The Feed's own daily breakdown, applied to the period's average —
               same rings, same colours, same percent-of-target readout, so the
               number in the tile above and the detail below are visibly the
               same thing at two levels of zoom. */}
-          <div className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
+          <div className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Makronährstoffe</h3>
             {meals === undefined ? (
               <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
@@ -286,6 +284,10 @@ export function StatsPage() {
                 targets={dailyTargets}
               />
             )}
+          </div>
+          <div className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Mikronährstoffe</h3>
+            <MicronutrientBars overview={microOverview} />
           </div>
         </>
       ) : (

@@ -1,5 +1,8 @@
 import { db, MICRONUTRIENT_ORDER, toLocalDateKey, type Micronutrients, type MicronutrientKey } from './db'
 import { bandForIntake, computeMicronutrientTargets, type MicronutrientBand, type Sex } from './bodyProfile'
+import { estimateMicronutrientsBackfill } from './gemini'
+import { pushMealChange } from './sync'
+import { getApiKey } from './settings'
 
 /**
  * Trailing window the "gut/durchschnittlich/unterrepräsentiert" bands
@@ -82,4 +85,60 @@ const NOTABLE_SHARE_OF_DAY = 1 / 3
 export function notableMicronutrients(meal: Micronutrients, sex: Sex): MicronutrientKey[] {
   const targets = computeMicronutrientTargets(sex)
   return MICRONUTRIENT_ORDER.filter((key) => meal[key] >= targets[key] * NOTABLE_SHARE_OF_DAY)
+}
+
+// --- Rückwirkende Schätzung für Mahlzeiten von vor diesem Feature ---------
+
+/** How many meals go into one Gemini call — enough to meaningfully cut the number of calls, small enough to stay a reliable structured response. */
+const BACKFILL_BATCH_SIZE = 15
+/**
+ * Cap per app launch. A meal history can run into the hundreds; asking for
+ * all of them in one launch would spend a full day's quota on numbers
+ * nobody's waiting on. What's left over simply gets picked up on the next
+ * launch — `backfillMissingMicronutrients` re-queries "who's still missing
+ * it" every time rather than tracking progress itself, so there's nothing to
+ * get out of sync if a session closes mid-way.
+ */
+const BACKFILL_MAX_PER_LAUNCH = 60
+
+/**
+ * Fills in `micronutrients` for meals logged before this field existed —
+ * silently, in the background, roughly (title/description only, see
+ * estimateMicronutrientsBackfill in lib/gemini.ts). Without this, every
+ * meal logged before the feature shipped would sit outside the rolling
+ * average forever, which for an established user is most of their history.
+ *
+ * Best-effort like the other background refreshes in this app
+ * (refreshTipsIfStale, refreshAdvisorIfStale): no API key or a failed
+ * request just means it tries again next launch, never a visible error for
+ * something the user never asked to see.
+ */
+export async function backfillMissingMicronutrients(): Promise<void> {
+  if (!getApiKey()) return
+
+  const candidates = await db.meals
+    .filter((m) => !m.micronutrients)
+    .limit(BACKFILL_MAX_PER_LAUNCH)
+    .toArray()
+  if (candidates.length === 0) return
+
+  for (let i = 0; i < candidates.length; i += BACKFILL_BATCH_SIZE) {
+    const batch = candidates.slice(i, i + BACKFILL_BATCH_SIZE)
+    try {
+      const results = await estimateMicronutrientsBackfill(
+        batch.map((m) => ({ id: m.id, title: m.title, description: m.description })),
+      )
+      for (const meal of batch) {
+        const micronutrients = results[meal.id]
+        if (!micronutrients) continue
+        const updated = { ...meal, micronutrients }
+        await db.meals.put(updated)
+        pushMealChange(updated, updated.id)
+      }
+    } catch {
+      // Best-effort — this batch (and any remaining ones) simply try again
+      // next launch, rather than surfacing a retry loop for a background fill.
+      return
+    }
+  }
 }

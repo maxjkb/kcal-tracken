@@ -976,3 +976,61 @@ export async function estimateNutritionTips(input: NutritionTipsInput): Promise<
     reason: String(t.reason ?? ''),
   }))
 }
+
+// --- Mikronährstoff-Backfill für bereits geloggte Mahlzeiten ---------------
+
+export interface MicronutrientBackfillInput {
+  id: string
+  title: string
+  description: string
+}
+
+const MICRONUTRIENT_BACKFILL_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    meals: {
+      type: 'ARRAY',
+      description: 'Eine Mikronährstoff-Schätzung für JEDE übergebene Mahlzeit, mit ihrer id.',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          id: { type: 'STRING', description: 'Die id der Mahlzeit, exakt wie übergeben.' },
+          micronutrients: MICRONUTRIENT_SCHEMA,
+        },
+        required: ['id', 'micronutrients'],
+      },
+    },
+  },
+  required: ['meals'],
+}
+
+const MICRONUTRIENT_BACKFILL_SYSTEM_PROMPT = `Du bekommst eine Liste bereits in der Vergangenheit geloggter Mahlzeiten — jeweils nur Titel und ggf. eine kurze Beschreibung, keine Zutatenliste. Schätze für JEDE davon GROB die Mikronährstoffe der gesamten Mahlzeit anhand des Titels/der Beschreibung. Das sind nachträgliche Richtwerte für eine grobe statistische Einordnung, keine präzise Analyse — realistische Schätzungen reichen völlig, übertriebene Präzision ist nicht nötig und nicht möglich. Antworte für JEDE übergebene Mahlzeit mit ihrer id (exakt wie übergeben) — keine auslassen. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema.`
+
+/**
+ * Rough, cheap micronutrient estimates for meals logged before this feature
+ * existed — title/description only, no photo, no grounding lookup, no
+ * ingredient breakdown, and many meals per call (see
+ * lib/micronutrients.ts's backfillMissingMicronutrients for the batching).
+ * A full estimateNutrition-quality pass per historical meal would work too,
+ * but at many times the quota cost for numbers that only ever feed a rolling
+ * weekly band — the accuracy that buys is never visible.
+ */
+export async function estimateMicronutrientsBackfill(
+  meals: MicronutrientBackfillInput[],
+): Promise<Record<string, Micronutrients>> {
+  const lines = meals.map((m) => `- id=${m.id}: "${m.title}"${m.description.trim() ? ` — ${m.description.trim()}` : ''}`)
+
+  const parsed = await callGemini({
+    systemPrompt: MICRONUTRIENT_BACKFILL_SYSTEM_PROMPT,
+    parts: [{ text: lines.join('\n') }],
+    responseSchema: MICRONUTRIENT_BACKFILL_SCHEMA,
+  })
+
+  const raw = Array.isArray(parsed.meals) ? parsed.meals : []
+  const result: Record<string, Micronutrients> = {}
+  for (const entry of raw) {
+    if (typeof entry.id !== 'string') continue
+    result[entry.id] = parseMicronutrients(entry.micronutrients)
+  }
+  return result
+}
