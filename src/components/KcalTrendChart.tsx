@@ -17,7 +17,7 @@ import { REDUCED_MOTION_TRANSITION, SPRING_DEFAULT } from '../lib/motionTokens'
 
 /** The trend line is the one thing on the chart that isn't data — red keeps it from reading as another series. */
 const TREND_COLOR = '#ff3b30'
-const LINE_COLOR = '#0a84ff'
+const LINE_COLOR = '#1E90FF' // matches --color-kcal/--color-accent in index.css
 
 /**
  * Calories over the selected period as connected points, with the period's

@@ -11,7 +11,13 @@
  * this component itself never needs to know which area it's in.
  *
  * A "hill" gradient — transparent, up to peak color, back to transparent —
- * rather than a plain top-to-bottom fade. Real iOS Safari measures `dvh`
+ * rather than a plain top-to-bottom fade. Peak position/opacity and the
+ * element's own height (index.css's .top-gradient) were both increased from
+ * their original values per explicit request: the wash should spread
+ * further toward the center of the screen and take up more of the
+ * background than before.
+ *
+ * Real iOS Safari measures `dvh`
  * against a viewport size that can shift by the address bar's/Dynamic
  * Island's exact chrome height, something this Chromium sandbox can't
  * faithfully reproduce; a plain fade starts at near-full color right at
@@ -39,7 +45,7 @@ export function TopGradient() {
       className="top-gradient pointer-events-none fixed inset-x-0 -z-10"
       style={{
         background:
-          'linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-section) 45%, transparent) 35%, transparent)',
+          'linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-section) 60%, transparent) 48%, transparent)',
       }}
     />
   )

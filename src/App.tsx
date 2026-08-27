@@ -6,6 +6,7 @@ import { RecipesPage, StatsPage, SupplementsPage } from './components/SectionPre
 import { AddMealContext } from './hooks/useAddMeal'
 import { SwipeProgressProvider } from './lib/swipeProgress'
 import { TopGradient } from './components/TopGradient'
+import { BackgroundRings } from './components/BackgroundRings'
 import { FeedPage } from './pages/FeedPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { BodyProfilePage } from './pages/settings/BodyProfilePage'
@@ -44,13 +45,13 @@ function sectionForPath(pathname: string): Section | null {
 }
 
 /** The --color-section-* custom property (see index.css) each area washes its TopGradient and
-  * .glass-accent buttons in. Statistik deliberately stays on the plain accent blue — see index.css
-  * for why — rather than getting its own token. */
+  * .glass-accent buttons in — Rezepte/Supplements lighter than Feed's exact accent blue, Statistik
+  * darker, per the uploaded blue-scale palette (index.css has the full reasoning). */
 const SECTION_COLOR_VAR: Record<Section, string> = {
   feed: 'var(--color-section-feed)',
   recipes: 'var(--color-section-recipes)',
   supplements: 'var(--color-section-supplements)',
-  stats: 'var(--color-accent)',
+  stats: 'var(--color-section-stats)',
 }
 
 export default function App() {
@@ -81,6 +82,7 @@ export default function App() {
           a later, non-positioned paint step that simply covers whatever's
           behind it; body's own canvas-level background doesn't have that
           problem, it's always the bottom-most layer. */}
+      <BackgroundRings />
       {section && <TopGradient />}
       <div className="min-h-screen">
         <SwipeNavigator>

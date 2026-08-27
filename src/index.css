@@ -52,10 +52,21 @@
   /* Main accent (buttons, nav, "+", arrows) — solid, not pastel. Kcal reuses
      the same hue since it's now one of the four equal nutrient rings. Stays
      the single dominant color everywhere — see --color-section below for
-     the secondary, per-area tint layered on top of it. */
-  --color-accent: #0a84ff;
-  --color-kcal: #0a84ff;
-  /* Macro badge colors — Apple Health-style. */
+     the secondary, per-area tint layered on top of it.
+     #1E90FF is the "Kern-Blau" from the uploaded blue-scale palette
+     (Primär-Akzent) — used exactly as given, not approximated, per explicit
+     request. Kept identical in light and dark mode (same simplification the
+     old #0a84ff value already used): it clears 3.2:1 on white and 6.5:1 on
+     black, comfortably better than the old value's dark-mode contrast. */
+  --color-accent: #1E90FF;
+  --color-kcal: #1E90FF;
+  /* Macro badge colors — Apple Health-style. carbs/fat already landed
+     exactly on the uploaded palette's green/yellow swatches (#34C759,
+     #FFCC00) with no change needed. protein has no pink/magenta anywhere in
+     the uploaded photos — kept as a harmonizing extension (see the
+     Farbpalette request's point 2B) rather than force-fit to an unrelated
+     hue, since it's already from the same Apple system-color family the
+     rest of the given swatches were drawn from. */
   --color-protein: #ff375f;
   --color-carbs: #34c759;
   --color-fat: #ffcc00;
@@ -72,8 +83,17 @@
      lunch and snack values are the ones to shift. */
   --color-meal-breakfast: #ff9500;
   --color-meal-lunch: #ffcc00;
-  --color-meal-dinner: #5e5ce6;
+  /* Was Indigo (#5e5ce6) — the uploaded palette has no indigo, and its
+     closest bunte swatch by hue is the Purple (#af52de) also used below for
+     --color-micro-vitaminb12. Accepted deliberately rather than avoided:
+     meal badges (Feed/Rezepte) and the micronutrient bars (Statistik) never
+     appear on the same screen, so the two never actually collide on
+     screen — same reasoning already applied to --color-fat/--color-meal-lunch
+     and --color-carbs/--color-good/--color-meal-snack below. */
+  --color-meal-dinner: #af52de;
   --color-meal-snack: #34c759;
+  /* No red anywhere in the uploaded photos — kept as a harmonizing
+     extension (2B), same reasoning as --color-protein above. */
   --color-danger: #ff3b30;
   /* Positive/"good source of" accent — MealDetail's per-meal micronutrient
      badges. Deliberately its own token rather than reusing --color-carbs,
@@ -94,7 +114,15 @@
    * risk is real rather than theoretical. Chosen loosely thematically
    * (Vitamin D = sun orange, Eisen = blood red, Jod = ocean cyan) from
    * Apple's system palette, which is also where the rest of this file's
-   * colors come from.
+   * colors come from — and, it turns out, also where the uploaded
+   * Farbpalette photos' own "bunte" swatches come from: vitaminD (#ff9500)
+   * and vitaminb12 (#af52de) already land exactly on two of them. The other
+   * eight have no close match among the given swatches (they're all pale/
+   * desaturated pastels meant for hovers and secondary fills, which measure
+   * a *worse* contrast ratio here than these already do — checked
+   * numerically, not assumed) and are kept as harmonizing extensions (2B)
+   * from that same Apple-system-color family instead of being force-fit to
+   * a paler, less legible tone.
    */
   --color-micro-vitamind: #ff9500;
   --color-micro-vitaminb12: #af52de;
@@ -108,21 +136,41 @@
   --color-micro-iodine: #32ade6;
 
   /*
-   * One accent color per main area (Feed/Rezepte/Supplements/Statistik),
-   * chosen from Apple's own system-color set. First attempt used Indigo
-   * (Feed) and Purple (Supplements) — both read as "reddish/lilac" on
-   * review and were replaced with Cyan and Mint, so the whole set now forms
-   * one continuous cool family rather than spanning into red/violet hues:
-   * Mint(172°, Supplements) < Teal(189°, Rezepte) < Cyan(199°, Feed) <
-   * Blue(211°, accent/kcal/Statistik) — a deliberate gradation ("Abstufung")
-   * rather than four maximally-separated hues, with Mint's 35°+ gap from
-   * carbs' green (~137°) still enough to keep the two apart. Still nowhere
-   * near protein's pink (~350°), danger's red (~4°), or yellow/orange.
+   * One accent color per main area (Rezepte/Supplements/Feed/Statistik, in
+   * their actual left-to-right tab order — lib/sections.ts SECTION_TABS),
+   * now driven by the uploaded blue-scale palette photo rather than a
+   * hand-picked cool-hue family. Explicit request: Feed is exactly #1E90FF
+   * (== --color-accent, see above); every area to its LEFT in the tab strip
+   * must read lighter than that; every area to its RIGHT must read darker.
+   * The blue-scale photo's five stops are #E1F0FF < #B0D6FF < #1E90FF <
+   * #005BB5 < #003366. The lightest (#E1F0FF) turned out too close to the
+   * page's own near-white background to read as "blue" at all once actually
+   * checked on screen (a wash needs contrast against its own backdrop, not
+   * just against the color next to it in the scale) — dropped in favor of a
+   * point 45% of the way from #B0D6FF to #1E90FF (#6eb6ff), which is
+   * legibly lighter than Feed while still clearly a color rather than a
+   * near-invisible tint. So: Rezepte gets #B0D6FF (the palette's own
+   * lighter stop, used as-is), Supplements the new #6eb6ff (closer to Feed,
+   * matching its place right next to it in the tab order), Feed the exact
+   * #1E90FF, Statistik the darker #005BB5 — brightness genuinely following
+   * the swipe order left to right, not just "some lighter, some darker".
+   * The scale's darkest stop (#003366, itself labeled "tiefe Textränder" in
+   * the photo) is held back for the icon variants below instead of used as
+   * a fifth area color.
    *
-   * Statistik intentionally has no separate token — it stays on
-   * --color-accent itself, both because the request was to keep blue as the
-   * overall main color and because Statistik's own kcal rings are already
-   * that exact blue, so nothing needs to shift there.
+   * Statistik previously had no separate token at all (it just stayed on
+   * --color-accent) — now that it needs to read as *darker* than Feed
+   * specifically, it gets a real --color-section-stats token. Only in light
+   * mode, though: on a black background "darker than blue" has no legible
+   * equivalent, and per the Hintergrund request's point 1C, dark mode is
+   * meant to change as little as possible (only the white canvas itself
+   * inverts to black) — so in dark mode --color-section-stats simply falls
+   * back to --color-accent again, exactly like before. The other three
+   * areas' dark-mode values are untouched from before this change for the
+   * same reason: they already had their own tuned, high-contrast (~11-12:1
+   * on black) dark variants, and the new palette photo is itself a
+   * light-mode swatch sheet (its own "Verwendung" labels call out
+   * light-surface uses — buttons, hover, active states).
    *
    * These are consumed several ways (App.tsx sets --color-section to
    * whichever of these applies to the current route, on document.body so it
@@ -139,21 +187,25 @@
    *   undiluted, since neither sits under text that needs to stay
    *   readable.
    * - .text-section (an icon badge's glyph) uses the separate
-   *   --color-section-*-icon tokens just below instead of these — the
-   *   plain Cyan/Teal/Mint here are tuned to look good as a soft wash or
-   *   mixed mostly with blue, not as a small icon glyph directly against
-   *   the page's near-white light-mode background, where they measure as
-   *   low as ~1.9:1 (fails even the 3:1 non-text bar). The *-icon tokens
-   *   are darkened versions of the same hue, light-mode only — dark mode's
-   *   own values already clear 8:1+ against near-black, so those just
-   *   repeat the plain token.
+   *   --color-section-*-icon tokens just below instead of these — Rezepte
+   *   and Supplements' own pale washes measure well under 3:1 on white
+   *   (checked numerically), so their icon glyphs borrow darker stops from
+   *   the SAME blue scale instead: Feed's icon steps one stop darker within
+   *   its own scale (#005BB5), Rezepte's the darkest stop (#003366), and
+   *   Supplements' the palette's separate "Tiefschieferblau" swatch
+   *   (#2c4258) — all comfortably clear 6:1+ on white. Light-mode only,
+   *   same as before: dark mode's own section values already clear 10:1+
+   *   against near-black, so those just repeat the plain token (Statistik
+   *   still has no icon token — it never did, its own value already reads
+   *   fine as text/glyph, see contrast above).
    */
-  --color-section-feed: #32ade6; /* Cyan */
-  --color-section-recipes: #30b0c7; /* Teal/Türkis */
-  --color-section-supplements: #00c7be; /* Mint */
-  --color-section-feed-icon: #178abf;
-  --color-section-recipes-icon: #2891a4;
-  --color-section-supplements-icon: #008f88;
+  --color-section-feed: #1E90FF;
+  --color-section-recipes: #B0D6FF;
+  --color-section-supplements: #6eb6ff;
+  --color-section-stats: #005BB5;
+  --color-section-feed-icon: #005BB5;
+  --color-section-recipes-icon: #003366;
+  --color-section-supplements-icon: #2c4258;
 }
 
 html {
@@ -188,8 +240,11 @@ body {
    background. */
 .top-gradient {
   top: -2rem;
-  height: 28vh;
-  height: calc(28dvh + 2rem);
+  /* Was 28dvh — explicit request to have the wash spread further toward the
+     center of the screen and take up more of the background. Paired with
+     the later peak-position/opacity change in TopGradient.tsx itself. */
+  height: 44vh;
+  height: calc(44dvh + 2rem);
 }
 
 /* --- Dark mode — follows the device setting only (no in-app toggle) --- */
@@ -203,13 +258,16 @@ body {
     --color-ink-faint: #767676;
     --color-line: #38383a;
 
-    --color-accent: #0a84ff;
-    --color-kcal: #0a84ff;
+    --color-accent: #1E90FF;
+    --color-kcal: #1E90FF;
     --color-carbs: #30d158;
     --color-fat: #ffd60a;
     --color-meal-breakfast: #ff9f0a;
     --color-meal-lunch: #ffd60a;
-    --color-meal-dinner: #7d7aff;
+    /* Follows --color-meal-dinner's light-mode swap to Purple above — its
+       dark-mode counterpart, matching --color-micro-vitaminb12's own
+       light/dark pair just below. */
+    --color-meal-dinner: #bf5af2;
     --color-meal-snack: #30d158;
     --color-danger: #ff453a;
     --color-good: #30d158;
@@ -228,6 +286,12 @@ body {
     --color-section-feed: #64d2ff;
     --color-section-recipes: #40cbe0;
     --color-section-supplements: #66d4cf;
+    /* Unlike the other three, Statistik has no dark-mode value of its own —
+       see the long comment above --color-section-feed for why: on black,
+       "darker than accent" has no legible equivalent, so it simply falls
+       back to being the accent again, exactly as it did before this token
+       existed. */
+    --color-section-stats: var(--color-accent);
     /* Already high-contrast against near-black, unlike the light-mode
        values above — no separate darkened variant needed. */
     --color-section-feed-icon: #64d2ff;
@@ -281,16 +345,52 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* --- Liquid Glass — used sparingly for the nav bar and primary actions --- */
+/* --- Liquid Glass — used sparingly for the nav bar and primary actions ---
+   Per apple-hig-review's liquid-glass.md: real Liquid Glass isn't a flat
+   frosted sheet ("Milchglas") — it's a material that catches and refracts
+   light, so it needs a highlight that suggests a curved surface, not just a
+   translucent tint. Two changes make that happen everywhere below:
+
+   1. A radial "specular" highlight layered on top of the base tint, offset
+      toward one corner (as if a light source is hitting the glass there)
+      instead of one flat rgba() wash.
+   2. A slow, barely-visible drift of that highlight's position
+      (liquid-drift below) — "ein bisschen dynamisch", per the explicit
+      request that this should look alive, not static. Kept far outside the
+      ~0.2Hz/5s band Apple's own motion guidance calls out as
+      uncomfortable (WWDC18/apple-design skill) — a full cycle takes over a
+      minute, so in practice it reads as "this material is doing something"
+      without ever being caught mid-movement. Frozen automatically by the
+      existing prefers-reduced-motion rule further down (its `*` selector
+      already zeroes every animation-duration on the page, this one
+      included) rather than needing its own media query. */
 
 .glass {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  background:
+    radial-gradient(150% 150% at 18% -15%, rgba(255, 255, 255, 0.65), transparent 55%),
+    linear-gradient(165deg, rgba(255, 255, 255, 0.68) 0%, rgba(255, 255, 255, 0.4) 55%, rgba(255, 255, 255, 0.58) 100%);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
   border: 1px solid rgba(255, 255, 255, 0.8);
   box-shadow:
     0 8px 32px rgba(31, 41, 55, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -12px 20px -16px rgba(10, 40, 70, 0.2);
+  animation: liquid-drift 75s ease-in-out infinite;
+}
+
+@keyframes liquid-drift {
+  0%,
+  100% {
+    background-position:
+      0% 0%,
+      0 0;
+  }
+  50% {
+    background-position:
+      10% 8%,
+      0 0;
+  }
 }
 
 /* Solid accent-colored glass: no glow, no pastel tint on its own border —
@@ -302,21 +402,29 @@ input[type="number"] {
    --color-section falls back to --color-accent itself (see body{} above),
    so the gradient collapses to flat blue exactly as before. */
 .glass-accent {
-  background: linear-gradient(
-    135deg,
-    var(--color-accent),
-    color-mix(in srgb, var(--color-accent) 85%, var(--color-section) 15%)
-  );
+  background:
+    radial-gradient(140% 160% at 22% -25%, rgba(255, 255, 255, 0.5), transparent 50%),
+    linear-gradient(135deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 85%, var(--color-section) 15%));
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid color-mix(in srgb, var(--color-accent) 55%, white 45%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -8px 14px -10px rgba(0, 0, 0, 0.35);
   color: #ffffff;
 }
 
 /* A lighter frosted-glass treatment for cards/tiles — visible but doesn't
-   fight with the badge colors and text sitting on top of it. */
+   fight with the badge colors and text sitting on top of it. Content-layer
+   material (per liquid-glass.md, real Liquid Glass is reserved for the
+   functional layer — .glass above), so it gets the same specular-highlight
+   treatment at a gentler intensity, and no drift animation of its own: a
+   dozen cards all quietly shimmering at once would read as busy rather than
+   alive. */
 .glass-subtle {
-  background: rgba(255, 255, 255, 0.55);
+  background:
+    radial-gradient(140% 140% at 15% -20%, rgba(255, 255, 255, 0.5), transparent 55%),
+    rgba(255, 255, 255, 0.55);
   backdrop-filter: blur(20px) saturate(150%);
   -webkit-backdrop-filter: blur(20px) saturate(150%);
   border: 1px solid rgba(255, 255, 255, 0.6);
@@ -351,15 +459,20 @@ input[type="number"] {
 
 @media (prefers-color-scheme: dark) {
   .glass {
-    background: rgba(28, 28, 30, 0.65);
+    background:
+      radial-gradient(150% 150% at 18% -15%, rgba(255, 255, 255, 0.1), transparent 55%),
+      linear-gradient(165deg, rgba(44, 44, 46, 0.75) 0%, rgba(28, 28, 30, 0.55) 55%, rgba(36, 36, 38, 0.68) 100%);
     border-color: rgba(255, 255, 255, 0.12);
     box-shadow:
       0 8px 32px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 -12px 20px -16px rgba(0, 0, 0, 0.5);
   }
 
   .glass-subtle {
-    background: rgba(28, 28, 30, 0.55);
+    background:
+      radial-gradient(140% 140% at 15% -20%, rgba(255, 255, 255, 0.07), transparent 55%),
+      rgba(28, 28, 30, 0.55);
     border-color: rgba(255, 255, 255, 0.1);
   }
 
@@ -368,6 +481,39 @@ input[type="number"] {
      just with a hint of hue instead of none. */
   .glass-subtle-themed {
     border-color: color-mix(in srgb, var(--color-section) 30%, transparent);
+  }
+}
+
+/* --- Background nutrient rings (components/BackgroundRings.tsx) ---
+   The app-icon's concentric rings, echoed faintly in the bottom-right
+   corner of the background on every screen. Blurred and low-opacity so it
+   reads as ambient texture behind the Liquid Glass surfaces (see the
+   comment on TopGradient for why those want something colorful to
+   frost/blur instead of a flat backdrop) rather than a second, competing
+   data visualization — the values it draws are fixed/illustrative, not
+   today's real intake. The slow drift is the same "ein bisschen dynamisch"
+   request as .glass's liquid-drift above, on an even longer, subtler cycle
+   since this sits behind every screen rather than just the nav bar. */
+.background-rings {
+  width: 22rem;
+  height: 22rem;
+  transform: translate(30%, 32%);
+  filter: blur(30px);
+  opacity: 0.38;
+  animation: rings-drift 100s ease-in-out infinite;
+}
+.background-rings svg {
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes rings-drift {
+  0%,
+  100% {
+    transform: translate(30%, 32%) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translate(32%, 29%) rotate(2deg) scale(1.04);
   }
 }
 
@@ -391,7 +537,8 @@ input[type="number"] {
     -webkit-backdrop-filter: none;
   }
 
-  .top-gradient {
+  .top-gradient,
+  .background-rings {
     display: none;
   }
 }
@@ -405,6 +552,10 @@ input[type="number"] {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     border: 1px solid var(--color-ink);
+  }
+
+  .background-rings {
+    display: none;
   }
 }
 

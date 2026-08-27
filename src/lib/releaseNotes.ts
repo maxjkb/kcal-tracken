@@ -17,6 +17,15 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.14.0',
+    date: '2026-08-27',
+    highlights: [
+      'Hintergrund: verschwommene Nährwertringe wie auf dem App-Icon unten rechts, kräftigerer Farbverlauf am oberen Rand, "flüssigeres" Liquid Glass mit Lichtreflex und leichter Eigenbewegung.',
+      'Farben an die hochgeladene Palette angeglichen: Feed exakt #1E90FF, Rezepte/Supplements heller, Statistik dunkler.',
+      'Statistik: Mikronährstoff-Kacheln jetzt nach Wichtigkeit sortiert (wichtigster Nährstoff oben).',
+    ],
+  },
+  {
     version: '1.13.0',
     date: '2026-08-26',
     highlights: [
