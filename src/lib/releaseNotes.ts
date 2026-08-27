@@ -17,6 +17,16 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.14.1',
+    date: '2026-08-27',
+    highlights: [
+      'Der Farbwechsel im Hintergrund beim Seitenwechsel läuft jetzt weich statt hart.',
+      'Der blaue Farbverlauf oben nimmt jetzt bis zur Bildschirmhälfte ein.',
+      'Nährwertringe im Hintergrund: weniger verschwommen, deutlicher sichtbar.',
+      'Alle bisher "provisorischen" Farben (Protein, Fehler, mehrere Mikronährstoffe) kommen jetzt ebenfalls direkt aus der erweiterten Farbpalette.',
+    ],
+  },
+  {
     version: '1.14.0',
     date: '2026-08-27',
     highlights: [

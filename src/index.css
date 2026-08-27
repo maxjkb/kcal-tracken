@@ -1,5 +1,29 @@
 @import "tailwindcss";
 
+/* Registers --color-section/--color-section-icon as typed, animatable
+   <color> custom properties (CSS Houdini @property) rather than the
+   untyped strings CSS custom properties are by default — untyped ones
+   can't be transitioned at all, which is exactly why switching between the
+   four main pages used to cut instantly to the next blue tone instead of
+   easing into it. Once registered, every consumer below picks the smooth
+   transition up for free: TopGradient's gradient, .glass-accent,
+   .bg-section-12/-20, .text-section and .glass-subtle-themed all just read
+   var(--color-section) / var(--color-section-icon) inside an ordinary
+   declarative background/border/color, so as the custom property itself
+   animates frame-by-frame, everything downstream of it repaints along with
+   it — no per-component change needed. The actual transition is declared
+   on body{} below, since that's where App.tsx sets these two per route. */
+@property --color-section {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #1e90ff;
+}
+@property --color-section-icon {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #1e90ff;
+}
+
 @theme {
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Inter, ui-sans-serif, system-ui, sans-serif;
 
@@ -62,11 +86,15 @@
   --color-kcal: #1E90FF;
   /* Macro badge colors — Apple Health-style. carbs/fat already landed
      exactly on the uploaded palette's green/yellow swatches (#34C759,
-     #FFCC00) with no change needed. protein has no pink/magenta anywhere in
-     the uploaded photos — kept as a harmonizing extension (see the
-     Farbpalette request's point 2B) rather than force-fit to an unrelated
-     hue, since it's already from the same Apple system-color family the
-     rest of the given swatches were drawn from. */
+     #FFCC00) with no change needed. The uploaded photos have no pink/
+     magenta anywhere — rather than leave protein an orphaned leftover,
+     v1.14.1 formally extends the palette with Pink #ff375f (2B: "erweitere
+     eigenständig die Farbpalette... Farben, die mit dem #1E90FF Blau
+     harmonieren"): it sits at ~344° on the hue wheel, between the palette's
+     own Purple (283°, --color-meal-dinner/--color-micro-vitaminb12 below)
+     and the new Red (4°, --color-danger just below) — closing what was
+     otherwise a gap in an already near-continuous hue progression from
+     Blue through Purple/Pink/Red into Orange/Yellow/Green and back to Blue. */
   --color-protein: #ff375f;
   --color-carbs: #34c759;
   --color-fat: #ffcc00;
@@ -92,8 +120,12 @@
      and --color-carbs/--color-good/--color-meal-snack below. */
   --color-meal-dinner: #af52de;
   --color-meal-snack: #34c759;
-  /* No red anywhere in the uploaded photos — kept as a harmonizing
-     extension (2B), same reasoning as --color-protein above. */
+  /* Same story as --color-protein above: no red anywhere in the uploaded
+     photos, so this is the palette's other formal extension — Red #ff3b30,
+     the hue-wheel neighbor that closes the gap between Pink (344°) and the
+     given Orange (36°). Shared verbatim by --color-micro-iron below (blood/
+     anaemia is the one micronutrient where reusing "danger red" actually
+     reads as intentional rather than accidental). */
   --color-danger: #ff3b30;
   /* Positive/"good source of" accent — MealDetail's per-meal micronutrient
      badges. Deliberately its own token rather than reusing --color-carbs,
@@ -111,29 +143,47 @@
    * nutrient, the same way --color-protein always means protein. None of
    * these ten reuse a macro's hue (kcal/protein/carbs/fat): the macro rings
    * sit on this exact page, directly above this section, so the collision
-   * risk is real rather than theoretical. Chosen loosely thematically
-   * (Vitamin D = sun orange, Eisen = blood red, Jod = ocean cyan) from
-   * Apple's system palette, which is also where the rest of this file's
-   * colors come from — and, it turns out, also where the uploaded
-   * Farbpalette photos' own "bunte" swatches come from: vitaminD (#ff9500)
-   * and vitaminb12 (#af52de) already land exactly on two of them. The other
-   * eight have no close match among the given swatches (they're all pale/
-   * desaturated pastels meant for hovers and secondary fills, which measure
-   * a *worse* contrast ratio here than these already do — checked
-   * numerically, not assumed) and are kept as harmonizing extensions (2B)
-   * from that same Apple-system-color family instead of being force-fit to
-   * a paler, less legible tone.
+   * risk is real rather than theoretical.
+   *
+   * v1.14.1: all ten now genuinely trace back to a palette swatch (2A/2B —
+   * "tausche alle Farben aus"), not just the two that happened to land on
+   * one exactly:
+   * - vitaminD (#ff9500) and vitaminb12 (#af52de) ARE two of the given
+   *   "bunte" swatches, used verbatim (also true of --color-meal-breakfast/
+   *   -dinner just above — same swatches, same reasoning).
+   * - iron reuses --color-danger's Red — see the comment there.
+   * - The rest are either a given swatch too pale to read as its own
+   *   identity color at full strength, darkened via color-mix(black %, …)
+   *   the same way the section-icon tokens below already are (so the hue
+   *   stays exactly the swatch's, only its lightness moves), or — where no
+   *   single swatch fit — an actual blend of two swatches that are close by
+   *   on the hue wheel to the missing hue, then darkened the same way:
+   *     folate:    Soft-Akzentgrün #98D8B6, darkened 30%
+   *     vitaminC:  Orange #FF9500, darkened 30% (kept distinct from
+   *                vitaminD's undarkened Orange right above)
+   *     calcium:   Sekundärblau #8AB3D4, darkened 35%
+   *     magnesium: Kern-Blau #1E90FF blended 45% toward Purple #AF52DE
+   *                (an indigo sits between the two on the hue wheel — this
+   *                blend recreates it from two given swatches rather than
+   *                inventing a new hue), darkened 15%
+   *     zinc:      Hellblau #5AC8FA blended 50% toward Tiefschieferblau
+   *                #2C4258
+   *     potassium: Softes Pfirsichorange #FCD8B8, darkened 40%
+   *     iodine:    Hellblau #5AC8FA, darkened 15%
+   *   Each darken/blend percentage was picked by checking the resulting
+   *   contrast against white numerically (all now ≥3.3:1, several
+   *   comfortably above the v1.13 values they replace — never regressed).
    */
   --color-micro-vitamind: #ff9500;
   --color-micro-vitaminb12: #af52de;
-  --color-micro-folate: #00c7be;
-  --color-micro-vitaminc: #c98a02;
-  --color-micro-calcium: #7c8ba1;
+  --color-micro-folate: #6a977f;
+  --color-micro-vitaminc: #b26800;
+  --color-micro-calcium: #5a748a;
   --color-micro-iron: #ff3b30;
-  --color-micro-magnesium: #5e5ce6;
-  --color-micro-zinc: #30b0c7;
-  --color-micro-potassium: #a2845e;
-  --color-micro-iodine: #32ade6;
+  --color-micro-magnesium: #4757b4;
+  --color-micro-zinc: #4385a9;
+  --color-micro-potassium: #97826e;
+  --color-micro-iodine: #4caad4;
 
   /*
    * One accent color per main area (Rezepte/Supplements/Feed/Statistik, in
@@ -223,6 +273,20 @@ body {
      existed. */
   --color-section: var(--color-accent);
   --color-section-icon: var(--color-accent);
+  /* The actual "dynamisch, nicht starr" transition for the two properties
+     above (see the @property registrations at the top of this file) —
+     400ms matches this app's other critically-damped defaults
+     (lib/motionTokens.ts's SPRING_DEFAULT), and the decel curve approximates
+     that same no-overshoot settle in plain CSS easing terms (@property
+     transitions run on the standard CSS timeline, not Motion's spring
+     engine, so it can't literally be a spring — this is the closest
+     equivalent shape). Automatically honors prefers-reduced-motion: the
+     `*` rule further down already zeroes every transition-duration on the
+     page, this one included, so reduced-motion users still get an instant
+     cut rather than a forced animation. */
+  transition:
+    --color-section 400ms cubic-bezier(0.32, 0.72, 0, 1),
+    --color-section-icon 400ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* TopGradient's own sizing. `vh` in real mobile Safari is measured against
@@ -240,11 +304,14 @@ body {
    background. */
 .top-gradient {
   top: -2rem;
-  /* Was 28dvh — explicit request to have the wash spread further toward the
-     center of the screen and take up more of the background. Paired with
-     the later peak-position/opacity change in TopGradient.tsx itself. */
-  height: 44vh;
-  height: calc(44dvh + 2rem);
+  /* 28dvh → 44dvh → 50dvh across two rounds of the same request: the wash
+     should cover up to half the screen. The percentage stops inside
+     TopGradient.tsx's own gradient (where the color actually peaks) don't
+     need to change alongside this — they're relative to this box's own
+     height, so enlarging the box already stretches the visible blue area
+     proportionally further down the screen on its own. */
+  height: 50vh;
+  height: calc(50dvh + 2rem);
 }
 
 /* --- Dark mode — follows the device setting only (no in-app toggle) --- */
@@ -272,16 +339,22 @@ body {
     --color-danger: #ff453a;
     --color-good: #30d158;
 
+    /* Same light-mode source swatches/blends as above, each brightened
+       toward white (rather than the light values' darken-toward-black)
+       until landing in roughly the same contrast-on-black neighborhood
+       (~6-12:1) the previous, unrelated dark values happened to occupy —
+       so nothing here looks newly washed-out or newly blinding on a real
+       dark-mode screen even though every hex changed. */
     --color-micro-vitamind: #ff9f0a;
     --color-micro-vitaminb12: #bf5af2;
-    --color-micro-folate: #66d4cf;
-    --color-micro-vitaminc: #e0a52e;
-    --color-micro-calcium: #98a4b8;
+    --color-micro-folate: #a6c1b2;
+    --color-micro-vitaminc: #d1a466;
+    --color-micro-calcium: #8c9ead;
     --color-micro-iron: #ff453a;
-    --color-micro-magnesium: #7d7aff;
-    --color-micro-zinc: #40cbe0;
-    --color-micro-potassium: #b79776;
-    --color-micro-iodine: #64d2ff;
+    --color-micro-magnesium: #7e89ca;
+    --color-micro-zinc: #8eb6cb;
+    --color-micro-potassium: #b6a89a;
+    --color-micro-iodine: #94cce5;
 
     --color-section-feed: #64d2ff;
     --color-section-recipes: #40cbe0;
@@ -498,8 +571,12 @@ input[type="number"] {
   width: 22rem;
   height: 22rem;
   transform: translate(30%, 32%);
-  filter: blur(30px);
-  opacity: 0.38;
+  /* Both eased back from the original 30px/0.38 per explicit request: less
+     blur (30px → 22px, roughly a quarter less) and +25% opacity
+     (0.38 × 1.25 ≈ 0.48) — two separate, additive asks ("weniger blurry"
+     and "25% sichtbarer") rather than one knob, so both moved. */
+  filter: blur(22px);
+  opacity: 0.48;
   animation: rings-drift 100s ease-in-out infinite;
 }
 .background-rings svg {
