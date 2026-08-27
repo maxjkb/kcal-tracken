@@ -32,16 +32,38 @@ export type MicronutrientKey =
   | 'potassium'
   | 'iodine'
 
+/**
+ * Importance ranking, most important first — drives MicronutrientBars'
+ * grid top-to-bottom (that component simply renders this array in order,
+ * two per row), per explicit request: whichever nutrient sits higher on
+ * screen is the one this app considers more important, full stop, not a
+ * reflection of anything else (alphabetical, unit, whatever).
+ *
+ * The first six are the DGE's own named "most common shortfalls" this
+ * curated set was built from (see the MicronutrientKey doc comment above) —
+ * ranked further within that six by how severe and widespread a real
+ * deficiency is: Vitamin D and Eisen (iron) are the two Germany-wide
+ * population deficiencies with real health consequences (bone/immune;
+ * anaemia) and get the top two tiles; B12 and Folat follow as the other two
+ * DGE deficiencies with serious consequences if actually deficient (nerve/
+ * blood; neural-tube risk in pregnancy); Calcium and Magnesium close out the
+ * six — common gaps, but slower-consequence ones. The last four exist for
+ * "broader everyday coverage" rather than being named DGE shortfalls, so
+ * they rank below all six: Zink and Kalium (still genuinely common
+ * Western-diet gaps) above Vitamin C and Jod (usually adequately covered —
+ * diet in the first case, iodized salt in the second — so a real gap is the
+ * least likely of the ten).
+ */
 export const MICRONUTRIENT_ORDER: MicronutrientKey[] = [
   'vitaminD',
+  'iron',
   'vitaminB12',
   'folate',
-  'vitaminC',
   'calcium',
-  'iron',
   'magnesium',
   'zinc',
   'potassium',
+  'vitaminC',
   'iodine',
 ]
 
