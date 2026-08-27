@@ -92,8 +92,11 @@ export function FeedPage() {
 
       {/* The date bar sits below the title rather than beside it: every other
           main page opens with a bare title on its own line, and Feed matching
-          that is the whole point of giving it one. */}
-      <div className="glass-subtle glass-subtle-themed mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
+          that is the whole point of giving it one. Full .glass (not
+          .glass-subtle) per explicit request — a date/period selector reads
+          as navigation, the same functional role as BottomNav, so it gets
+          the same material. */}
+      <div className="glass mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
         <button
           onClick={() => setDateKey((k) => addDays(k, -1))}
           className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white"

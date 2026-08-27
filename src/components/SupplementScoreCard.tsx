@@ -12,16 +12,28 @@ function daysBetween(startKey: string, endKey: string): string[] {
   return days
 }
 
+/** Past this score the card calls out a small "gut dabei" nudge — a cheap, one-line
+  * way to make a high score feel like it earned something, without a whole badge system. */
+const GOOD_SCORE_THRESHOLD = 80
+
 /**
- * "Supplement-Treue" for whichever period Statistik currently has selected
+ * "Supplementscore" for whichever period Statistik currently has selected
  * (Tag/Woche/Monat/Jahr) — how many of the configured daily slots actually
  * got checked off, both overall and per supplement. Only counts days from
  * whichever is later of the period's start or the supplement's own
  * createdAt (a supplement added mid-period shouldn't look "missed" for
  * days before it even existed), and never past today (no counting future
  * days as missed).
+ *
+ * Formerly "Supplement-Treue", shown as a plain percentage. Same underlying
+ * math (checked slots ÷ total slots), 1:1 renamed to a 0-100 point score
+ * per explicit request — "ein bisschen mehr Gamification". A point score
+ * reads as something to chase in a way a percentage doesn't quite (nobody
+ * says "I scored 80 percent today" out loud the way they'd say "I scored 80
+ * points"), which is the entire difference here: the number itself is
+ * unchanged, only what it's called and how it's framed.
  */
-export function SupplementAdherenceCard({ startKey, endKey }: { startKey: string; endKey: string }) {
+export function SupplementScoreCard({ startKey, endKey }: { startKey: string; endKey: string }) {
   const mySupplements = useMySupplements()
   const supplements = useAllSupplements()
   const logEntries = useSupplementLogInRange(startKey, endKey)
@@ -71,27 +83,47 @@ export function SupplementAdherenceCard({ startKey, endKey }: { startKey: string
 
   const totalSlots = rows.reduce((sum, r) => sum + r.totalSlots, 0)
   const checkedSlots = rows.reduce((sum, r) => sum + r.checkedSlots, 0)
-  const overallPercent = totalSlots > 0 ? Math.round((checkedSlots / totalSlots) * 100) : null
+  const overallScore = totalSlots > 0 ? Math.round((checkedSlots / totalSlots) * 100) : null
 
   return (
     <div className="glass-subtle glass-subtle-themed mt-4 rounded-3xl p-5 shadow-sm shadow-black/5">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-ink">Supplement-Treue</h2>
-        {overallPercent !== null && <span className="text-sm font-bold text-accent">{overallPercent}%</span>}
+        <h2 className="text-sm font-semibold text-ink">Supplementscore</h2>
+        {overallScore !== null && (
+          <span className="flex items-baseline gap-1">
+            <TrophyIcon
+              className={`h-4 w-4 ${overallScore >= GOOD_SCORE_THRESHOLD ? 'text-accent' : 'text-ink-faint'}`}
+            />
+            <span className="text-lg font-bold text-accent">{overallScore}</span>
+            <span className="text-xs font-medium text-ink-soft">/ 100</span>
+          </span>
+        )}
       </div>
       <div className="flex flex-col gap-2">
         {rows.map((r) => {
-          const percent = r.totalSlots > 0 ? Math.round((r.checkedSlots / r.totalSlots) * 100) : null
+          const score = r.totalSlots > 0 ? Math.round((r.checkedSlots / r.totalSlots) * 100) : null
           return (
             <div key={r.id} className="flex items-center justify-between gap-3 text-sm">
               <span className="min-w-0 truncate text-ink-soft">{r.name}</span>
               <span className="shrink-0 text-xs text-ink-soft">
-                {percent === null ? '–' : `${r.checkedSlots}/${r.totalSlots} · ${percent}%`}
+                {score === null ? '–' : `${r.checkedSlots}/${r.totalSlots} · ${score} Pkt.`}
               </span>
             </div>
           )
         })}
       </div>
+      {overallScore !== null && overallScore >= GOOD_SCORE_THRESHOLD && (
+        <p className="mt-3 text-xs font-medium text-accent">Stark dabei — weiter so!</p>
+      )}
     </div>
+  )
+}
+
+function TrophyIcon({ className }: { className: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 4h8v4a4 4 0 0 1-8 0V4Z" />
+      <path strokeLinecap="round" d="M8 5H5a3 3 0 0 0 3 4M16 5h3a3 3 0 0 1-3 4M12 12v3M9 19h6M10 19v-2.5a2 2 0 0 1 4 0V19" />
+    </svg>
   )
 }

@@ -54,6 +54,16 @@ const SECTION_COLOR_VAR: Record<Section, string> = {
   stats: 'var(--color-section-stats)',
 }
 
+/** Same idea as SECTION_COLOR_VAR, for .text-section's icon glyphs (PageHeader's gear/"+",
+  * SupplementsPage's category pill) — Statistik has no dedicated -icon token (index.css explains
+  * why: its own value already reads fine as a glyph color), so it reuses its section color directly. */
+const SECTION_ICON_VAR: Record<Section, string> = {
+  feed: 'var(--color-section-feed-icon)',
+  recipes: 'var(--color-section-recipes-icon)',
+  supplements: 'var(--color-section-supplements-icon)',
+  stats: 'var(--color-section-stats)',
+}
+
 export default function App() {
   const [addingMeal, setAddingMeal] = useState(false)
   const location = useLocation()
@@ -67,8 +77,10 @@ export default function App() {
   useLayoutEffect(() => {
     if (section) {
       document.body.style.setProperty('--color-section', SECTION_COLOR_VAR[section])
+      document.body.style.setProperty('--color-section-icon', SECTION_ICON_VAR[section])
     } else {
       document.body.style.removeProperty('--color-section')
+      document.body.style.removeProperty('--color-section-icon')
     }
   }, [section])
 

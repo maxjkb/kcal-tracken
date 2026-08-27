@@ -12,7 +12,9 @@ import { SUPPLEMENT_CATEGORY_ORDER } from '../lib/supplementSeed'
 import { PageHeader } from '../components/PageHeader'
 import { StaggeredList } from '../components/StaggeredList'
 import {
+  addMySupplement,
   addSuggestionToMyList,
+  removeMySupplement,
   useAllSupplements,
   useLatestAdvisorRun,
   useMySupplements,
@@ -40,7 +42,9 @@ export function SupplementsPage() {
     <div className="mx-auto max-w-lg px-4 pb-28">
       <PageHeader title="Supplements" />
 
-      <div className="glass-subtle glass-subtle-themed mb-5 flex gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5">
+      {/* Full .glass, not .glass-subtle — a segmented control is navigation
+          the same way BottomNav is, so it gets the same material. */}
+      <div className="glass mb-5 flex gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5">
         {TABS.map(({ key, label }) => (
           <button
             key={key}
@@ -148,7 +152,7 @@ function CatalogTab() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Katalog durchsuchen…"
           aria-label="Katalog durchsuchen"
-          className="w-full rounded-2xl border border-line bg-bg py-2.5 pl-10 pr-3 text-sm text-ink placeholder:text-ink-soft focus:border-section focus:outline-none"
+          className="glass-subtle glass-subtle-themed w-full rounded-2xl py-2.5 pl-10 pr-3 text-sm text-ink placeholder:text-ink-soft focus:outline-none focus:ring-2 focus:ring-accent/40"
         />
         <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-soft" aria-hidden="true">
           <SearchIcon />
@@ -172,27 +176,41 @@ function CatalogTab() {
               </h2>
               <div className="glass-subtle glass-subtle-themed flex flex-col divide-y divide-line/60 overflow-hidden rounded-3xl">
                 {inCategory.map((s) => {
-                  const already = myBySupplementId.has(s.id)
+                  const mySupplement = myBySupplementId.get(s.id)
+                  const already = mySupplement !== undefined
                   return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => setAdding(s)}
-                      className="flex items-start justify-between gap-3 px-4 py-3 text-left"
-                    >
-                      <div className="min-w-0">
+                    // Two independent controls, not one — the row used to be a single
+                    // <button> that opened the dosage/timing sheet on any tap. Splitting
+                    // it lets the +/- toggle add or remove in one tap with sensible
+                    // defaults (below), while tapping the name/description still opens
+                    // the sheet to actually set a dosage or times of day. A <button>
+                    // can't legally nest another <button> anyway (see SlotButton's
+                    // comment in SupplementChecklist.tsx for the same constraint).
+                    <div key={s.id} className="flex items-start justify-between gap-3 px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => setAdding(s)}
+                        className="min-w-0 flex-1 text-left"
+                      >
                         <p className="text-sm font-medium text-ink">{s.name}</p>
                         {s.description && <p className="mt-0.5 text-xs text-ink-soft">{s.description}</p>}
                         <p className="mt-0.5 text-xs text-ink-soft">{s.typicalDosage}</p>
-                      </div>
-                      <span
-                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          already ? 'bg-accent/12 text-accent' : 'bg-bg text-ink-soft'
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          already
+                            ? removeMySupplement(mySupplement.id)
+                            : addMySupplement({ supplementId: s.id, dosage: s.typicalDosage, timesOfDay: ['morning'] })
+                        }
+                        aria-label={already ? `${s.name} von der Liste entfernen` : `${s.name} zur Liste hinzufügen`}
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition ${
+                          already ? 'bg-danger/12 text-danger hover:bg-danger/20' : 'bg-accent/12 text-accent hover:bg-accent/20'
                         }`}
                       >
-                        {already ? 'Auf Liste' : 'Hinzufügen'}
-                      </span>
-                    </button>
+                        {already ? <MinusIcon /> : <PlusIcon />}
+                      </button>
+                    </div>
                   )
                 })}
               </div>
@@ -346,6 +364,22 @@ function SearchIcon() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
       <circle cx="11" cy="11" r="7" />
       <path strokeLinecap="round" d="m20 20-3.5-3.5" />
+    </svg>
+  )
+}
+
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4">
+      <path strokeLinecap="round" d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
+function MinusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4">
+      <path strokeLinecap="round" d="M5 12h14" />
     </svg>
   )
 }
