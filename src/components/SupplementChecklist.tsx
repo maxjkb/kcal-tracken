@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import {
   SUPPLEMENT_TIME_LABELS,
+  SUPPLEMENT_TIME_ORDER,
   toLocalDateKey,
   type MySupplement,
   type Supplement,
@@ -39,15 +40,20 @@ export function SupplementChecklistRow({
   const checkedTimes = new Set(
     logEntries.filter((e) => e.mySupplementId === mySupplement.id && e.date === date).map((e) => e.timeOfDay),
   )
+  // Always morning → noon → evening → night, regardless of the order the user
+  // originally picked them in the edit sheet — the request is specifically
+  // "der erste Punkt steht für morgens, der zweite für Mittag, …", a fixed
+  // reading order, not whatever order happens to be stored.
+  const orderedTimes = SUPPLEMENT_TIME_ORDER.filter((t) => mySupplement.timesOfDay.includes(t))
 
   return (
-    <div className="glass-subtle flex items-center justify-between gap-3 rounded-2xl px-4 py-3">
+    <div className="glass-subtle glass-subtle-themed flex items-center justify-between gap-3 rounded-2xl px-4 py-3">
       <button type="button" onClick={onEdit} className="min-w-0 flex-1 text-left">
         <p className="truncate text-sm font-medium text-ink">{supplement?.name ?? 'Supplement'}</p>
         {mySupplement.dosage && <p className="truncate text-xs text-ink-soft">{mySupplement.dosage}</p>}
       </button>
       <div className="flex shrink-0 items-center gap-2">
-        {mySupplement.timesOfDay.map((timeOfDay) => (
+        {orderedTimes.map((timeOfDay) => (
           <SlotButton
             key={timeOfDay}
             mySupplementId={mySupplement.id}
@@ -90,10 +96,14 @@ function SlotButton({
       layout
       transition={layoutTransition}
       onClick={() => toggleSupplementCheck(mySupplementId, date, timeOfDay)}
+      // The written label used to sit next to the current slot on screen — it
+      // no longer does (explicit request: dots/circles only, no spelled-out
+      // "Morgens"/"Mittags"/…), so the accessible name is now the only place
+      // that information survives, same as it already did for the small dots.
       aria-label={`${SUPPLEMENT_TIME_LABELS[timeOfDay]}${checked ? ' — genommen, antippen zum Rückgängigmachen' : ' — als genommen markieren'}`}
       className={
         isCurrent
-          ? `flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors ${
+          ? `flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
               checked ? 'glass-accent' : 'bg-accent/12 text-accent'
             }`
           : 'flex h-8 w-8 items-center justify-center rounded-full'
@@ -107,13 +117,10 @@ function SlotButton({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.6 }}
           transition={glyphTransition}
-          className="flex items-center gap-1.5"
+          className="flex items-center justify-center"
         >
           {isCurrent ? (
-            <>
-              {checked ? <CheckGlyph className="h-3.5 w-3.5" /> : <RingGlyph className="h-3.5 w-3.5" />}
-              {SUPPLEMENT_TIME_LABELS[timeOfDay]}
-            </>
+            checked ? <CheckGlyph className="h-4 w-4" /> : <RingGlyph className="h-4 w-4" />
           ) : state === 'checked' ? (
             <CheckGlyph className="h-3 w-3 text-accent" />
           ) : state === 'missed' ? (

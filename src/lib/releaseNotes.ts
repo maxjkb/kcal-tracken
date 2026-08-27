@@ -17,6 +17,16 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.14.2',
+    date: '2026-08-27',
+    highlights: [
+      'Liquid Glass weiterentwickelt (mehr Tiefe/Lichtreflex) und auf mehr Flächen ausgeweitet: Datumsleisten, Reiter (Heute/Katalog/Vorschläge, Tag/Woche/Monat/Jahr), Supplement-Kacheln, Katalog-Suche und die Statistik-Kacheln.',
+      'Katalog: „Zur Liste hinzufügen" ist jetzt ein direktes Plus/Minus statt eines Zwischenschritts.',
+      'Supplement-Check-in: die Tageszeiten stehen nicht mehr ausgeschrieben daneben — nur noch Punkte, von denen sich der zur aktuellen Tageszeit passende zu einem größeren Kreis zum Abhaken vergrößert. Alle Punkte bleiben auch nachträglich antippbar.',
+      '„Supplement-Treue" heißt jetzt „Supplementscore" und zeigt eine Punktzahl statt Prozent.',
+    ],
+  },
+  {
     version: '1.14.1',
     date: '2026-08-27',
     highlights: [

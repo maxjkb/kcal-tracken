@@ -438,30 +438,54 @@ input[type="number"] {
       already zeroes every animation-duration on the page, this one
       included) rather than needing its own media query. */
 
+/* v1.14.2: a second, weaker specular highlight added at the opposite corner
+   — one bright catch-light alone reads as a single flat sheen; two, at
+   different sizes/opacities/corners, is what makes a curved surface with
+   actual depth (like the two-highlight look of a real glass dome or a
+   droplet) rather than a single glossy overlay. Each highlight drifts on
+   its own independent phase (see liquid-drift below) so they never move in
+   lockstep — that desynchronization is what reads as liquid movement
+   instead of one sheet sliding back and forth. Blur/saturate both nudged up
+   slightly for more of the "vibrancy" liquid-glass.md calls for. */
 .glass {
   background:
     radial-gradient(150% 150% at 18% -15%, rgba(255, 255, 255, 0.65), transparent 55%),
+    radial-gradient(120% 120% at 88% 112%, rgba(255, 255, 255, 0.3), transparent 50%),
     linear-gradient(165deg, rgba(255, 255, 255, 0.68) 0%, rgba(255, 255, 255, 0.4) 55%, rgba(255, 255, 255, 0.58) 100%);
-  backdrop-filter: blur(28px) saturate(190%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  backdrop-filter: blur(30px) saturate(200%);
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
   border: 1px solid rgba(255, 255, 255, 0.8);
   box-shadow:
     0 8px 32px rgba(31, 41, 55, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     inset 0 -12px 20px -16px rgba(10, 40, 70, 0.2);
-  animation: liquid-drift 75s ease-in-out infinite;
+  animation: liquid-drift 65s ease-in-out infinite;
 }
 
+/* Three keyframe stops rather than two (start/middle/end): a straight back-
+   and-forth between exactly two positions reads as mechanical the moment
+   you actually watch it settle; a third, off-axis stop makes the path a
+   loose loop instead of a single line, which is what "flüssig" actually
+   looks like. The two highlights move in opposite directions from each
+   other at each stop for the same desync reason as above. */
 @keyframes liquid-drift {
   0%,
   100% {
     background-position:
       0% 0%,
+      0% 0%,
       0 0;
   }
-  50% {
+  33% {
     background-position:
-      10% 8%,
+      12% 9%,
+      -9% -7%,
+      0 0;
+  }
+  66% {
+    background-position:
+      6% -6%,
+      9% 8%,
       0 0;
   }
 }
@@ -497,9 +521,10 @@ input[type="number"] {
 .glass-subtle {
   background:
     radial-gradient(140% 140% at 15% -20%, rgba(255, 255, 255, 0.5), transparent 55%),
+    radial-gradient(110% 110% at 90% 115%, rgba(255, 255, 255, 0.2), transparent 50%),
     rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
@@ -534,6 +559,7 @@ input[type="number"] {
   .glass {
     background:
       radial-gradient(150% 150% at 18% -15%, rgba(255, 255, 255, 0.1), transparent 55%),
+      radial-gradient(120% 120% at 88% 112%, rgba(255, 255, 255, 0.05), transparent 50%),
       linear-gradient(165deg, rgba(44, 44, 46, 0.75) 0%, rgba(28, 28, 30, 0.55) 55%, rgba(36, 36, 38, 0.68) 100%);
     border-color: rgba(255, 255, 255, 0.12);
     box-shadow:
@@ -545,6 +571,7 @@ input[type="number"] {
   .glass-subtle {
     background:
       radial-gradient(140% 140% at 15% -20%, rgba(255, 255, 255, 0.07), transparent 55%),
+      radial-gradient(110% 110% at 90% 115%, rgba(255, 255, 255, 0.04), transparent 50%),
       rgba(28, 28, 30, 0.55);
     border-color: rgba(255, 255, 255, 0.1);
   }
