@@ -17,6 +17,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.14.6',
+    date: '2026-08-30',
+    highlights: [
+      'Nährwertringe rund 30% dicker.',
+      'Farbverlauf-Fehler behoben: bei niedrigem Füllstand zeigte der Ring zwei sichtbar unterschiedlich gefärbte, überlappende Segmente statt eines glatten Verlaufs.',
+    ],
+  },
+  {
     version: '1.14.5',
     date: '2026-08-30',
     highlights: [
