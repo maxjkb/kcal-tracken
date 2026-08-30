@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { toLocalDateKey } from '../lib/db'
 import { useMySupplements, useSupplementLogInRange, useAllSupplements } from '../hooks/useSupplements'
 import { GlassSurface } from '../glass/GlassSurface'
+import { ChevronIcon } from './ChevronIcon'
 
 function daysBetween(startKey: string, endKey: string): string[] {
   const start = new Date(`${startKey}T00:00:00`)
@@ -87,18 +89,30 @@ export function SupplementScoreCard({ startKey, endKey }: { startKey: string; en
   const overallScore = totalSlots > 0 ? Math.round((checkedSlots / totalSlots) * 100) : null
 
   return (
-    <GlassSurface rim={24} as="div" className="glass-subtle glass-subtle-themed mt-4 rounded-3xl p-5 shadow-sm shadow-black/5">
+    // The whole card navigates to the Supplements page (its default "Heute"
+    // tab) rather than just the score number — a bigger, more forgiving
+    // target, and there's nothing else interactive inside to compete with it
+    // for the tap.
+    <GlassSurface
+      rim={24}
+      as={Link}
+      to="/supplements"
+      className="glass-subtle glass-subtle-themed mt-4 block rounded-3xl p-5 text-left shadow-sm shadow-black/5 transition active:opacity-80"
+    >
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-ink">Supplementscore</h2>
-        {overallScore !== null && (
-          <span className="flex items-baseline gap-1">
-            <TrophyIcon
-              className={`h-4 w-4 ${overallScore >= GOOD_SCORE_THRESHOLD ? 'text-accent' : 'text-ink-faint'}`}
-            />
-            <span className="text-lg font-bold text-accent">{overallScore}</span>
-            <span className="text-xs font-medium text-ink-soft">/ 100</span>
-          </span>
-        )}
+        <span className="flex items-center gap-1.5">
+          {overallScore !== null && (
+            <span className="flex items-baseline gap-1">
+              <TrophyIcon
+                className={`h-4 w-4 ${overallScore >= GOOD_SCORE_THRESHOLD ? 'text-accent' : 'text-ink-faint'}`}
+              />
+              <span className="text-lg font-bold text-accent">{overallScore}</span>
+              <span className="text-xs font-medium text-ink-soft">/ 100</span>
+            </span>
+          )}
+          <ChevronIcon direction="right" className="h-4 w-4 shrink-0 text-ink-faint" />
+        </span>
       </div>
       <div className="flex flex-col gap-2">
         {rows.map((r) => {

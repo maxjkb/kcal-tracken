@@ -17,6 +17,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.14.5',
+    date: '2026-08-30',
+    highlights: [
+      'PDF-Export umgezogen: nicht mehr auf der Statistik-Seite, sondern unter Einstellungen → Daten — dort jetzt mit eigener Zeitraum-Auswahl (Tag/Woche/Monat/Jahr).',
+      'Der Supplementscore auf der Statistik-Seite führt jetzt direkt zu den Supplements (Heute-Ansicht), statt nur eine Zahl anzuzeigen.',
+    ],
+  },
+  {
     version: '1.14.4',
     date: '2026-08-30',
     highlights: [

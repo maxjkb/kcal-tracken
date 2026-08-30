@@ -2,9 +2,21 @@ import { useState } from 'react'
 import { SettingsBackHeader } from '../../components/SettingsBackHeader'
 import { SavedToast } from '../../components/SavedToast'
 import { useSavedToast } from '../../hooks/useSavedToast'
-import { db } from '../../lib/db'
+import { db, toLocalDateKey } from '../../lib/db'
 import { getBodyProfile, setBodyProfile, type BodyProfile } from '../../lib/bodyProfile'
 import { pushMealDeletions, resyncNow } from '../../lib/sync'
+import { useMealSummariesInRange } from '../../hooks/useMeals'
+import { ChevronIcon } from '../../components/ChevronIcon'
+import { BouncingDots } from '../../components/BouncingDots'
+import { DayPickerModal, MonthPickerModal, YearPickerModal } from '../../components/DatePickerModal'
+import { formatPeriodLabel, getPeriodRange, shiftAnchor, type Period } from '../../lib/stats'
+
+const PERIODS: { key: Period; label: string }[] = [
+  { key: 'day', label: 'Tag' },
+  { key: 'week', label: 'Woche' },
+  { key: 'month', label: 'Monat' },
+  { key: 'year', label: 'Jahr' },
+]
 
 /**
  * Everything a backup has to carry to actually restore this app.
@@ -30,6 +42,39 @@ interface BackupFile {
 export function DataSettingsPage() {
   const [confirmingReset, setConfirmingReset] = useState(false)
   const { message, flash } = useSavedToast()
+
+  const [pdfPeriod, setPdfPeriod] = useState<Period>('week')
+  const [pdfAnchorKey, setPdfAnchorKey] = useState(() => toLocalDateKey(new Date()))
+  const [pdfPickerOpen, setPdfPickerOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+  const { startKey: pdfStartKey, endKey: pdfEndKey } = getPeriodRange(pdfPeriod, pdfAnchorKey)
+  const pdfMeals = useMealSummariesInRange(pdfStartKey, pdfEndKey)
+
+  async function handleExportPdf() {
+    if (!pdfMeals) return
+    setExporting(true)
+    setExportError(null)
+    try {
+      // A plain dynamic import, not lazyRetry. lazyRetry exists for React.lazy
+      // route chunks, where a stale cached index.html makes a full reload the
+      // right recovery — but doing that here would throw away whatever the
+      // user has open to recover a PDF export they can simply retry. And a
+      // floated promise at the call site would leave any other failure an
+      // unhandled rejection: the button just stops spinning, with no PDF and
+      // no explanation.
+      const { exportDiaryPdf } = await import('../../lib/pdf')
+      exportDiaryPdf({ period: pdfPeriod, anchorKey: pdfAnchorKey, meals: pdfMeals, startKey: pdfStartKey, endKey: pdfEndKey })
+    } catch (err) {
+      setExportError(
+        err instanceof Error && /import|fetch|network/i.test(err.message)
+          ? 'PDF-Modul konnte nicht geladen werden. Internetverbindung prüfen und erneut versuchen.'
+          : 'PDF konnte nicht erstellt werden.',
+      )
+    } finally {
+      setExporting(false)
+    }
+  }
 
   async function handleExport() {
     const [meals, recipes, supplements, mySupplements, supplementLog] = await Promise.all([
@@ -136,9 +181,7 @@ export function DataSettingsPage() {
         <p className="mb-3 text-xs text-ink-soft">
           Deine Daten liegen nur in diesem Browser. Das Backup enthält Mahlzeiten, Rezepte,
           Supplements samt Einnahme-Verlauf und deine Körperwerte — exportiere regelmäßig eines,
-          falls du den Browser wechselst oder Speicher leerst. Ein druckfertiges
-          Ernährungstagebuch als PDF exportierst du auf der Statistik-Seite für den dort gewählten
-          Zeitraum.
+          falls du den Browser wechselst oder Speicher leerst.
         </p>
 
         <div className="flex flex-col gap-2">
@@ -183,6 +226,111 @@ export function DataSettingsPage() {
           )}
         </div>
       </section>
+
+      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+        <h2 className="mb-1 text-sm font-semibold text-ink">PDF-Export</h2>
+        <p className="mb-3 text-xs text-ink-soft">
+          Ein druckfertiges Ernährungstagebuch für einen frei wählbaren Zeitraum — Tag, Woche, Monat
+          oder Jahr.
+        </p>
+
+        <div className="mb-3 flex gap-1 rounded-xl bg-bg p-1">
+          {PERIODS.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setPdfPeriod(key)}
+              className={`flex-1 rounded-lg py-2 text-xs font-medium transition-colors ${
+                pdfPeriod === key ? 'bg-surface text-ink shadow-sm shadow-black/5' : 'text-ink-soft hover:text-ink'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mb-3 flex items-center justify-between rounded-xl bg-bg px-1 py-1">
+          <button
+            onClick={() => setPdfAnchorKey((k) => shiftAnchor(pdfPeriod, k, -1))}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft hover:bg-line"
+            aria-label="Vorheriger Zeitraum"
+          >
+            <ChevronIcon direction="left" />
+          </button>
+          <button
+            onClick={() => setPdfPickerOpen(true)}
+            className="px-2 py-2 text-xs font-medium text-ink hover:opacity-70"
+          >
+            {formatPeriodLabel(pdfPeriod, pdfAnchorKey)}
+          </button>
+          <button
+            onClick={() => setPdfAnchorKey((k) => shiftAnchor(pdfPeriod, k, 1))}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft hover:bg-line"
+            aria-label="Nächster Zeitraum"
+          >
+            <ChevronIcon direction="right" />
+          </button>
+        </div>
+
+        {exportError && <p className="mb-3 text-xs font-medium text-danger">{exportError}</p>}
+
+        <button
+          onClick={handleExportPdf}
+          disabled={!pdfMeals || pdfMeals.length === 0 || exporting}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-bg py-2.5 text-sm font-medium text-ink hover:bg-line disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {exporting ? (
+            <>
+              <BouncingDots /> Erstelle PDF…
+            </>
+          ) : (
+            'Als PDF exportieren'
+          )}
+        </button>
+      </section>
+
+      {pdfPickerOpen && pdfPeriod === 'day' && (
+        <DayPickerModal
+          selectedDateKey={pdfAnchorKey}
+          onSelect={(key) => {
+            setPdfAnchorKey(key)
+            setPdfPickerOpen(false)
+          }}
+          onClose={() => setPdfPickerOpen(false)}
+        />
+      )}
+      {pdfPickerOpen && pdfPeriod === 'week' && (
+        <DayPickerModal
+          selectedDateKey={pdfAnchorKey}
+          onSelect={(key) => {
+            // Picking any day selects the week that contains it — the anchor
+            // just needs to be that day, getPeriodRange('week', …) does the rest.
+            setPdfAnchorKey(key)
+            setPdfPickerOpen(false)
+          }}
+          onClose={() => setPdfPickerOpen(false)}
+        />
+      )}
+      {pdfPickerOpen && pdfPeriod === 'month' && (
+        <MonthPickerModal
+          selectedYear={Number(pdfAnchorKey.slice(0, 4))}
+          selectedMonth={Number(pdfAnchorKey.slice(5, 7))}
+          onSelect={(year, month) => {
+            setPdfAnchorKey(`${year}-${String(month).padStart(2, '0')}-01`)
+            setPdfPickerOpen(false)
+          }}
+          onClose={() => setPdfPickerOpen(false)}
+        />
+      )}
+      {pdfPickerOpen && pdfPeriod === 'year' && (
+        <YearPickerModal
+          selectedYear={Number(pdfAnchorKey.slice(0, 4))}
+          onSelect={(year) => {
+            setPdfAnchorKey(`${year}-01-01`)
+            setPdfPickerOpen(false)
+          }}
+          onClose={() => setPdfPickerOpen(false)}
+        />
+      )}
 
       <SavedToast message={message} />
     </div>

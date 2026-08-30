@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMealSummariesInRange, type MealSummary } from '../hooks/useMeals'
+import { useMealSummariesInRange } from '../hooks/useMeals'
 import { MEAL_TYPE_LABELS, toLocalDateKey, type Nutrition } from '../lib/db'
 import { ChevronIcon } from '../components/ChevronIcon'
 import { ConcentricRings, NutrientRings } from '../components/NutrientRings'
@@ -11,8 +11,7 @@ import { MicronutrientBars } from '../components/MicronutrientBars'
 import { useMicronutrientOverview } from '../hooks/useMicronutrients'
 import { KcalTrendChart } from '../components/KcalTrendChart'
 import type { StatBucket } from '../lib/stats'
-import { PageHeader, HeaderButton } from '../components/PageHeader'
-import { BouncingDots } from '../components/BouncingDots'
+import { PageHeader } from '../components/PageHeader'
 import { GlassSurface } from '../glass/GlassSurface'
 import {
   bucketByDay,
@@ -49,32 +48,6 @@ export function StatsPage() {
   const [view, setView] = useState<'trend' | 'nutrients'>('trend')
   const { startKey, endKey } = getPeriodRange(period, anchorKey)
   const meals = useMealSummariesInRange(startKey, endKey)
-  const [exporting, setExporting] = useState(false)
-  const [exportError, setExportError] = useState<string | null>(null)
-
-  async function handleExportPdf(meals: MealSummary[]) {
-    setExporting(true)
-    setExportError(null)
-    try {
-      // A plain dynamic import, not lazyRetry. lazyRetry exists for React.lazy
-      // route chunks, where a stale cached index.html makes a full reload the
-      // right recovery — but doing that here would throw away whatever the
-      // user has open (an unsaved meal in a sheet, for instance) to recover a
-      // PDF export they can simply retry. And the call site floated the
-      // promise, so any other failure was an unhandled rejection: the button
-      // just stopped spinning, with no PDF and no explanation.
-      const { exportDiaryPdf } = await import('../lib/pdf')
-      exportDiaryPdf({ period, anchorKey, meals, startKey, endKey })
-    } catch (err) {
-      setExportError(
-        err instanceof Error && /import|fetch|network/i.test(err.message)
-          ? 'PDF-Modul konnte nicht geladen werden. Internetverbindung prüfen und erneut versuchen.'
-          : 'PDF konnte nicht erstellt werden.',
-      )
-    } finally {
-      setExporting(false)
-    }
-  }
 
   // Per-day totals across all four macros, not just kcal: the chart's points
   // are tappable and open the full nutrient rings for that day or week.
@@ -153,24 +126,7 @@ export function StatsPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-28">
-      {/* PDF export folds into the header's round-button cluster rather than
-          keeping its own labelled pill — three round buttons plus the title
-          still fit a 375px screen, two of them plus a wide pill would not.
-          The label survives as the accessible name and the tooltip. */}
-      <PageHeader
-        title="Statistik"
-        actions={
-          <HeaderButton
-            onClick={() => meals && handleExportPdf(meals)}
-            disabled={!meals || meals.length === 0 || exporting}
-            label={exporting ? 'Erstelle PDF…' : 'Als PDF exportieren'}
-          >
-            {exporting ? <BouncingDots /> : <PdfIcon />}
-          </HeaderButton>
-        }
-      />
-
-      {exportError && <p className="mb-4 text-sm font-medium text-danger">{exportError}</p>}
+      <PageHeader title="Statistik" />
 
       {/* One shared pill slides between the segments (Motion `layoutId`)
           instead of each segment fading its own background in and out — the
@@ -468,15 +424,5 @@ function RingTile({
     >
       {body}
     </GlassSurface>
-  )
-}
-
-function PdfIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
-      <path d="M14 2v6h6" />
-      <path d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" />
-      <path strokeLinecap="round" d="M8 17v-5m3 5v-5m0 0c1.5 0 2.5.7 2.5 2s-1 2-2.5 2" />
-    </svg>
   )
 }
