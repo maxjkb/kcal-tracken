@@ -17,6 +17,15 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.14.3',
+    date: '2026-08-30',
+    highlights: [
+      'Liquid Glass ist jetzt echtes 3-D-Glas statt gemalter Verläufe: Datumsleisten, Kacheln und Karten auf Feed, Statistik, Supplements, Rezepte und Einstellungen brechen den Hintergrund wirklich, mit Lichtreflex und Farbsaum.',
+      'Fällt automatisch auf das bisherige Material zurück, wenn das Gerät kein WebGL kann oder „Transparenz reduzieren" aktiv ist — unverändert erkennbar als dieselbe Optik.',
+      'Bedienleiste und alle Formulare/Sheets bleiben bewusst unverändert.',
+    ],
+  },
+  {
     version: '1.14.2',
     date: '2026-08-27',
     highlights: [

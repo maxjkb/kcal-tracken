@@ -13,6 +13,7 @@ import { KcalTrendChart } from '../components/KcalTrendChart'
 import type { StatBucket } from '../lib/stats'
 import { PageHeader, HeaderButton } from '../components/PageHeader'
 import { BouncingDots } from '../components/BouncingDots'
+import { GlassSurface } from '../glass/GlassSurface'
 import {
   bucketByDay,
   bucketByMonth,
@@ -177,7 +178,7 @@ export function StatsPage() {
           single object moving to the tapped option. */}
       {/* Full .glass, not .glass-subtle — a segmented control is navigation
           the same way BottomNav is, so it gets the same material. */}
-      <div className="glass mb-4 flex gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5">
+      <GlassSurface rim={22} className="glass mb-4 flex gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5">
         {PERIODS.map(({ key, label }) => (
           <button
             key={key}
@@ -196,11 +197,11 @@ export function StatsPage() {
             <span className="relative z-10">{label}</span>
           </button>
         ))}
-      </div>
+      </GlassSurface>
 
       {/* Same reasoning as the segmented control above — a period navigator
           is navigation, gets full .glass. */}
-      <div className="glass mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
+      <GlassSurface rim={22} className="glass mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
         <button
           onClick={() => setAnchorKey((k) => shiftAnchor(period, k, -1))}
           className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white"
@@ -218,7 +219,7 @@ export function StatsPage() {
         >
           <ChevronIcon direction="right" />
         </button>
-      </div>
+      </GlassSurface>
 
       <div className="mb-6 grid grid-cols-3 gap-2">
         <StatTile value={Math.round(totals.kcal).toLocaleString('de-DE')} label="kcal gesamt" />
@@ -247,7 +248,7 @@ export function StatsPage() {
               still the number people check first on a given day, with the
               micronutrient picture as the deeper, second-glance layer below
               it rather than the very first thing on the page. */}
-          <div className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
+          <GlassSurface rim={24} className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Makronährstoffe</h3>
             {meals === undefined ? (
               <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
@@ -263,11 +264,11 @@ export function StatsPage() {
                 perMeal={perMealAverages}
               />
             )}
-          </div>
-          <div className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
+          </GlassSurface>
+          <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Mikronährstoffe</h3>
             <MicronutrientBars overview={microOverview} />
-          </div>
+          </GlassSurface>
         </>
       ) : view === 'nutrients' ? (
         <>
@@ -275,7 +276,7 @@ export function StatsPage() {
               same rings, same colours, same percent-of-target readout, so the
               number in the tile above and the detail below are visibly the
               same thing at two levels of zoom. */}
-          <div className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
+          <GlassSurface rim={24} className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Makronährstoffe</h3>
             {meals === undefined ? (
               <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
@@ -288,11 +289,11 @@ export function StatsPage() {
                 targets={dailyTargets}
               />
             )}
-          </div>
-          <div className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
+          </GlassSurface>
+          <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Mikronährstoffe</h3>
             <MicronutrientBars overview={microOverview} />
-          </div>
+          </GlassSurface>
         </>
       ) : (
         <div className="rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
@@ -394,15 +395,28 @@ function StatTile({
       <div className="text-[10px] text-ink-soft">{label}</div>
     </>
   )
-  const shell = `glass-subtle glass-subtle-themed flex h-24 w-full flex-col items-center justify-center rounded-3xl p-3 text-center shadow-sm shadow-black/5 transition ${
+  const shell = `flex h-24 w-full flex-col items-center justify-center rounded-3xl p-3 text-center shadow-sm shadow-black/5 transition ${
     selected ? 'ring-2 ring-inset ring-accent' : ''
   }`
 
-  if (!onSelect) return <div className={shell}>{body}</div>
+  if (!onSelect) {
+    return (
+      <GlassSurface rim={24} className={`glass-subtle glass-subtle-themed ${shell}`}>
+        {body}
+      </GlassSurface>
+    )
+  }
   return (
-    <button type="button" onClick={onSelect} aria-pressed={selected} className={shell}>
+    <GlassSurface
+      as="button"
+      rim={24}
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={`glass-subtle glass-subtle-themed ${shell}`}
+    >
       {body}
-    </button>
+    </GlassSurface>
   )
 }
 
@@ -432,15 +446,28 @@ function RingTile({
       <div className="text-[10px] leading-tight text-ink-soft">{caption}</div>
     </>
   )
-  const shell = `glass-subtle glass-subtle-themed flex h-24 w-full flex-col items-center justify-center gap-1 rounded-3xl p-2 text-center shadow-sm shadow-black/5 transition ${
+  const shell = `flex h-24 w-full flex-col items-center justify-center gap-1 rounded-3xl p-2 text-center shadow-sm shadow-black/5 transition ${
     selected ? 'ring-2 ring-inset ring-accent' : ''
   }`
 
-  if (!onSelect) return <div className={shell}>{body}</div>
+  if (!onSelect) {
+    return (
+      <GlassSurface rim={24} className={`glass-subtle glass-subtle-themed ${shell}`}>
+        {body}
+      </GlassSurface>
+    )
+  }
   return (
-    <button type="button" onClick={onSelect} aria-pressed={selected} className={shell}>
+    <GlassSurface
+      as="button"
+      rim={24}
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={`glass-subtle glass-subtle-themed ${shell}`}
+    >
       {body}
-    </button>
+    </GlassSurface>
   )
 }
 

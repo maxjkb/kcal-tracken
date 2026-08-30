@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { toLocalDateKey } from '../lib/db'
 import { useMySupplements, useSupplementLogInRange, useAllSupplements } from '../hooks/useSupplements'
+import { GlassSurface } from '../glass/GlassSurface'
 
 function daysBetween(startKey: string, endKey: string): string[] {
   const start = new Date(`${startKey}T00:00:00`)
@@ -86,7 +87,7 @@ export function SupplementScoreCard({ startKey, endKey }: { startKey: string; en
   const overallScore = totalSlots > 0 ? Math.round((checkedSlots / totalSlots) * 100) : null
 
   return (
-    <div className="glass-subtle glass-subtle-themed mt-4 rounded-3xl p-5 shadow-sm shadow-black/5">
+    <GlassSurface rim={24} as="div" className="glass-subtle glass-subtle-themed mt-4 rounded-3xl p-5 shadow-sm shadow-black/5">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-ink">Supplementscore</h2>
         {overallScore !== null && (
@@ -115,7 +116,7 @@ export function SupplementScoreCard({ startKey, endKey }: { startKey: string; en
       {overallScore !== null && overallScore >= GOOD_SCORE_THRESHOLD && (
         <p className="mt-3 text-xs font-medium text-accent">Stark dabei — weiter so!</p>
       )}
-    </div>
+    </GlassSurface>
   )
 }
 

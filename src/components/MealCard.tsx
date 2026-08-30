@@ -2,12 +2,13 @@ import { useState } from 'react'
 import type { Meal } from '../lib/db'
 import { deleteMeal } from '../hooks/useMeals'
 import { MacroBadge, MacroRingBadge } from './MacroBadge'
+import { GlassSurface } from '../glass/GlassSurface'
 
 export function MealCard({ meal, onView }: { meal: Meal; onView: () => void }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   return (
-    <div className="press-card glass-subtle rounded-2xl p-3 shadow-sm shadow-black/5">
+    <GlassSurface rim={18} className="press-card glass-subtle rounded-2xl p-3 shadow-sm shadow-black/5">
       <div className="flex gap-3">
         {meal.photo && (
           <img src={meal.photo} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
@@ -54,7 +55,7 @@ export function MealCard({ meal, onView }: { meal: Meal; onView: () => void }) {
           </div>
         </div>
       </div>
-    </div>
+    </GlassSurface>
   )
 }
 

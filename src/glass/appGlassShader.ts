@@ -1,4 +1,4 @@
-import { GLASS_GLSL_CORE, GLASS_GLSL_HEAD } from '../glassShader'
+import { GLASS_GLSL_CORE, GLASS_GLSL_HEAD } from './glassShader'
 
 /**
  * Die App-Fassung des Glas-Shaders.

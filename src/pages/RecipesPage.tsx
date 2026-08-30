@@ -11,6 +11,7 @@ import { useRecentMeals, useMealsInRange } from '../hooks/useMeals'
 import { useAllRecipes } from '../hooks/useRecipes'
 import { estimateRecipeSuggestions, GeminiError, type RecipeSuggestion } from '../lib/gemini'
 import { getApiKey } from '../lib/settings'
+import { GlassSurface } from '../glass/GlassSurface'
 
 /** How many recently logged meals "Zuletzt" shows — three fits comfortably below the four
   * category tiles without the page feeling crowded; picked over showing all/many since these are
@@ -37,7 +38,7 @@ export function RecipesPage() {
       <div className="mx-auto max-w-lg px-4 pb-28">
         <PageHeader title="Rezepte" />
 
-        <div className="glass-subtle glass-subtle-themed divide-y divide-line/60 overflow-hidden rounded-3xl shadow-sm shadow-black/5">
+        <GlassSurface rim={22} className="glass-subtle glass-subtle-themed divide-y divide-line/60 overflow-hidden rounded-3xl shadow-sm shadow-black/5">
           {MEAL_TYPE_ORDER.map((type) => (
             <Link
               key={type}
@@ -49,12 +50,12 @@ export function RecipesPage() {
               <ChevronIcon direction="right" className="h-4 w-4 shrink-0 text-ink-faint" />
             </Link>
           ))}
-        </div>
+        </GlassSurface>
 
         {recentMeals && recentMeals.length > 0 && (
           <div className="mt-6">
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Zuletzt</h2>
-            <div className="glass-subtle glass-subtle-themed flex flex-col divide-y divide-line/60 overflow-hidden rounded-3xl">
+            <GlassSurface rim={22} className="glass-subtle glass-subtle-themed flex flex-col divide-y divide-line/60 overflow-hidden rounded-3xl">
               {recentMeals.map((meal) => (
                 <button
                   key={meal.id}
@@ -70,7 +71,7 @@ export function RecipesPage() {
                   <MacroBadge type="kcal" value={meal.nutrition.kcal} size="sm" />
                 </button>
               ))}
-            </div>
+            </GlassSurface>
             {/* text-ink-soft, not text-ink-faint: real instructional text needs the 4.5:1 text
                 contrast bar, which ink-faint (tuned for icons/dots at the looser 3:1 bar) doesn't
                 clear in light mode — same fix already applied on the Supplements page. */}
@@ -143,7 +144,7 @@ function SuggestionsSection({ onPick }: { onPick: (seed: RecipeSeed) => void }) 
       {suggestions && suggestions.length > 0 && (
         <div className="flex flex-col gap-2.5">
           {suggestions.map((s) => (
-            <div key={s.title} className="glass-subtle flex flex-col gap-2 rounded-3xl p-4">
+            <GlassSurface as="div" key={s.title} rim={22} className="glass-subtle flex flex-col gap-2 rounded-3xl p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-ink">{s.title}</p>
@@ -158,7 +159,7 @@ function SuggestionsSection({ onPick }: { onPick: (seed: RecipeSeed) => void }) 
                 </button>
               </div>
               <p className="text-sm text-ink-soft">{s.reasoning}</p>
-            </div>
+            </GlassSurface>
           ))}
         </div>
       )}

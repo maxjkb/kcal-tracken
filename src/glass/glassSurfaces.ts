@@ -33,6 +33,22 @@ export function setWakeHandler(fn: () => void) {
   wake = fn
 }
 
+/**
+ * Öffentlicher Weckruf für Bewegung, die GlassStage sonst nicht hört.
+ *
+ * Die Ebene wacht selbst schon bei Zeiger-/Scroll-/Größenänderungen auf —
+ * aber ein Tab-Wechsel per Antippen (statt Wischen) verschiebt jede Fläche
+ * der Seite über eine reine Motion-Animation (SwipeNavigator), ganz ohne
+ * Zeiger-Ereignis währenddessen. Ohne diesen Aufruf blieben die Flächen für
+ * die Dauer der Übergangsanimation an ihrer alten Position eingefroren — bei
+ * jedem einzelnen Tab-Wechsel, der häufigsten Navigation der App. App.tsx
+ * ruft das bei jedem Bereichswechsel auf; ein No-Op, solange GlassStage noch
+ * nicht gemountet hat (der Standard-Handler oben tut nichts).
+ */
+export function wakeGlass() {
+  wake()
+}
+
 export function registerSurface(el: HTMLElement, rim: number): () => void {
   // Einmal beim Anmelden aus dem Stil gelesen statt pro Frame: der Eckradius
   // eines Bedienelements ändert sich nicht, und getComputedStyle ist deutlich
@@ -103,4 +119,21 @@ export function useGlassSurface<T extends HTMLElement>(rim = 22) {
     return registerSurface(el, rim)
   }, [rim])
   return ref
+}
+
+/**
+ * Für Flächen, die erst NACH ihrer aufrufenden Komponente selbst entstehen —
+ * ein `AnimatePresence`-Popup, dessen `motion.div` erst mountet, wenn eine
+ * Auswahl getroffen wird. useGlassSurface() allein reicht dafür nicht: sein
+ * `useLayoutEffect` läuft einmal beim Mounten der aufrufenden Komponente,
+ * lange bevor das Zielelement überhaupt existiert, und registriert dann
+ * nichts. Diese Variante nimmt den DOM-Knoten direkt (typischerweise aus
+ * einem `useState`, das ein Callback-Ref befüllt) und registriert neu, sooft
+ * er wechselt — inklusive null beim Unmounten.
+ */
+export function useGlassSurfaceNode(node: HTMLElement | null, rim = 22) {
+  useLayoutEffect(() => {
+    if (!node) return
+    return registerSurface(node, rim)
+  }, [node, rim])
 }

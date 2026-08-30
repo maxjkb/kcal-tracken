@@ -26,6 +26,7 @@ import { getApiKey } from '../lib/settings'
 import { SupplementChecklistRow } from '../components/SupplementChecklist'
 import { SupplementFormSheet } from '../components/SupplementFormSheet'
 import { SPRING_SNAPPY } from '../lib/motionTokens'
+import { GlassSurface } from '../glass/GlassSurface'
 
 type Tab = 'today' | 'catalog' | 'suggestions'
 const TABS: { key: Tab; label: string }[] = [
@@ -44,7 +45,7 @@ export function SupplementsPage() {
 
       {/* Full .glass, not .glass-subtle — a segmented control is navigation
           the same way BottomNav is, so it gets the same material. */}
-      <div className="glass mb-5 flex gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5">
+      <GlassSurface rim={22} className="glass mb-5 flex gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5">
         {TABS.map(({ key, label }) => (
           <button
             key={key}
@@ -63,7 +64,7 @@ export function SupplementsPage() {
             <span className="relative z-10">{label}</span>
           </button>
         ))}
-      </div>
+      </GlassSurface>
 
       {tab === 'today' && <TodayTab />}
       {tab === 'catalog' && <CatalogTab />}
@@ -95,12 +96,12 @@ function TodayTab() {
       {mySupplements === undefined || logEntries === undefined ? (
         <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
       ) : mySupplements.length === 0 ? (
-        <div className="glass-subtle glass-subtle-themed flex flex-col items-center gap-3 rounded-3xl px-6 py-10 text-center">
+        <GlassSurface rim={26} className="glass-subtle glass-subtle-themed flex flex-col items-center gap-3 rounded-3xl px-6 py-10 text-center">
           <p className="text-sm text-ink-soft">
             Noch keine Supplements auf deiner Liste. Füge welche über den Katalog hinzu, oder lass dir unter
             „Vorschläge" welche empfehlen.
           </p>
-        </div>
+        </GlassSurface>
       ) : (
         mySupplements.map((my) => (
           <SupplementChecklistRow
@@ -146,10 +147,12 @@ function CatalogTab() {
   return (
     <div className="flex flex-col gap-5">
       <div className="relative">
-        <input
+        <GlassSurface
+          as="input"
+          rim={20}
           type="search"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
           placeholder="Katalog durchsuchen…"
           aria-label="Katalog durchsuchen"
           className="glass-subtle glass-subtle-themed w-full rounded-2xl py-2.5 pl-10 pr-3 text-sm text-ink placeholder:text-ink-soft focus:outline-none focus:ring-2 focus:ring-accent/40"
@@ -174,7 +177,7 @@ function CatalogTab() {
               <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">
                 {SUPPLEMENT_CATEGORY_LABELS[category]}
               </h2>
-              <div className="glass-subtle glass-subtle-themed flex flex-col divide-y divide-line/60 overflow-hidden rounded-3xl">
+              <GlassSurface rim={22} className="glass-subtle glass-subtle-themed flex flex-col divide-y divide-line/60 overflow-hidden rounded-3xl">
                 {inCategory.map((s) => {
                   const mySupplement = myBySupplementId.get(s.id)
                   const already = mySupplement !== undefined
@@ -213,7 +216,7 @@ function CatalogTab() {
                     </div>
                   )
                 })}
-              </div>
+              </GlassSurface>
             </div>
           )
         })

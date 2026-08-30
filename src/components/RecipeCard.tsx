@@ -2,13 +2,14 @@ import { useState } from 'react'
 import type { Recipe } from '../lib/db'
 import { deleteRecipe } from '../hooks/useRecipes'
 import { MacroBadge, MacroRingBadge } from './MacroBadge'
+import { GlassSurface } from '../glass/GlassSurface'
 
 /** A recipe row in the Rezepte category list — same pill layout as MealCard, minus the photo (recipes never have one). */
 export function RecipeCard({ recipe, onView }: { recipe: Recipe; onView: () => void }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   return (
-    <div className="press-card glass-subtle rounded-2xl p-3 shadow-sm shadow-black/5">
+    <GlassSurface rim={18} className="press-card glass-subtle rounded-2xl p-3 shadow-sm shadow-black/5">
       <button className="press-target block w-full text-left" onClick={onView}>
         <h3 className="font-medium text-ink">{recipe.title}</h3>
       </button>
@@ -44,7 +45,7 @@ export function RecipeCard({ recipe, onView }: { recipe: Recipe; onView: () => v
           </button>
         )}
       </div>
-    </div>
+    </GlassSurface>
   )
 }
 

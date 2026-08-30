@@ -14,6 +14,7 @@ import type { StatBucket } from '../lib/stats'
 import type { DailyTargets } from '../lib/bodyProfile'
 import { NutrientRings } from './NutrientRings'
 import { REDUCED_MOTION_TRANSITION, SPRING_DEFAULT } from '../lib/motionTokens'
+import { useGlassSurfaceNode } from '../glass/glassSurfaces'
 
 /** The trend line is the one thing on the chart that isn't data — red keeps it from reading as another series. */
 const TREND_COLOR = '#ff3b30'
@@ -71,6 +72,12 @@ export function KcalTrendChart({
   const prefersReducedMotion = useReducedMotion()
   const chartRef = useRef<HTMLDivElement>(null)
   const popupRef = useRef<HTMLDivElement>(null)
+  // The popup mounts/unmounts with `selected` (AnimatePresence), later than
+  // this component itself — useGlassSurfaceNode (not useGlassSurface) exists
+  // for exactly that: it re-registers whenever the node itself changes,
+  // rather than once when KcalTrendChart mounts and the popup doesn't exist yet.
+  const [popupNode, setPopupNode] = useState<HTMLDivElement | null>(null)
+  useGlassSurfaceNode(popupNode, 22)
 
   // Close on any tap that isn't on the chart or the popup itself. The chart is
   // excluded so that tapping a second point is handled by the chart's own
@@ -143,12 +150,20 @@ export function KcalTrendChart({
       <AnimatePresence initial={false}>
         {selected && (
           <motion.div
-            ref={popupRef}
+            ref={(el: HTMLDivElement | null) => {
+              // Two independent consumers of one node — outside-click
+              // detection (existing, a plain ref) and glass-surface
+              // registration (new, state so useGlassSurfaceNode's effect
+              // re-runs on mount/unmount) — merged by hand rather than a
+              // library, since it's exactly one call site.
+              popupRef.current = el
+              setPopupNode(el)
+            }}
             initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0, marginTop: 0 }}
             animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
             exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0, marginTop: 0 }}
             transition={prefersReducedMotion ? REDUCED_MOTION_TRANSITION : SPRING_DEFAULT}
-            className="glass mt-3 shrink-0 overflow-hidden rounded-3xl p-4 shadow-lg shadow-black/10"
+            className="gl-surface glass mt-3 shrink-0 overflow-hidden rounded-3xl p-4 shadow-lg shadow-black/10"
           >
             <div className="mb-2 flex items-center justify-between gap-3">
               <span className="text-sm font-semibold text-ink">{selected.label}</span>

@@ -8,6 +8,7 @@ import { ChevronIcon } from '../components/ChevronIcon'
 import { SlideInPage } from '../components/SlideInPage'
 import { MealTypeBadge } from '../components/MealTypeBadge'
 import { useRegisterBackSwipe } from '../lib/backSwipe'
+import { GlassSurface } from '../glass/GlassSurface'
 
 function isMealType(value: string | undefined): value is MealType {
   return !!value && (MEAL_TYPE_ORDER as string[]).includes(value)
@@ -41,10 +42,10 @@ export function RecipeCategoryPage() {
         {recipes === undefined ? (
           <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
         ) : recipes.length === 0 ? (
-          <div className="glass-subtle glass-subtle-themed flex flex-col items-center gap-3 rounded-3xl px-6 py-10 text-center">
+          <GlassSurface rim={26} className="glass-subtle glass-subtle-themed flex flex-col items-center gap-3 rounded-3xl px-6 py-10 text-center">
             <MealTypeBadge type={cat} size="lg" />
             <p className="text-sm text-ink-soft">Noch keine Rezepte in dieser Kategorie.</p>
-          </div>
+          </GlassSurface>
         ) : (
           <div className="mb-4 flex flex-col gap-2">
             {recipes.map((r) => (
