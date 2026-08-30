@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.15.1',
+    date: '2026-08-30',
+    highlights: [
+      'Neu bei Rezepten: Mealprep. Skaliert ein Rezept auf eine gewünschte Menge (z.B. „6 Portionen") — mit kulinarischem Sachverstand statt reinem Dreisatz, angepasster Garzeit und Lagerungshinweis. Als eigene Version gespeichert, das Original-Rezept bleibt unverändert.',
+    ],
+  },
+  {
     version: '1.15.0',
     date: '2026-08-30',
     highlights: [

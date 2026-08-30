@@ -571,6 +571,112 @@ export async function estimateRecipe(description: string): Promise<RecipeEstimat
   }
 }
 
+// --- Mealprep — ein Rezept auf eine andere Menge skalieren ------------
+
+export interface MealprepEstimate {
+  ingredients: IngredientEstimate[]
+  steps: string[]
+  kcal: number
+  protein: number
+  carbs: number
+  fat: number
+  cookTimeNote: string
+  storageNote: string
+}
+
+const MEALPREP_RESPONSE_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    ingredients: NUTRITION_RESPONSE_SCHEMA.properties.ingredients,
+    steps: {
+      type: 'ARRAY',
+      description:
+        'Zubereitungsschritte für die NEUE Menge, in sinnvoller chronologischer Reihenfolge — nicht einfach dieselben Schritte des Original-Rezepts, sondern neu formuliert für die tatsächliche Menge und ggf. nötige Anpassungen (z.B. mehrere Durchgänge, größeres Gefäß, angepasste Reihenfolge beim Portionieren zum Aufbewahren). Jeder Schritt ein eigener, kurzer, klarer Satz auf Deutsch.',
+      items: { type: 'STRING' },
+    },
+    cookTimeNote: {
+      type: 'STRING',
+      description:
+        'Wie sich Koch-/Back-/Gardauer durch die neue Menge verändert, konkret in Worten (z.B. "Statt 15 Minuten eher 22–25 Minuten, da die größere Menge länger durcherhitzt." oder "Garzeit bleibt gleich, nur die Anbratzeit verlängert sich leicht."). Bei Verwendung eines Multikochers mit festem Fassungsvermögen (z.B. Thermomix, ca. 2,2 l/kg Maximalfüllung): weise ausdrücklich darauf hin, wenn die neue Menge das übersteigt und in mehreren Chargen zubereitet werden muss.',
+    },
+    storageNote: {
+      type: 'STRING',
+      description:
+        'Konkrete Lagerungsempfehlung für die fertige Menge: wie viele Tage im Kühlschrank, ob und wie lange einfrierbar, kurzer Hinweis zum Aufwärmen. Auf Deutsch, 1-3 Sätze.',
+    },
+  },
+  required: ['ingredients', 'steps', 'cookTimeNote', 'storageNote'],
+}
+
+const MEALPREP_SYSTEM_PROMPT = `Du bist ein erfahrener Koch, der Rezepte für Meal Prep (Vorkochen auf Vorrat) auf eine andere Menge skaliert. Du bekommst ein gespeichertes Original-Rezept (Zutaten mit Mengen und Nährwerten, Zubereitungsschritte) sowie eine Beschreibung der gewünschten neuen Menge (z.B. "6 Portionen", "doppelte Menge", "für die ganze Woche").
+
+WICHTIGSTE REGEL — kein reiner Dreisatz: Skaliere NICHT jede Zutat stur mit demselben Faktor. Nutze kulinarischen Sachverstand:
+- Gewürze, Salz, Kräuter und intensive Aromen (Chili, Knoblauch, Ingwer) wachsen unterproportional — bei doppelter Hauptmenge meist nur das 1,3- bis 1,6-fache, nicht das Doppelte. Weise in der jeweiligen Zutat-"note" auf "nach Geschmack nachjustieren" hin, wo das relevant ist.
+- Öl/Fett zum Anbraten richtet sich eher nach der Pfannen-/Topffläche als nach der Menge und wächst daher meist unterproportional.
+- Flüssigkeitsmengen bei Suppen, Saucen und Schmorgerichten an die tatsächlich benötigte Konsistenz anpassen, nicht stur linear hochrechnen.
+- Backpulver, Hefe und andere Triebmittel bei starker Skalierung mit besonderer Vorsicht behandeln — hier kann reine Vervielfachung das Ergebnis verändern.
+- Zutaten, die sich nicht sinnvoll teilweise verwenden lassen (z.B. 1 Ei, 1 Dose), auf eine praktikable ganze Menge runden und das in der "note" der Zutat erklären.
+
+Passe die Zubereitungsschritte an die neue Menge an, nicht nur die Zahlen im selben Text: ein größeres Gefäß, eine andere Reihenfolge, oder — besonders bei einem Multikocher mit festem Kapazitätslimit — ausdrücklich mehrere Zubereitungsdurchgänge, wenn die neue Menge das Fassungsvermögen übersteigt.
+
+Berechne für JEDE Zutat die Nährwerte für die NEUE Menge (nicht für die Original-Menge). "amount" ist die neue, tatsächlich benötigte Menge als reine Zahl. Gib in "cookTimeNote" konkret an, wie sich die Zeiten verändern, und in "storageNote" eine klare Lagerungsempfehlung für die fertige Menge. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema, auf Deutsch.`
+
+export async function estimateMealprep(input: {
+  recipeTitle: string
+  originalIngredients: { name: string; amount: number; unit: string; kcal: number; protein: number; carbs: number; fat: number }[]
+  originalSteps: string[]
+  targetDescription: string
+}): Promise<MealprepEstimate> {
+  const lines = [
+    `Original-Rezept: ${input.recipeTitle}`,
+    'Original-Zutaten (Menge für die Original-Portion):',
+    ...input.originalIngredients.map((i) => `- ${i.name}: ${i.amount} ${i.unit} (${Math.round(i.kcal)} kcal, ${Math.round(i.protein)}g Protein, ${Math.round(i.carbs)}g Carbs, ${Math.round(i.fat)}g Fett)`),
+    'Original-Zubereitung:',
+    ...input.originalSteps.map((s, i) => `${i + 1}. ${s}`),
+    '',
+    `Gewünschte neue Menge: ${input.targetDescription.trim()}`,
+  ]
+
+  const parsed = await callGemini({
+    systemPrompt: MEALPREP_SYSTEM_PROMPT,
+    parts: [{ text: lines.join('\n') }],
+    responseSchema: MEALPREP_RESPONSE_SCHEMA,
+  })
+
+  const rawIngredients = Array.isArray(parsed.ingredients) ? parsed.ingredients : []
+  const ingredients: IngredientEstimate[] = rawIngredients.map((i) => ({
+    name: String(i.name ?? 'Zutat'),
+    amount: round1(Number(i.amount) || 0),
+    unit: String(i.unit ?? ''),
+    kcal: round1(Number(i.kcal) || 0),
+    protein: round1(Number(i.protein) || 0),
+    carbs: round1(Number(i.carbs) || 0),
+    fat: round1(Number(i.fat) || 0),
+    note: i.note ? String(i.note) : undefined,
+  }))
+
+  const totals = ingredients.reduce(
+    (acc, i) => ({
+      kcal: round1(acc.kcal + i.kcal),
+      protein: round1(acc.protein + i.protein),
+      carbs: round1(acc.carbs + i.carbs),
+      fat: round1(acc.fat + i.fat),
+    }),
+    { kcal: 0, protein: 0, carbs: 0, fat: 0 },
+  )
+
+  const rawSteps = Array.isArray(parsed.steps) ? parsed.steps : []
+  const steps = rawSteps.map((s) => String(s)).filter((s) => s.trim().length > 0)
+
+  return {
+    ingredients,
+    steps,
+    ...totals,
+    cookTimeNote: String(parsed.cookTimeNote ?? ''),
+    storageNote: String(parsed.storageNote ?? ''),
+  }
+}
+
 // --- "Zutat +" — manuell eine einzelne Zutat hinzufügen, KI schätzt die Nährwerte ------
 
 export interface SingleIngredientEstimate {
