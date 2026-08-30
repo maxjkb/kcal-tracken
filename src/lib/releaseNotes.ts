@@ -17,6 +17,15 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.14.4',
+    date: '2026-08-30',
+    highlights: [
+      'Diktieren: keine abgeschnittenen Sätze mehr bei kurzen Sprechpausen, Live-Vorschau während des Sprechens, spürbar schneller durch weniger Neustarts.',
+      'Supplement-Empfehlungen: der automatische Hintergrund-Refresh und der manuelle „Jetzt neu erstellen"-Button schlugen fehl, sobald das zuletzt gewählte Modell nicht mehr verfügbar war — beide wechseln jetzt zuverlässig auf ein funktionierendes Modell.',
+      'Der Hintergrund-Refresh prüft jetzt auch beim Zurückkehren zur App auf einen neuen Tag, nicht nur beim Start — wichtig, wenn die App als installiertes PWA über Mitternacht hinweg offen bleibt.',
+    ],
+  },
+  {
     version: '1.14.3',
     date: '2026-08-30',
     highlights: [

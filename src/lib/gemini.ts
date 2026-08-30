@@ -215,7 +215,16 @@ const DICTATION_CLEANUP_SCHEMA = {
   required: ['cleanedText'],
 }
 
-const DICTATION_CLEANUP_SYSTEM_PROMPT = `Der Nutzer hat per Spracherkennung eine Mahlzeit beschrieben. Das Rohtranskript kann Wiederholungen, Versprecher, Füllwörter oder Erkennungsfehler enthalten. Formuliere daraus einen klaren, kurzen, gut lesbaren Beschreibungstext auf Deutsch, der weiterhin exakt dieselben Zutaten und Mengenangaben enthält wie das Original. Erfinde nichts hinzu, entferne nichts Inhaltliches, korrigiere nur Sprache/Wiederholungen. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema.`
+const DICTATION_CLEANUP_SYSTEM_PROMPT = `Der Nutzer hat per Spracherkennung eine Mahlzeit beschrieben. Das Rohtranskript kann Wiederholungen, Versprecher, Füllwörter, abgebrochene Sätze (durch Sprechpausen bedingt) und vor allem Erkennungsfehler der Spracherkennung enthalten — Lebensmittel- und Mengenwörter werden von Spracherkennungs-Engines besonders häufig falsch verstanden (z. B. "Hafer Flocken" statt "Haferflocken", "200 g Reis" als "200 Kreis" erkannt, "Kichererbsen" als "Kirchererbsen", "Skyr" als "Schneier" oder "Sky Er").
+
+Formuliere daraus einen klaren, kurzen, gut lesbaren Beschreibungstext auf Deutsch:
+1. Korrigiere erkennbare Erkennungsfehler bei Lebensmitteln, Mengen und Einheiten aktiv, wenn aus dem Kontext eindeutig hervorgeht, was gemeint war — hier darfst und sollst du eingreifen, das ist der Hauptzweck dieser Bereinigung.
+2. Füge KEINE Zutaten, Mengen oder Angaben hinzu, die im Transkript nicht in irgendeiner (auch fehlerhaften) Form vorkommen — korrigieren ja, erfinden nein.
+3. Entferne Wiederholungen und Füllwörter ("äh", "also", "quasi").
+4. Ist ein Satzteil erkennbar abgebrochen und ergibt für sich keinen Sinn (z. B. eine unvollständige Mengenangabe ohne zugehörige Zutat), lass ihn lieber weg als ihn zu erraten.
+5. Bei tatsächlicher Unsicherheit (nicht bei offensichtlichen Erkennungsfehlern) im Zweifel näher am Original bleiben.
+
+Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema.`
 
 interface GeminiPart {
   text?: string
@@ -263,6 +272,15 @@ function isDailyQuotaError(err: GeminiError): boolean {
   return /per ?day|daily|\/d\b/.test(detail)
 }
 
+/**
+ * A failure that would answer identically no matter which model it's sent
+ * to — trying the other two would just spend two more round trips to learn
+ * the same thing, so this is the one case worth failing on immediately.
+ */
+function isKeyError(err: unknown): boolean {
+  return err instanceof GeminiError && (err.status === 401 || err.status === 403)
+}
+
 async function callGemini(params: {
   systemPrompt: string
   parts: GeminiPart[]
@@ -270,7 +288,7 @@ async function callGemini(params: {
 }): Promise<Record<string, unknown>> {
   const preferred = getModel()
   const order = modelOrder(preferred)
-  let firstRateLimitError: unknown = null
+  let firstError: unknown = null
 
   for (const model of order) {
     try {
@@ -278,24 +296,39 @@ async function callGemini(params: {
       recordUsage(`gemini:${model}`)
       return result
     } catch (err) {
-      const isRateLimited = err instanceof GeminiError && err.status === 429
-      if (!isRateLimited) throw err
-      // The request still reached the API and still counted against the day.
-      recordUsage(`gemini:${model}`)
-      // Only a *daily* exhaustion retires a model. A 429 is also how a
-      // per-minute burst limit answers — a few estimates in quick succession —
-      // and treating that as a spent day demoted the user's chosen model until
-      // midnight Pacific over a limit that cleared in seconds, with no way to
-      // undo it. The other models are still tried either way; only the
-      // remembering is conditional.
-      if (isDailyQuotaError(err)) markExhausted(model)
-      firstRateLimitError ??= err
+      firstError ??= err
+      // A bad/unauthorized key fails the same way for every model — nothing
+      // to gain from trying the rest.
+      if (isKeyError(err)) throw err
+
+      // Everything else falls through to the next model instead of failing
+      // the whole request outright. This used to only happen for a 429 —
+      // but a model that's since been renamed or retired answers 404, a
+      // transient outage answers 5xx, and a dropped connection throws with
+      // no status at all, and none of those say anything about whether the
+      // *other* two models would work. A preferred model stored in
+      // localStorage from before an app update, in particular, can 404
+      // forever otherwise: previously that single stale id took the whole
+      // feature down every single time, both for the manual retry button
+      // and for the silent background refresh, even though the two
+      // fallback models were perfectly healthy the whole time.
+      if (err instanceof GeminiError && err.status === 429) {
+        // The request still reached the API and still counted against the day.
+        recordUsage(`gemini:${model}`)
+        // Only a *daily* exhaustion retires a model. A 429 is also how a
+        // per-minute burst limit answers — a few estimates in quick succession —
+        // and treating that as a spent day demoted the user's chosen model until
+        // midnight Pacific over a limit that cleared in seconds, with no way to
+        // undo it. The other models are still tried either way; only the
+        // remembering is conditional.
+        if (isDailyQuotaError(err)) markExhausted(model)
+      }
     }
   }
 
-  // Every model is spent. The first error is the most relevant one: it names
-  // the model the user actually chose.
-  throw firstRateLimitError
+  // Every model failed. The first error is the most relevant one: it names
+  // what happened with the model the user actually chose.
+  throw firstError
 }
 
 async function callGeminiRaw(

@@ -6,7 +6,7 @@ import App from './App.tsx'
 import { requestPersistentStorage } from './lib/persistence.ts'
 import { initSyncIfSignedIn } from './lib/sync.ts'
 import { syncSupplementCatalog } from './lib/supplementSeed.ts'
-import { refreshAdvisorIfStale } from './lib/supplementAdvisor.ts'
+import { refreshAdvisorIfStale, watchForNewDay } from './lib/supplementAdvisor.ts'
 import { refreshTipsIfStale } from './lib/tips.ts'
 import { backfillMissingMicronutrients } from './lib/micronutrients.ts'
 
@@ -22,8 +22,11 @@ void syncSupplementCatalog()
 // Fire-and-forget: refreshes the supplement suggestions once per calendar day,
 // on the first launch of that day, so they're already waiting rather than
 // needing a button press. Deliberately not awaited and never throws — see
-// refreshAdvisorIfStale.
+// refreshAdvisorIfStale. watchForNewDay() re-runs this same check whenever
+// the app is brought back to the foreground, so a PWA instance that's
+// suspended/resumed instead of reloaded still picks up a new day.
 void refreshAdvisorIfStale()
+watchForNewDay()
 
 // Fire-and-forget: refreshes the "was jetzt essen"-tips once per meal-time
 // slot (breakfast/lunch/snack/dinner), on the first launch inside that slot,
