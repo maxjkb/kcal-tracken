@@ -29,6 +29,15 @@ const RecipeDetailPage = lazy(
   lazyRetry(() => import('./pages/RecipeDetailPage').then((m) => ({ default: m.RecipeDetailPage }))),
 )
 
+/**
+ * Der Glas-Baukasten (src/lab/). Bewusst lazy und ohne Eintrag in der
+ * Navigation: die Seite ist ein Labor zum Ausprobieren, kein Teil der App.
+ * So landet weder ihr Code noch der WebGL-Shader im Haupt-Bundle.
+ */
+const GlassLab = lazy(lazyRetry(() => import('./lab/GlassLab').then((m) => ({ default: m.GlassLab }))))
+
+const AppGlassLab = lazy(lazyRetry(() => import('./lab/AppGlassLab').then((m) => ({ default: m.AppGlassLab }))))
+
 const recipesFallback = <p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>
 
 type Section = 'feed' | 'recipes' | 'supplements' | 'stats'
@@ -105,6 +114,22 @@ export default function App() {
               element={
                 <Suspense fallback={<p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>}>
                   <StatsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/lab"
+              element={
+                <Suspense fallback={<p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>}>
+                  <GlassLab />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/lab/app"
+              element={
+                <Suspense fallback={<p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>}>
+                  <AppGlassLab />
                 </Suspense>
               }
             />
