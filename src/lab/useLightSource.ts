@@ -66,6 +66,8 @@ export function useLightSource(initial: Aim = { azimuth: 2.36, elevation: 0.95 }
   const targetRef = useRef<Aim>({ ...initial })
   const lightRef = useRef<LightState>({ ...initial, x: 0, y: 0, z: 1 })
   const gyroActiveRef = useRef(false)
+  /** Startet die Glättungsschleife neu, nachdem sie im Ruhezustand angehalten hat. */
+  const wakeRef = useRef<() => void>(() => {})
   const [gyro, setGyro] = useState<GyroState>('idle')
 
   // --- Die Animationsschleife: glättet und schreibt, sonst nichts ---------
@@ -75,6 +77,7 @@ export function useLightSource(initial: Aim = { azimuth: 2.36, elevation: 0.95 }
     const current = { ...initial }
 
     const tick = (now: number) => {
+      raf = 0
       const dt = Math.min(0.05, (now - last) / 1000)
       last = now
       // Exponentielle Annäherung = kritisch gedämpft, kein Überschwingen.
@@ -99,11 +102,27 @@ export function useLightSource(initial: Aim = { azimuth: 2.36, elevation: 0.95 }
         el.style.setProperty('--lpx', `${(50 + x * 42).toFixed(2)}%`)
         el.style.setProperty('--lpy', `${(50 - y * 42).toFixed(2)}%`)
       }
-      raf = requestAnimationFrame(tick)
+      // Anhalten, sobald das Licht steht. Ohne das liefe hier eine zweite
+      // Dauerschleife neben der Zeichenschleife und schriebe 60-mal pro
+      // Sekunde dieselben vier CSS-Variablen — die Ersparnis, die das
+      // Anhalten der Zeichenschleife bringt, wäre damit wieder aufgebraucht.
+      const settled =
+        Math.abs(shortestAngle(current.azimuth, targetRef.current.azimuth)) < 1e-4 &&
+        Math.abs(targetRef.current.elevation - current.elevation) < 1e-4
+      if (!settled) raf = requestAnimationFrame(tick)
     }
 
+    wakeRef.current = () => {
+      if (!raf) {
+        last = performance.now()
+        raf = requestAnimationFrame(tick)
+      }
+    }
     raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    return () => {
+      cancelAnimationFrame(raf)
+      wakeRef.current = () => {}
+    }
     // initial absichtlich nicht als Abhängigkeit: es ist ein Startwert, kein
     // gesteuerter Wert — ein neues Objektliteral vom Aufrufer würde die
     // Schleife sonst bei jedem Render neu aufsetzen.
@@ -125,6 +144,7 @@ export function useLightSource(initial: Aim = { azimuth: 2.36, elevation: 0.95 }
       const nx = ((e.clientX - r.left) / r.width) * 2 - 1
       const ny = ((e.clientY - r.top) / r.height) * 2 - 1
       targetRef.current = aimFromOffset(nx, ny)
+      wakeRef.current()
     }
     window.addEventListener('pointermove', onPointer, { passive: true })
     return () => window.removeEventListener('pointermove', onPointer)
@@ -167,6 +187,7 @@ export function useLightSource(initial: Aim = { azimuth: 2.36, elevation: 0.95 }
       const nx = Math.max(-1, Math.min(1, (e.gamma ?? 0) / 40))
       const ny = Math.max(-1, Math.min(1, ((e.beta ?? 45) - 45) / 40))
       targetRef.current = aimFromOffset(nx, ny)
+      wakeRef.current()
     }
     window.addEventListener('deviceorientation', onOrient)
     setGyro('granted')

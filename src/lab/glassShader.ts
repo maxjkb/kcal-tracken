@@ -23,7 +23,12 @@ void main() {
 }
 `
 
-export const GLASS_FRAG = /* glsl */ `#version 300 es
+/**
+ * Der geteilte Kopf: Praeambel, Ein-/Ausgaben und alle Uniforms, die JEDE
+ * Fassung braucht. Fassungsspezifische Uniforms haengt der Aufrufer direkt
+ * dahinter an, vor GLASS_GLSL_CORE.
+ */
+export const GLASS_GLSL_HEAD = /* glsl */ `#version 300 es
 precision highp float;
 
 in vec2 vUv;
@@ -32,7 +37,6 @@ out vec4 fragColor;
 uniform vec2  uResolution;
 uniform float uTime;
 uniform vec3  uLight;
-uniform int   uSceneMode;
 
 uniform float uBulge;
 uniform float uProfile;
@@ -53,46 +57,21 @@ uniform vec4  uShapes[MAX_SHAPES];
 uniform vec2  uShapeExtra[MAX_SHAPES];
 uniform float uMerge;
 
-// ---------------------------------------------------------------------------
-// Hintergrund — prozedural, damit die Brechung exakt definiert ist.
-// ---------------------------------------------------------------------------
+`
 
-float ringBand(vec2 p, vec2 c, float r, float w) {
-  return smoothstep(w, 0.0, abs(length(p - c) - r));
-}
-
-vec3 scene(vec2 px) {
-  vec2 uv = px / uResolution;
-
-  if (uSceneMode == 1) {
-    vec3 base = mix(vec3(0.09, 0.36, 0.78), vec3(0.97, 0.98, 1.0), uv.y);
-    vec2 g = abs(fract(px / 44.0) - 0.5);
-    float line = smoothstep(0.46, 0.5, max(g.x, g.y));
-    vec2 g2 = abs(fract(px / 220.0) - 0.5);
-    float major = smoothstep(0.47, 0.5, max(g2.x, g2.y));
-    return mix(base, vec3(1.0), line * 0.55 + major * 0.35);
-  }
-
-  if (uSceneMode == 2) {
-    vec3 c = vec3(0.97, 0.98, 1.0);
-    c = mix(c, vec3(0.12, 0.56, 1.00), smoothstep(0.55, 0.0, length(uv - vec2(0.25, 0.25))));
-    c = mix(c, vec3(1.00, 0.58, 0.00), smoothstep(0.42, 0.0, length(uv - vec2(0.80, 0.30))));
-    c = mix(c, vec3(0.20, 0.78, 0.35), smoothstep(0.45, 0.0, length(uv - vec2(0.30, 0.82))));
-    c = mix(c, vec3(0.69, 0.32, 0.87), smoothstep(0.40, 0.0, length(uv - vec2(0.78, 0.78))));
-    return c;
-  }
-
-  vec3 c = mix(vec3(0.42, 0.66, 0.96), vec3(0.949, 0.949, 0.968), smoothstep(0.0, 0.62, uv.y));
-  vec2 rc = uResolution * vec2(0.82, 0.86);
-  float s = uResolution.x;
-  c = mix(c, vec3(0.12, 0.56, 1.00), ringBand(px, rc, s * 0.30, s * 0.11) * 0.20);
-  c = mix(c, vec3(1.00, 0.22, 0.37), ringBand(px, rc, s * 0.23, s * 0.09) * 0.18);
-  c = mix(c, vec3(0.20, 0.78, 0.35), ringBand(px, rc, s * 0.16, s * 0.08) * 0.17);
-  c = mix(c, vec3(1.00, 0.80, 0.00), ringBand(px, rc, s * 0.09, s * 0.07) * 0.16);
-  return c;
-}
-
-// ---------------------------------------------------------------------------
+/**
+ * Der geteilte Physik-Kern in GLSL: Distanzfelder, Normale aus dem
+ * Hoehenfeld, Snellius, Fresnel, Glanzlicht-Exponent, Umgebungsspiegelung.
+ *
+ * Genau das, was glassPhysics.ts in TypeScript enthaelt — herausgeloest,
+ * damit die Laborfassung und die App-Fassung ihn TEILEN statt ihn zu
+ * kopieren. Zwei Kopien derselben Formeln laufen frueher oder spaeter
+ * auseinander, und dann vergleicht man nichts mehr.
+ *
+ * Setzt GLASS_GLSL_HEAD davor voraus. Ruft selbst kein scene() auf — das
+ * definiert jede Fassung fuer sich, direkt vor ihrem main().
+ */
+export const GLASS_GLSL_CORE = /* glsl */ `// ---------------------------------------------------------------------------
 // Formen (SDF)
 // ---------------------------------------------------------------------------
 
@@ -204,6 +183,50 @@ vec3 skyColor(vec3 dir, vec3 L) {
   vec3 sky = mix(vec3(0.55, 0.68, 0.88), vec3(1.0, 1.0, 1.0), up * up);
   float sun = pow(max(dot(dir, L), 0.0), 60.0);
   return sky + vec3(1.0, 0.99, 0.96) * sun * 1.6;
+}
+
+`
+
+/** Die Laborfassung: drei Testmotive, sonst identisch zur App-Fassung. */
+export const GLASS_FRAG = GLASS_GLSL_HEAD + /* glsl */ `
+uniform int uSceneMode;
+` + GLASS_GLSL_CORE + /* glsl */ `// ---------------------------------------------------------------------------
+// Hintergrund — prozedural, damit die Brechung exakt definiert ist.
+// ---------------------------------------------------------------------------
+
+float ringBand(vec2 p, vec2 c, float r, float w) {
+  return smoothstep(w, 0.0, abs(length(p - c) - r));
+}
+
+vec3 scene(vec2 px) {
+  vec2 uv = px / uResolution;
+
+  if (uSceneMode == 1) {
+    vec3 base = mix(vec3(0.09, 0.36, 0.78), vec3(0.97, 0.98, 1.0), uv.y);
+    vec2 g = abs(fract(px / 44.0) - 0.5);
+    float line = smoothstep(0.46, 0.5, max(g.x, g.y));
+    vec2 g2 = abs(fract(px / 220.0) - 0.5);
+    float major = smoothstep(0.47, 0.5, max(g2.x, g2.y));
+    return mix(base, vec3(1.0), line * 0.55 + major * 0.35);
+  }
+
+  if (uSceneMode == 2) {
+    vec3 c = vec3(0.97, 0.98, 1.0);
+    c = mix(c, vec3(0.12, 0.56, 1.00), smoothstep(0.55, 0.0, length(uv - vec2(0.25, 0.25))));
+    c = mix(c, vec3(1.00, 0.58, 0.00), smoothstep(0.42, 0.0, length(uv - vec2(0.80, 0.30))));
+    c = mix(c, vec3(0.20, 0.78, 0.35), smoothstep(0.45, 0.0, length(uv - vec2(0.30, 0.82))));
+    c = mix(c, vec3(0.69, 0.32, 0.87), smoothstep(0.40, 0.0, length(uv - vec2(0.78, 0.78))));
+    return c;
+  }
+
+  vec3 c = mix(vec3(0.42, 0.66, 0.96), vec3(0.949, 0.949, 0.968), smoothstep(0.0, 0.62, uv.y));
+  vec2 rc = uResolution * vec2(0.82, 0.86);
+  float s = uResolution.x;
+  c = mix(c, vec3(0.12, 0.56, 1.00), ringBand(px, rc, s * 0.30, s * 0.11) * 0.20);
+  c = mix(c, vec3(1.00, 0.22, 0.37), ringBand(px, rc, s * 0.23, s * 0.09) * 0.18);
+  c = mix(c, vec3(0.20, 0.78, 0.35), ringBand(px, rc, s * 0.16, s * 0.08) * 0.17);
+  c = mix(c, vec3(1.00, 0.80, 0.00), ringBand(px, rc, s * 0.09, s * 0.07) * 0.16);
+  return c;
 }
 
 void main() {

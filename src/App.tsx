@@ -36,6 +36,8 @@ const RecipeDetailPage = lazy(
  */
 const GlassLab = lazy(lazyRetry(() => import('./lab/GlassLab').then((m) => ({ default: m.GlassLab }))))
 
+const AppGlassLab = lazy(lazyRetry(() => import('./lab/AppGlassLab').then((m) => ({ default: m.AppGlassLab }))))
+
 const recipesFallback = <p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>
 
 type Section = 'feed' | 'recipes' | 'supplements' | 'stats'
@@ -120,6 +122,14 @@ export default function App() {
               element={
                 <Suspense fallback={<p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>}>
                   <GlassLab />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/lab/app"
+              element={
+                <Suspense fallback={<p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>}>
+                  <AppGlassLab />
                 </Suspense>
               }
             />
