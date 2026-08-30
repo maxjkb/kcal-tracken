@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  db,
   MEAL_TYPE_LABELS,
   MEAL_TYPE_ORDER,
   newMealId,
@@ -17,6 +18,9 @@ import type { MealSuggestion } from '../lib/mealSuggestions'
 import { estimateNutrition, cleanUpDictation, GeminiError } from '../lib/gemini'
 import { getApiKey } from '../lib/settings'
 import { describeSaveError } from '../lib/errors'
+import { findUnconfirmedSupplementMatches, type SupplementMatch } from '../lib/supplementTextMatch'
+import { mealTypeToSupplementTimeOfDay } from '../lib/mealTypeGuess'
+import { addMySupplement, toggleSupplementCheck } from '../hooks/useSupplements'
 import { DictationButton } from './DictationButton'
 import { PhotoActionButton, PhotoPreview } from './PhotoInput'
 import { ActionButton } from './ActionButton'
@@ -175,6 +179,11 @@ function MealEditorContent({
   const [note, setNote] = useState<string | undefined>(restored ? restored.note : baseline.note)
   const [manuallyEdited, setManuallyEdited] = useState(restored?.manuallyEdited ?? baseline.manuallyEdited)
   const [pickingRecipe, setPickingRecipe] = useState(false)
+  // Set right after a successful save if the description mentions a
+  // supplement not yet checked off today — non-null switches the whole sheet
+  // over to the confirmation panel below instead of closing immediately.
+  const [matchedSupplements, setMatchedSupplements] = useState<SupplementMatch[] | null>(null)
+  const [confirmedSupplementIds, setConfirmedSupplementIds] = useState<Set<string>>(new Set())
 
   const snapshot: MealDraft = {
     step,
@@ -331,7 +340,16 @@ function MealEditorContent({
     try {
       await saveMeal(meal)
       draft.clear()
-      requestClose()
+      // Only propose, never add automatically (explicit product decision):
+      // a mention in the text is a strong hint, not certainty someone
+      // actually took it, so this stops at "here's what we noticed" and
+      // waits for a tap before touching the user's supplement list or log.
+      const matches = await findUnconfirmedSupplementMatches(meal.description, meal.date)
+      if (matches.length > 0) {
+        setMatchedSupplements(matches)
+      } else {
+        requestClose()
+      }
     } catch (err) {
       // Without this, a failed write (full storage, a browser/IndexedDB
       // hiccup, …) left the editor stuck on a disabled "Speichern…" button
@@ -340,6 +358,76 @@ function MealEditorContent({
     } finally {
       setSaving(false)
     }
+  }
+
+  /**
+   * Confirms one detected supplement: adds it to the user's list first if
+   * it isn't already there (with the meal's own type standing in for a
+   * time-of-day slot, the only signal available for something never
+   * configured before), then checks it off for today either way.
+   */
+  async function confirmSupplementMatch(match: SupplementMatch) {
+    let mySupplementId = match.existingId
+    let timeOfDay = mealTypeToSupplementTimeOfDay(mealType)
+    if (mySupplementId) {
+      // Already on the list — check off one of ITS OWN configured slots,
+      // not the meal-derived one: a slot outside my.timesOfDay would log an
+      // entry the adherence score and the checklist UI both silently
+      // ignore (see SupplementScoreCard's activeTimes filter), an invisible
+      // no-op that would look like nothing happened.
+      const existing = await db.mySupplements.get(mySupplementId)
+      timeOfDay = existing?.timesOfDay[0] ?? timeOfDay
+    } else {
+      await addMySupplement({ supplementId: match.supplement.id, dosage: match.supplement.typicalDosage, timesOfDay: [timeOfDay] })
+      const created = await db.mySupplements.where('supplementId').equals(match.supplement.id).first()
+      if (!created) return
+      mySupplementId = created.id
+    }
+    await toggleSupplementCheck(mySupplementId, mealDate, timeOfDay)
+    setConfirmedSupplementIds((cur) => new Set(cur).add(match.supplement.id))
+  }
+
+  // A full swap of the sheet's content rather than a third carousel step:
+  // the meal is already saved at this point, so there's nothing left to
+  // "go back" to, and reusing the input/review translateX carousel for one
+  // more state it was never built for risked breaking both of the states
+  // it already handles correctly.
+  if (matchedSupplements) {
+    return (
+      <div className="flex flex-col gap-4 p-5 pt-7">
+        <h2 className="text-lg font-semibold text-ink">Supplement erkannt</h2>
+        <p className="text-sm text-ink-soft">
+          In deiner Beschreibung erwähnt — heute als eingenommen markieren?
+        </p>
+        <div className="flex flex-col gap-2">
+          {matchedSupplements.map((match) => {
+            const confirmed = confirmedSupplementIds.has(match.supplement.id)
+            return (
+              <div key={match.supplement.id} className="flex items-center justify-between gap-3 rounded-2xl bg-bg px-4 py-3">
+                <span className="min-w-0 truncate text-sm font-medium text-ink">{match.supplement.name}</span>
+                <button
+                  type="button"
+                  onClick={() => confirmSupplementMatch(match)}
+                  disabled={confirmed}
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                    confirmed ? 'bg-surface text-ink-soft' : 'bg-accent/12 text-accent hover:bg-accent/20'
+                  }`}
+                >
+                  {confirmed ? 'Erledigt' : 'Als eingenommen markieren'}
+                </button>
+              </div>
+            )
+          })}
+        </div>
+        <button
+          type="button"
+          onClick={requestClose}
+          className="mt-2 w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-white hover:opacity-90"
+        >
+          Fertig
+        </button>
+      </div>
+    )
   }
 
   return (

@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.14.8',
+    date: '2026-08-30',
+    highlights: [
+      'Neu: erwähnst du beim Speichern einer Mahlzeit ein Supplement aus dem Katalog (z.B. „...dazu noch Kreatin genommen"), schlägt die App vor, es für heute als eingenommen zu markieren — auf Wunsch mit einem Tap, nichts wird automatisch hinzugefügt oder abgehakt.',
+    ],
+  },
+  {
     version: '1.14.7',
     date: '2026-08-30',
     highlights: [
