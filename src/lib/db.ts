@@ -379,6 +379,26 @@ export interface TipsRun {
   context: TipsContext
 }
 
+/**
+ * What the daily kcal target actually was on one specific day, frozen at the
+ * moment that day was first seen as "today".
+ *
+ * Without this, the Statistik target line would have to use today's target
+ * for every day ever shown — so changing your goal would silently rewrite
+ * how every past day is judged, making last month look like it missed a
+ * target it never actually had. One row per date, written once (see
+ * recordTodaysTargetSnapshot in lib/targetHistory.ts) and never touched
+ * again: a day without a row here (before this feature existed, or simply
+ * never visited as "today") falls back to today's live target instead —
+ * see useDailyTargetKcalMap, which is the only place that distinction
+ * actually matters.
+ */
+export interface DailyTargetSnapshot {
+  /** Local date key (YYYY-MM-DD), unique — exactly one frozen value per day. */
+  date: string
+  kcal: number
+}
+
 class KcalDatabase extends Dexie {
   meals!: EntityTable<Meal, 'id'>
   recipes!: EntityTable<Recipe, 'id'>
@@ -387,6 +407,7 @@ class KcalDatabase extends Dexie {
   supplementLog!: EntityTable<SupplementLogEntry, 'id'>
   supplementAdvisorRuns!: EntityTable<SupplementAdvisorRun, 'id'>
   tipRuns!: EntityTable<TipsRun, 'id'>
+  dailyTargetSnapshots!: EntityTable<DailyTargetSnapshot, 'date'>
 
   constructor() {
     super('kcal-tracker')
@@ -420,6 +441,16 @@ class KcalDatabase extends Dexie {
       supplementLog: 'id, mySupplementId, date, [mySupplementId+date+timeOfDay]',
       supplementAdvisorRuns: 'id, date, generatedAt',
       tipRuns: 'id, date, generatedAt, [date+slot]',
+    })
+    this.version(6).stores({
+      meals: 'id, date, mealType, createdAt',
+      recipes: 'id, category, createdAt',
+      supplements: 'id, name, category, createdAt',
+      mySupplements: 'id, supplementId, createdAt',
+      supplementLog: 'id, mySupplementId, date, [mySupplementId+date+timeOfDay]',
+      supplementAdvisorRuns: 'id, date, generatedAt',
+      tipRuns: 'id, date, generatedAt, [date+slot]',
+      dailyTargetSnapshots: 'date',
     })
   }
 }

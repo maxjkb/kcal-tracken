@@ -9,8 +9,9 @@ import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { SupplementScoreCard } from '../components/SupplementScoreCard'
 import { MicronutrientBars } from '../components/MicronutrientBars'
 import { useMicronutrientOverview } from '../hooks/useMicronutrients'
-import { KcalTrendChart } from '../components/KcalTrendChart'
+import { KcalTrendChart, type ChartBucket } from '../components/KcalTrendChart'
 import type { StatBucket } from '../lib/stats'
+import { targetKcalAsNutritionMap, targetKcalByBucketKey, useDailyTargetKcalMap } from '../lib/targetHistory'
 import { PageHeader } from '../components/PageHeader'
 import { GlassSurface } from '../glass/GlassSurface'
 import {
@@ -94,6 +95,22 @@ export function StatsPage() {
   const weekData = period === 'month' ? bucketByWeek(startKey, endKey, nutritionByDate) : []
   const monthData = period === 'year' ? bucketByMonth(Number(anchorKey.slice(0, 4)), nutritionByDate) : []
   const barData = period === 'week' ? dayData : period === 'month' ? weekData : []
+
+  // The target-kcal line on the trend chart, bucketed the exact same way as
+  // the actual-intake data above (same functions, same keys) so the two line
+  // up point for point. null/undefined (no body profile yet) hides the line
+  // entirely rather than drawing it at 0.
+  const targetKcalByDate = useDailyTargetKcalMap(startKey, endKey)
+  const targetNutritionByDate = targetKcalByDate ? targetKcalAsNutritionMap(targetKcalByDate) : new Map<string, Nutrition>()
+  const targetDayData = period === 'week' ? bucketByDay(startKey, endKey, targetNutritionByDate) : []
+  const targetWeekData = period === 'month' ? bucketByWeek(startKey, endKey, targetNutritionByDate) : []
+  const targetMonthData = period === 'year' ? bucketByMonth(Number(anchorKey.slice(0, 4)), targetNutritionByDate) : []
+  const targetKcalByKey = targetKcalByDate
+    ? targetKcalByBucketKey([...targetDayData, ...targetWeekData, ...targetMonthData])
+    : null
+  function withTarget(buckets: StatBucket[]): ChartBucket[] {
+    return buckets.map((b) => ({ ...b, targetKcal: targetKcalByKey?.get(b.key) ?? null }))
+  }
   const perMealData =
     period === 'day'
       ? [...(meals ?? [])]
@@ -264,7 +281,7 @@ export function StatsPage() {
               <p className="flex h-56 items-center justify-center text-sm text-ink-soft">Lädt…</p>
             ) : (
               <KcalTrendChart
-                data={period === 'year' ? monthData : barData}
+                data={withTarget(period === 'year' ? monthData : barData)}
                 unitLabel={period === 'year' ? 'Monat' : period === 'month' ? 'Woche' : 'Tag'}
                 targets={dailyTargets}
                 emptyLabel="Keine Einträge in diesem Zeitraum."

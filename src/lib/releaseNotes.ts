@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.14.7',
+    date: '2026-08-30',
+    highlights: [
+      'Neu im Statistik-Diagramm: eine Ziel-Kalorien-Linie. Änderst du dein Tagesziel, gilt der neue Wert nur für neue Tage — bereits vergangene Tage behalten ihren damaligen Wert dauerhaft (Erklärung über das „i" neben der Linie).',
+    ],
+  },
+  {
     version: '1.14.6',
     date: '2026-08-30',
     highlights: [

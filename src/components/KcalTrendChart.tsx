@@ -19,6 +19,11 @@ import { useGlassSurfaceNode } from '../glass/glassSurfaces'
 /** The trend line is the one thing on the chart that isn't data — red keeps it from reading as another series. */
 const TREND_COLOR = '#ff3b30'
 const LINE_COLOR = '#1E90FF' // matches --color-kcal/--color-accent in index.css
+/** A third, distinct hue for the target line — never red (the average) or blue (actual intake). */
+const TARGET_COLOR = '#af52de'
+
+/** One bucket plus the kcal target that applied on its day(s) — see lib/targetHistory.ts. Undefined/null hides the target line for that point (no body profile, or a period entirely predating it). */
+export type ChartBucket = StatBucket & { targetKcal?: number | null }
 
 /**
  * Calories over the selected period as connected points, with the period's
@@ -43,7 +48,7 @@ export function KcalTrendChart({
   emptyLabel,
   onSelectBucket,
 }: {
-  data: StatBucket[]
+  data: ChartBucket[]
   /** What one point represents ("Tag", "Woche", "Monat") — the trend line is labelled with it. */
   unitLabel: string
   targets: DailyTargets | null
@@ -56,6 +61,8 @@ export function KcalTrendChart({
   // that has already gone stale, and no cascading render to correct it.
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const selected = data.find((d) => d.key === selectedKey) ?? null
+  const [showTargetHint, setShowTargetHint] = useState(false)
+  const hasTargetLine = data.some((d) => d.targetKcal != null)
 
   // Averaged over the points actually plotted, not over days. In the Monat and
   // Jahr views a point is a whole week or month, so a per-day figure would
@@ -99,6 +106,29 @@ export function KcalTrendChart({
 
   return (
     <div className="flex h-full flex-col">
+      {hasTargetLine && (
+        <div className="mb-1.5 flex items-center gap-1.5 self-end">
+          <span className="h-0 w-4 border-t-2 border-dashed" style={{ borderColor: TARGET_COLOR }} aria-hidden="true" />
+          <span className="text-[11px] font-medium" style={{ color: TARGET_COLOR }}>
+            Ziel
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowTargetHint((v) => !v)}
+            aria-expanded={showTargetHint}
+            aria-label="Erklärung zur Ziel-Linie"
+            className="flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-ink-faint hover:text-ink-soft"
+          >
+            i
+          </button>
+        </div>
+      )}
+      {hasTargetLine && showTargetHint && (
+        <p className="mb-2 -mt-1 self-end text-right text-[11px] leading-snug text-ink-soft">
+          Zeigt dein Tagesziel zum jeweiligen Zeitpunkt. Änderst du dein Ziel, gilt der neue Wert nur für neue Tage —
+          bereits vergangene Tage behalten ihren damaligen Wert.
+        </p>
+      )}
       <div className="h-56 shrink-0" ref={chartRef}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
@@ -108,6 +138,19 @@ export function KcalTrendChart({
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" vertical={false} />
           <XAxis dataKey="label" stroke="var(--color-ink-soft)" fontSize={11} tickLine={false} axisLine={false} interval="preserveStartEnd" />
           <YAxis stroke="var(--color-ink-soft)" fontSize={12} tickLine={false} axisLine={false} />
+          {hasTargetLine && (
+            <Line
+              type="monotone"
+              dataKey="targetKcal"
+              stroke={TARGET_COLOR}
+              strokeWidth={2}
+              strokeDasharray="6 4"
+              dot={false}
+              activeDot={false}
+              connectNulls
+              isAnimationActive={!prefersReducedMotion}
+            />
+          )}
           {average > 0 && (
             <ReferenceLine y={average} stroke={TREND_COLOR} strokeDasharray="5 4" strokeWidth={1.5}>
               {/* An explicit <Label> child rather than the `label` prop: in

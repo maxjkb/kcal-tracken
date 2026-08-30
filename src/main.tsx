@@ -9,6 +9,7 @@ import { syncSupplementCatalog } from './lib/supplementSeed.ts'
 import { refreshAdvisorIfStale, watchForNewDay } from './lib/supplementAdvisor.ts'
 import { refreshTipsIfStale } from './lib/tips.ts'
 import { backfillMissingMicronutrients } from './lib/micronutrients.ts'
+import { recordTodaysTargetSnapshot } from './lib/targetHistory.ts'
 
 // Fire-and-forget: ask the browser to exempt this origin's storage (API key,
 // meals) from automatic eviction. Safe to call on every load.
@@ -38,6 +39,12 @@ void refreshTipsIfStale()
 // backfillMissingMicronutrients. Runs every launch; becomes a cheap no-op
 // once nothing is left to fill in.
 void backfillMissingMicronutrients()
+
+// Fire-and-forget: freezes today's kcal target the first time today is ever
+// seen, so the Statistik target line can never rewrite a past day's target
+// after the fact. A no-op once today already has a snapshot, or if there's
+// no body profile yet at all — see recordTodaysTargetSnapshot.
+void recordTodaysTargetSnapshot()
 
 // A no-op touchstart listener is the standard trick to make iOS Safari
 // actually apply the :active pseudo-class on tap — without it, iOS treats
