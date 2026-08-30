@@ -99,3 +99,47 @@ export function rankMealSuggestions(meals: Meal[], forType: MealType, limit: num
     .slice(0, limit)
     .map((s) => s.suggestion)
 }
+
+/**
+ * The ingredient names that show up most often across recently logged meals
+ * — used to ground AI recipe suggestions in what someone actually cooks
+ * with regularly, not just what they've titled a meal (two "Hähnchen-Bowl"
+ * entries with different fillings share a title but not much else; this
+ * looks at the ingredients underneath instead).
+ *
+ * Counts distinct MEALS an ingredient appears in, not raw occurrences — a
+ * name repeated across three components of one elaborate dish shouldn't
+ * outweigh it showing up in three separate, everyday meals. Names are
+ * grouped case-insensitively but displayed using whichever exact spelling
+ * was most common, so "hähnchen" and "Hähnchen" count as the same
+ * ingredient without the result looking lowercased.
+ */
+export function rankFrequentIngredients(meals: Meal[], limit: number): string[] {
+  const mealCountByKey = new Map<string, number>()
+  const spellingCountByKey = new Map<string, Map<string, number>>()
+
+  for (const meal of meals) {
+    if (!meal.ingredients || meal.ingredients.length === 0) continue
+    const seenInThisMeal = new Set<string>()
+    for (const ing of meal.ingredients) {
+      const name = ing.name.trim()
+      if (!name) continue
+      const key = name.toLowerCase()
+      if (!seenInThisMeal.has(key)) {
+        seenInThisMeal.add(key)
+        mealCountByKey.set(key, (mealCountByKey.get(key) ?? 0) + 1)
+      }
+      const spellings = spellingCountByKey.get(key) ?? new Map<string, number>()
+      spellings.set(name, (spellings.get(name) ?? 0) + 1)
+      spellingCountByKey.set(key, spellings)
+    }
+  }
+
+  return [...mealCountByKey.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([key]) => {
+      const spellings = [...(spellingCountByKey.get(key) ?? new Map())]
+      return spellings.sort((a, b) => b[1] - a[1])[0]?.[0] ?? key
+    })
+}

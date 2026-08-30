@@ -948,14 +948,18 @@ export interface RecipeSuggestion {
   /** Short, concrete ingredients/preparation text — usable as-is as the recipe editor's input, ready for "Rezept schätzen". */
   description: string
   reasoning: string
+  /** 'familiar' builds on ingredients/style the user already eats often; 'new' is a deliberately unfamiliar idea to try — see the system prompt's mixing instruction. */
+  novelty: 'familiar' | 'new'
 }
+
+const NOVELTY_ENUM = ['familiar', 'new'] as const
 
 const RECIPE_SUGGESTION_SCHEMA = {
   type: 'OBJECT',
   properties: {
     suggestions: {
       type: 'ARRAY',
-      description: '2 bis 4 konkrete, unterschiedliche Rezept-Ideen, die zu den bisherigen Essgewohnheiten des Nutzers passen.',
+      description: '2 bis 4 konkrete, unterschiedliche Rezept-Ideen — siehe Systemanweisung für die geforderte Mischung aus vertraut und neu.',
       items: {
         type: 'OBJECT',
         properties: {
@@ -972,33 +976,70 @@ const RECIPE_SUGGESTION_SCHEMA = {
           },
           reasoning: {
             type: 'STRING',
-            description: 'Kurze Begründung auf Deutsch (1-2 Sätze), warum dieses Rezept zu den bisherigen Essgewohnheiten des Nutzers passt.',
+            description:
+              'Kurze Begründung auf Deutsch (1-2 Sätze) — bei novelty="familiar" der Bezug zu den gewohnten Zutaten/Essgewohnheiten, bei novelty="new" was daran bewusst neu/anders ist und warum es trotzdem passt (z.B. zu den offenen Tageszielen).',
+          },
+          novelty: {
+            type: 'STRING',
+            enum: NOVELTY_ENUM,
+            description: '"familiar" = baut auf oft gegessenen Zutaten/dem gewohnten Küchenstil auf. "new" = bewusst eine unvertraute Idee, die NICHT am bisherigen Muster festhält.',
           },
         },
-        required: ['title', 'category', 'description', 'reasoning'],
+        required: ['title', 'category', 'description', 'reasoning', 'novelty'],
       },
     },
   },
   required: ['suggestions'],
 }
 
-const RECIPE_SUGGESTION_SYSTEM_PROMPT = `Du bist ein Ernährungsassistent, der Rezept-Ideen vorschlägt. Du bekommst eine Liste der zuletzt vom Nutzer geloggten Mahlzeiten (Kategorie/Titel) sowie die Titel bereits gespeicherter Rezepte. Schlage 2 bis 4 konkrete Rezept-Ideen vor, die zu den erkennbaren Essgewohnheiten des Nutzers passen (wiederkehrende Zutaten, Küchenstil, übliche Mahlzeitengröße) — keine bloße Wiederholung einer bereits geloggten Mahlzeit, sondern sinnvolle, leicht abgewandelte oder ergänzende Ideen im selben Stil. Schlage keine Rezepte vor, deren Titel bereits gespeicherten Rezepten sehr ähnlich sind. Die "description" muss eine kurze, konkrete Zutaten-/Zubereitungsbeschreibung sein, die sich direkt automatisch schätzen lässt, ähnlich wie ein Nutzer sie selbst eintippen würde — keine vage Umschreibung. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema, auf Deutsch.`
+const RECIPE_SUGGESTION_SYSTEM_PROMPT = `Du bist ein Ernährungsassistent, der Rezept-Ideen vorschlägt. Du bekommst: die aktuelle Tageszeit-Kategorie, die noch offenen Tagesziele (Rest-Kalorien/-Makros bis zum Tagesziel, falls Körperwerte hinterlegt sind), eine Liste häufig verwendeter Zutaten aus der Koch-/Ess-Historie, die zuletzt geloggten Mahlzeiten sowie die Titel bereits gespeicherter Rezepte.
+
+Tageszeit: die meisten Vorschläge sollen zur genannten Kategorie passen (z.B. abends keine Frühstücksideen), da der Nutzer JETZT zu dieser Tageszeit ein Rezept sucht.
+
+Offene Tagesziele: sind sie angegeben, richte die Rezepte darauf aus, was NOCH gebraucht wird — ist z.B. der Proteinbedarf für heute noch weit offen, aber Kohlenhydrate schon fast ausgeschöpft, bevorzuge proteinreiche, kohlenhydratärmere Ideen. Ist kein Tagesziel angegeben, ignoriere diesen Punkt.
+
+WICHTIGSTE REGEL — bewusste Mischung: Von den vorgeschlagenen Rezepten muss MINDESTENS EINES novelty="new" sein — eine Idee, die bewusst NICHT einfach die häufigen Zutaten oder den gewohnten Küchenstil wiederholt, sondern etwas, das der Nutzer erkennbar noch nicht ausprobiert hat, aber dennoch zu den offenen Tageszielen bzw. zur Tageszeit passt. Die übrigen sind novelty="familiar": sie dürfen auf den häufigen Zutaten und dem gewohnten Stil aufbauen — keine bloße Wiederholung einer bereits geloggten Mahlzeit, sondern eine sinnvolle, leicht abgewandelte oder ergänzende Idee im selben Stil.
+
+Schlage keine Rezepte vor, deren Titel bereits gespeicherten Rezepten sehr ähnlich sind. Die "description" muss eine kurze, konkrete Zutaten-/Zubereitungsbeschreibung sein, die sich direkt automatisch schätzen lässt, ähnlich wie ein Nutzer sie selbst eintippen würde — keine vage Umschreibung. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema, auf Deutsch.`
 
 /**
- * Generates 2–4 recipe ideas grounded in the user's recently logged meals,
- * refreshed only on explicit user request (same reasoning as the supplement
- * suggestions above: respects the free API quota, and a list that reshuffles
- * itself on its own would read as noise, not a considered recommendation).
- * Each suggestion's `description` is meant to be dropped straight into the
- * recipe editor's input step so the user's existing, trusted "Rezept
- * schätzen" flow produces the structured ingredients/steps — this call only
- * proposes the idea, it never invents nutrition numbers itself.
+ * Generates 2–4 recipe ideas, refreshed only on explicit user request (same
+ * reasoning as the supplement suggestions above: respects the free API
+ * quota, and a list that reshuffles itself on its own would read as noise,
+ * not a considered recommendation). Each suggestion's `description` is
+ * meant to be dropped straight into the recipe editor's input step so the
+ * user's existing, trusted "Rezept schätzen" flow produces the structured
+ * ingredients/steps — this call only proposes the idea, it never invents
+ * nutrition numbers itself.
+ *
+ * Grounded in three signals beyond the recent-meals/existing-recipes list
+ * this already had: the current meal-type/time-of-day slot (same cadence
+ * guessMealType() drives elsewhere — a suggestion pass run at 8pm should
+ * offer dinner ideas, not breakfast ones), today's still-open macro targets
+ * (so a suggestion can actually close today's gap instead of ignoring it),
+ * and ingredients that show up often across the user's own cooking history
+ * (see rankFrequentIngredients) — deliberately mixed with at least one
+ * suggestion that's NOT just more of the same, per the system prompt's
+ * explicit novelty requirement.
  */
 export async function estimateRecipeSuggestions(input: {
   recentMealSummaries: string[]
   existingRecipeTitles: string[]
+  currentSlotLabel: string
+  /** Computed daily targets, or null if no body profile is set yet. */
+  dailyTargets: { kcal: number; protein: number; carbs: number; fat: number } | null
+  /** What's already been eaten today, to reason about what's still open. */
+  consumedToday: { kcal: number; protein: number; carbs: number; fat: number }
+  frequentIngredients: string[]
 }): Promise<RecipeSuggestion[]> {
   const lines = [
+    `Aktuelle Tageszeit-Kategorie: ${input.currentSlotLabel}`,
+    input.dailyTargets
+      ? `Tagesziel: ${Math.round(input.dailyTargets.kcal)} kcal, ${Math.round(input.dailyTargets.protein)}g Protein, ${Math.round(input.dailyTargets.carbs)}g Carbs, ${Math.round(input.dailyTargets.fat)}g Fett. Bisher heute gegessen: ${Math.round(input.consumedToday.kcal)} kcal, ${Math.round(input.consumedToday.protein)}g Protein, ${Math.round(input.consumedToday.carbs)}g Carbs, ${Math.round(input.consumedToday.fat)}g Fett.`
+      : 'Kein Tagesziel hinterlegt (keine Körperwerte eingerichtet) — Tagesziele bei den Vorschlägen ignorieren.',
+    input.frequentIngredients.length > 0
+      ? `Häufig verwendete Zutaten aus der Historie: ${input.frequentIngredients.join(', ')}`
+      : 'Noch keine ausreichende Zutaten-Historie vorhanden.',
     input.recentMealSummaries.length > 0
       ? `Zuletzt geloggte Mahlzeiten:\n${input.recentMealSummaries.map((s) => `- ${s}`).join('\n')}`
       : 'Der Nutzer hat noch keine Mahlzeiten geloggt.',
@@ -1019,6 +1060,7 @@ export async function estimateRecipeSuggestions(input: {
     category: MEAL_TYPE_ENUM.includes(s.category) ? s.category : 'lunch',
     description: String(s.description ?? ''),
     reasoning: String(s.reasoning ?? ''),
+    novelty: NOVELTY_ENUM.includes(s.novelty) ? s.novelty : 'familiar',
   }))
 }
 

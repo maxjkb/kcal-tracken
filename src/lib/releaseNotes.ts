@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.15.2',
+    date: '2026-08-30',
+    highlights: [
+      'Rezept-Vorschläge intelligenter: berücksichtigen jetzt die aktuelle Tageszeit, deine noch offenen Tagesziele und häufig verwendete Zutaten aus deiner Historie — und mischen bewusst mindestens eine ganz neue Idee zum Ausprobieren mit ein ("Neu für dich").',
+    ],
+  },
+  {
     version: '1.15.1',
     date: '2026-08-30',
     highlights: [
