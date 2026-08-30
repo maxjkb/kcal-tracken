@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.15.0',
+    date: '2026-08-30',
+    highlights: [
+      'Neu beim Anlegen einer Mahlzeit: Barcode scannen. Ein erkanntes Produkt wird direkt bei Open Food Facts nachgeschlagen und füllt Beschreibung sowie Nährwerte (pro 100g) automatisch aus.',
+    ],
+  },
+  {
     version: '1.14.8',
     date: '2026-08-30',
     highlights: [

@@ -21,6 +21,7 @@ import { describeSaveError } from '../lib/errors'
 import { findUnconfirmedSupplementMatches, type SupplementMatch } from '../lib/supplementTextMatch'
 import { mealTypeToSupplementTimeOfDay } from '../lib/mealTypeGuess'
 import { addMySupplement, toggleSupplementCheck } from '../hooks/useSupplements'
+import { lookupFoodByBarcode } from '../lib/foodDatabase'
 import { DictationButton } from './DictationButton'
 import { PhotoActionButton, PhotoPreview } from './PhotoInput'
 import { ActionButton } from './ActionButton'
@@ -41,6 +42,9 @@ import { draftKey } from '../lib/drafts'
 import { DraftRestoredBanner } from './DraftRestoredBanner'
 
 const EMPTY_NUTRITION: Nutrition = { kcal: 0, protein: 0, carbs: 0, fat: 0 }
+
+/** BarcodeScanner's own component type, without a runtime import — the module (and @zxing with it) is loaded on demand, see openBarcodeScanner below. */
+type BarcodeScannerType = typeof import('./BarcodeScanner').BarcodeScanner
 
 type Step = 'input' | 'review'
 
@@ -184,6 +188,18 @@ function MealEditorContent({
   // over to the confirmation panel below instead of closing immediately.
   const [matchedSupplements, setMatchedSupplements] = useState<SupplementMatch[] | null>(null)
   const [confirmedSupplementIds, setConfirmedSupplementIds] = useState<Set<string>>(new Set())
+  const [barcodeStep, setBarcodeStep] = useState<'idle' | 'scanning' | 'looking-up' | 'not-found'>('idle')
+  const [barcodeLoadError, setBarcodeLoadError] = useState<string | null>(null)
+  // Loaded on demand rather than imported at the top of this file: pulling
+  // in @zxing/library (a barcode-decoding engine, ~250kB) for every meal
+  // edit — the vast majority of which never touch the scanner — bloated
+  // the app's single largest chunk by more than 2x. A plain dynamic
+  // import(), not lazyRetry: lazyRetry's whole recovery move is a forced
+  // page reload, which is the right call for a stale route chunk but would
+  // throw away this open sheet's in-progress meal to recover a scanner
+  // button the user can simply tap again — same reasoning as the PDF
+  // export's dynamic import elsewhere in this codebase.
+  const [BarcodeScannerComp, setBarcodeScannerComp] = useState<BarcodeScannerType | null>(null)
 
   const snapshot: MealDraft = {
     step,
@@ -358,6 +374,88 @@ function MealEditorContent({
     } finally {
       setSaving(false)
     }
+  }
+
+  /**
+   * A scanned barcode goes straight to Open Food Facts, per-100g, and — on
+   * a match — straight into this meal's own fields rather than a separate
+   * "food database" step: the app has no product catalog of its own to
+   * save into first, so there's nothing a middle step would add except a
+   * second confirmation for data that's already exact, unlike an AI guess.
+   * Kept as its own ingredient (amount 100, unit "g") rather than folded
+   * only into the totals, so the review step's existing per-ingredient
+   * amount field is immediately how someone corrects the portion size —
+   * "the tub was 250g, not 100g" is a number edit, not a re-scan.
+   */
+  async function handleBarcodeDetected(barcode: string) {
+    setBarcodeStep('looking-up')
+    const match = await lookupFoodByBarcode(barcode)
+    if (!match) {
+      setBarcodeStep('not-found')
+      return
+    }
+    setDescription(match.name)
+    setTitle(match.name)
+    setIngredients([
+      { name: match.name, amount: 100, unit: 'g', kcal: match.kcal100g, protein: match.protein100g, carbs: match.carbs100g, fat: match.fat100g },
+    ])
+    setNutrition({ kcal: match.kcal100g, protein: match.protein100g, carbs: match.carbs100g, fat: match.fat100g })
+    setManuallyEdited(false)
+    setHasResult(true)
+    setStep('review')
+    setBarcodeStep('idle')
+  }
+
+  async function openBarcodeScanner() {
+    setBarcodeLoadError(null)
+    try {
+      const { BarcodeScanner } = await import('./BarcodeScanner')
+      setBarcodeScannerComp(() => BarcodeScanner)
+      setBarcodeStep('scanning')
+    } catch (err) {
+      setBarcodeLoadError(
+        err instanceof Error && /import|fetch|network/i.test(err.message)
+          ? 'Scanner-Modul konnte nicht geladen werden. Internetverbindung prüfen und erneut versuchen.'
+          : 'Scanner konnte nicht gestartet werden.',
+      )
+    }
+  }
+
+  if (barcodeStep === 'scanning' && BarcodeScannerComp) {
+    return <BarcodeScannerComp onDetected={handleBarcodeDetected} onCancel={() => setBarcodeStep('idle')} />
+  }
+  if (barcodeStep === 'looking-up') {
+    return (
+      <div className="flex flex-col items-center gap-3 p-5 pt-7">
+        <BouncingDots />
+        <p className="text-sm text-ink-soft">Produkt wird gesucht…</p>
+      </div>
+    )
+  }
+  if (barcodeStep === 'not-found') {
+    return (
+      <div className="flex flex-col gap-4 p-5 pt-7">
+        <h2 className="text-lg font-semibold text-ink">Kein Produkt gefunden</h2>
+        <p className="text-sm text-ink-soft">
+          Dieser Barcode ist bei Open Food Facts nicht hinterlegt, oder der Eintrag hat keine vollständigen
+          Nährwertangaben. Du kannst es erneut versuchen oder die Mahlzeit wie gewohnt beschreiben.
+        </p>
+        <button
+          type="button"
+          onClick={() => setBarcodeStep('scanning')}
+          className="w-full rounded-2xl bg-accent/12 py-3 text-sm font-semibold text-accent hover:bg-accent/20"
+        >
+          Erneut scannen
+        </button>
+        <button
+          type="button"
+          onClick={() => setBarcodeStep('idle')}
+          className="w-full rounded-2xl bg-bg py-3 text-sm font-medium text-ink-soft hover:bg-line"
+        >
+          Manuell eingeben
+        </button>
+      </div>
+    )
   }
 
   /**
@@ -560,6 +658,9 @@ function MealEditorContent({
                   </ActionButton>
                   <PhotoActionButton photo={photo} onChange={setPhoto} source="camera" />
                   <PhotoActionButton photo={photo} onChange={setPhoto} source="library" />
+                  <ActionButton label="Barcode scannen" onClick={openBarcodeScanner}>
+                    <BarcodeIcon />
+                  </ActionButton>
                 </div>
 
                 {photo && <PhotoPreview photo={photo} onChange={setPhoto} />}
@@ -573,6 +674,8 @@ function MealEditorContent({
                     , um Nährwerte automatisch schätzen zu lassen.
                   </p>
                 )}
+
+                {barcodeLoadError && <p className="text-sm font-medium text-danger">{barcodeLoadError}</p>}
 
                 {error && <p className="text-sm font-medium text-danger">{error}</p>}
 
@@ -800,6 +903,14 @@ function RecipeIcon() {
         strokeLinejoin="round"
         d="M12 6.5c-1.5-1.3-3.6-2-6-2v13c2.4 0 4.5.7 6 2m0-13c1.5-1.3 3.6-2 6-2v13c-2.4 0-4.5.7-6 2m0-13v13"
       />
+    </svg>
+  )
+}
+
+function BarcodeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+      <path strokeLinecap="round" d="M4 5v14M8 5v14M11 5v14M13 5v14M16 5v14M20 5v14" />
     </svg>
   )
 }
