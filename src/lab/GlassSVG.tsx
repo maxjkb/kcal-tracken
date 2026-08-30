@@ -114,14 +114,27 @@ function buildMaps(shape: GlassShape, params: GlassParams): Maps {
   for (let i = 0; i < W * H; i++) {
     const p4 = i * 4
     // 128 = kein Versatz. feDisplacementMap liest scale · (Kanal − 0.5).
-    dimg.data[p4] = Math.round(Math.max(0, Math.min(255, 128 + (offX[i] / maxOffset) * 127)))
-    dimg.data[p4 + 1] = Math.round(Math.max(0, Math.min(255, 128 + (offY[i] / maxOffset) * 127)))
+    //
+    // Ebenfalls gedithert, und hier ist es sogar noetiger als bei der
+    // Hoehenkarte: maxOffset wird vom RAND bestimmt, wo die Versaetze am
+    // groessten sind. In der Tropfenmitte sind sie winzig und landen damit
+    // auf nur einer Handvoll der 255 Stufen — der glatte Hintergrund bekam
+    // dadurch Stufen, sichtbar als konzentrische Ringe im Glanzlicht.
+    const dith = () => Math.random() - 0.5
+    dimg.data[p4] = Math.round(Math.max(0, Math.min(255, 128 + (offX[i] / maxOffset) * 127 + dith())))
+    dimg.data[p4 + 1] = Math.round(Math.max(0, Math.min(255, 128 + (offY[i] / maxOffset) * 127 + dith())))
     dimg.data[p4 + 2] = 128
     dimg.data[p4 + 3] = 255
     himg.data[p4] = 255
     himg.data[p4 + 1] = 255
     himg.data[p4 + 2] = 255
-    himg.data[p4 + 3] = Math.round(Math.max(0, Math.min(255, heights[i] * 255)))
+    // Mit Dither quantisiert. Nahe der Kuppe aendert sich die Hoehe so
+    // langsam, dass viele Pixel auf demselben Byte landen — feSpecularLighting
+    // LEITET das Feld ab und macht aus jeder dieser Plateaugrenzen eine Rille,
+    // sichtbar als Moire-Ringe im Glanzlicht. Ein halbes LSB Rauschen bricht
+    // die Plateaus auf; die Weichzeichnung in der Filterkette mittelt es
+    // wieder zu einem glatten Verlauf.
+    himg.data[p4 + 3] = Math.round(Math.max(0, Math.min(255, heights[i] * 255 + (Math.random() - 0.5))))
   }
 
   dctx.putImageData(dimg, 0, 0)
@@ -158,7 +171,11 @@ export function GlassSVG({
         el.setAttribute('x', String(cx + L.x * reach))
         // Minus, weil die SVG-Y-Achse nach unten zeigt.
         el.setAttribute('y', String(cy - L.y * reach))
-        el.setAttribute('z', String(Math.max(24, L.z * reach * 0.75)))
+        // Mindestabstand ist ein guter Teil der Reichweite, nicht 24 px:
+        // steht die Punktlichtquelle zu dicht ueber der Oberflaeche, saettigt
+        // feSpecularLighting zu einer hart begrenzten weissen Scheibe — das
+        // sah nach Darstellungsfehler aus, nicht nach Glanzlicht.
+        el.setAttribute('z', String(Math.max(reach * 0.45, L.z * reach * 0.75)))
       }
       raf = requestAnimationFrame(tick)
     }
