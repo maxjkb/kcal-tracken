@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.16',
+    date: '2026-08-31',
+    highlights: [
+      'Bugfix: Mahlzeiten schätzen funktioniert wieder. Die App hatte der Gemini-API ein Feld geschickt, das die aktuellen Modelle nicht mehr kennen — die Absage wurde fälschlich als "API-Key ungültig" angezeigt, obwohl mit dem Key alles in Ordnung war.',
+    ],
+  },
+  {
     version: '1.19.15',
     date: '2026-08-31',
     highlights: [
