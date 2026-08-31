@@ -31,7 +31,6 @@ const RecipeCategoryPage = lazy(
 const RecipeDetailPage = lazy(
   lazyRetry(() => import('./pages/RecipeDetailPage').then((m) => ({ default: m.RecipeDetailPage }))),
 )
-const SuppScorePage = lazy(lazyRetry(() => import('./pages/SuppScorePage').then((m) => ({ default: m.SuppScorePage }))))
 
 /**
  * Der Glas-Baukasten (src/lab/) — der reine Material-Vergleich (CSS/SVG/
@@ -194,14 +193,6 @@ export default function App() {
               element={
                 <Suspense fallback={<p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>}>
                   <SupplementsPage />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/supplements/score"
-              element={
-                <Suspense fallback={<p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>}>
-                  <SuppScorePage />
                 </Suspense>
               }
             />

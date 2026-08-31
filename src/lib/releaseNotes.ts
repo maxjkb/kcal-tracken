@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.11',
+    date: '2026-08-31',
+    highlights: [
+      'Supp-Score ist keine eigene Seite mehr, sondern ein Sheet — neu erreichbar über ein Pokal-Symbol oben rechts in Supplements (neben dem Katalog-Button), zusätzlich zur bisherigen Kachel in der Statistik.',
+    ],
+  },
+  {
     version: '1.19.10',
     date: '2026-08-31',
     highlights: [

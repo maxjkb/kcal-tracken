@@ -169,7 +169,7 @@ export function useSupplementLogInRange(startKey: string, endKey: string): Suppl
 
 /**
  * The cumulative, all-time Supplementscore (see lib/supplementScore.ts) —
- * feeds both SupplementScoreCard and SuppScorePage, so the number shown in
+ * feeds both SupplementScoreCard and SuppScoreSheet, so the number shown in
  * Statistik and the breakdown behind it are always computed from the exact
  * same query, never two slightly different ones. Reads the *entire*
  * supplementLog table rather than a bounded range: unlike the meal/advisor
