@@ -16,11 +16,14 @@ import { NutrientRings } from './NutrientRings'
 import { REDUCED_MOTION_TRANSITION, SPRING_DEFAULT } from '../lib/motionTokens'
 import { useGlassSurfaceNode } from '../glass/glassSurfaces'
 
+// Exported so ChartLegendSheet's color key uses the exact same values as
+// the chart itself, rather than a second set of hardcoded hexes that could
+// drift out of sync with these.
 /** The trend line is the one thing on the chart that isn't data — red keeps it from reading as another series. */
-const TREND_COLOR = '#ff3b30'
-const LINE_COLOR = '#1E90FF' // matches --color-kcal/--color-accent in index.css
+export const TREND_COLOR = '#ff3b30'
+export const LINE_COLOR = '#1E90FF' // matches --color-kcal/--color-accent in index.css
 /** A third, distinct hue for the target line — never red (the average) or blue (actual intake). */
-const TARGET_COLOR = '#af52de'
+export const TARGET_COLOR = '#af52de'
 
 /** One bucket plus the kcal target that applied on its day(s) — see lib/targetHistory.ts. Undefined/null hides the target line for that point (no body profile, or a period entirely predating it). */
 export type ChartBucket = StatBucket & { targetKcal?: number | null }
@@ -43,14 +46,11 @@ export type ChartBucket = StatBucket & { targetKcal?: number | null }
  */
 export function KcalTrendChart({
   data,
-  unitLabel,
   targets,
   emptyLabel,
   onSelectBucket,
 }: {
   data: ChartBucket[]
-  /** What one point represents ("Tag", "Woche", "Monat") — the trend line is labelled with it. */
-  unitLabel: string
   targets: DailyTargets | null
   emptyLabel: string
   /** Drilling deeper from the popup (a day in the Woche view, a month in Jahr). */
@@ -61,7 +61,6 @@ export function KcalTrendChart({
   // that has already gone stale, and no cascading render to correct it.
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const selected = data.find((d) => d.key === selectedKey) ?? null
-  const [showTargetHint, setShowTargetHint] = useState(false)
   const hasTargetLine = data.some((d) => d.targetKcal != null)
 
   // Averaged over the points actually plotted, not over days. In the Monat and
@@ -106,38 +105,23 @@ export function KcalTrendChart({
 
   return (
     <div className="flex h-full flex-col">
-      {hasTargetLine && (
-        <div className="mb-1.5 flex items-center gap-1.5 self-end">
-          <span className="h-0 w-4 border-t border-solid" style={{ borderColor: TARGET_COLOR }} aria-hidden="true" />
-          <span className="text-[11px] font-medium" style={{ color: TARGET_COLOR }}>
-            Ziel
-          </span>
-          <button
-            type="button"
-            onClick={() => setShowTargetHint((v) => !v)}
-            aria-expanded={showTargetHint}
-            aria-label="Erklärung zur Ziel-Linie"
-            className="flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-ink-faint hover:text-ink-soft"
-          >
-            i
-          </button>
-        </div>
-      )}
-      {hasTargetLine && showTargetHint && (
-        <p className="mb-2 -mt-1 self-end text-right text-[11px] leading-snug text-ink-soft">
-          Zeigt dein Tagesziel zum jeweiligen Zeitpunkt. Änderst du dein Ziel, gilt der neue Wert nur für neue Tage —
-          bereits vergangene Tage behalten ihren damaligen Wert.
-        </p>
-      )}
+      {/* No more inline "Ziel" legend chip here — the color key and its
+          explanation moved into a Sheet (ChartLegendSheet, opened from the
+          "i" StatsPage puts next to this card's own heading, level with it
+          per explicit request) so the chart itself only ever shows the
+          plot and its bare numbers, nothing else competing for the space a
+          full-width chart needs. */}
       <div className="h-56 shrink-0" ref={chartRef}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={data}
-          // right: 8 used to be enough when the target line carried no label
-          // of its own — now its exact value is drawn as text past its last
-          // point (see TargetEndLabel below), which needs real room to its
-          // right or it'd be clipped by the chart's own SVG bounds.
-          margin={{ top: 12, right: 124, left: -20, bottom: 0 }}
+          // right: only needs room for the target line's own end-value text
+          // now that it's a bare few-digit number instead of "X kcal/Woche"
+          // — shrunk from 124 specifically so the plot itself stretches
+          // across the card's full width, per explicit request. 48 is the
+          // Jahr view's own worst case (a six-digit monthly total, e.g.
+          // "85.529") still fitting without clipping.
+          margin={{ top: 12, right: 48, left: -20, bottom: 0 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" vertical={false} />
           <XAxis dataKey="label" stroke="var(--color-ink-soft)" fontSize={11} tickLine={false} axisLine={false} interval="preserveStartEnd" />
@@ -152,18 +136,18 @@ export function KcalTrendChart({
               activeDot={false}
               connectNulls
               isAnimationActive={!prefersReducedMotion}
-              label={(props: TargetLabelProps) => (
-                <TargetEndLabel {...props} lastIndex={data.length - 1} unitLabel={unitLabel} />
-              )}
+              label={(props: TargetLabelProps) => <TargetEndLabel {...props} lastIndex={data.length - 1} />}
             />
           )}
           {average > 0 && (
             <ReferenceLine y={average} stroke={TREND_COLOR} strokeDasharray="5 4" strokeWidth={1.5}>
               {/* An explicit <Label> child rather than the `label` prop: in
                   Recharts 3 the prop form rendered nothing at all here, and a
-                  trend line without its value is just a stray red rule. */}
+                  trend line without its value is just a stray red rule. Bare
+                  number only (no "Ø"/unit word) — see the chart-level
+                  comment above on why. */}
               <Label
-                value={`Ø ${Math.round(average).toLocaleString('de-DE')} / ${unitLabel}`}
+                value={Math.round(average).toLocaleString('de-DE')}
                 position="insideTopRight"
                 fill={TREND_COLOR}
                 fontSize={11}
@@ -264,19 +248,21 @@ interface TargetLabelProps {
 
 /**
  * The target line's exact value, written once at its own right end instead
- * of living only in the legend above the chart — recharts calls this once
- * per point, so it renders nothing until `index` is the last one actually
- * plotted. `x`/`y` are that last point's own plotted position, not a fixed
- * chart corner, so the label always sits right where the line stops,
- * whatever value it happens to end on. Text starts a few px clear of the
- * point itself (line strokes and text glyphs touching read as a rendering
+ * of living only in the legend Sheet — recharts calls this once per point,
+ * so it renders nothing until `index` is the last one actually plotted.
+ * `x`/`y` are that last point's own plotted position, not a fixed chart
+ * corner, so the label always sits right where the line stops, whatever
+ * value it happens to end on. Text starts a few px clear of the point
+ * itself (line strokes and text glyphs touching read as a rendering
  * glitch, not a label) — margin.right on the chart leaves real room for it.
+ * Bare number only, no "kcal/Woche" unit suffix — see the chart-level
+ * comment on why; what it's a number *of* lives in the legend Sheet now.
  */
-function TargetEndLabel({ x, y, index, value, lastIndex, unitLabel }: TargetLabelProps & { lastIndex: number; unitLabel: string }) {
+function TargetEndLabel({ x, y, index, value, lastIndex }: TargetLabelProps & { lastIndex: number }) {
   if (x === undefined || y === undefined || index !== lastIndex || value == null) return <g />
   return (
     <text x={Number(x) + 6} y={y} dy={4} fontSize={10} fontWeight={700} fill={TARGET_COLOR}>
-      {Math.round(Number(value)).toLocaleString('de-DE')} kcal/{unitLabel}
+      {Math.round(Number(value)).toLocaleString('de-DE')}
     </text>
   )
 }
