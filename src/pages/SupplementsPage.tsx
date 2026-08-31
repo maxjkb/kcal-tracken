@@ -29,6 +29,7 @@ import { SupplementFormSheet } from '../components/SupplementFormSheet'
 import { SupplementChatSheet } from '../components/SupplementChatSheet'
 import { SupplementDetailSheet } from '../components/SupplementDetailSheet'
 import { DockedField } from '../components/DockedField'
+import { InfoButton } from '../components/InfoButton'
 import { SPRING_SNAPPY } from '../lib/motionTokens'
 import { GlassSurface } from '../glass/GlassSurface'
 
@@ -74,14 +75,15 @@ export function SupplementsPage() {
       {tab === 'catalog' && <CatalogTab />}
       {tab === 'suggestions' && <SuggestionsTab />}
 
-      {/* text-ink-soft, not text-ink-faint: this is real content someone needs to
-          actually read, not a decorative icon — ink-faint only clears the 3:1
-          bar for non-text UI (3.26:1 in light mode), while body text needs 4.5:1
-          (apple-hig-review: Accessibility — minimum contrast). */}
-      <p className="mt-8 text-center text-[11px] leading-relaxed text-ink-soft">
-        Diese Vorschläge basieren auf deinen geloggten Daten und allgemein bekannten Zusammenhängen — sie sind keine
-        medizinische Beratung. Bei Vorerkrankungen, Medikamenten oder Schwangerschaft vorher ärztlich abklären.
-      </p>
+      {/* Was a permanently-visible paragraph — now behind an "i" like every
+          other disclaimer in the app, per explicit request. */}
+      <div className="mt-8 flex justify-center">
+        <InfoButton label="Hinweis zu den Supplement-Vorschlägen" title="Hinweis">
+          Diese Vorschläge basieren auf deinen geloggten Daten und allgemein bekannten Zusammenhängen — sie sind
+          keine medizinische Beratung. Bei Vorerkrankungen, Medikamenten oder Schwangerschaft vorher ärztlich
+          abklären.
+        </InfoButton>
+      </div>
     </div>
   )
 }

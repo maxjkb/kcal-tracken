@@ -1,5 +1,6 @@
 import { MICRONUTRIENT_LABELS, type MicronutrientKey } from '../lib/db'
 import type { MicronutrientOverview, MicronutrientStatus } from '../lib/micronutrients'
+import { InfoButton } from './InfoButton'
 
 /**
  * One CSS custom property per nutrient (defined in index.css, light + dark
@@ -96,10 +97,15 @@ export function MicronutrientBars({ overview }: { overview: MicronutrientOvervie
           <MicronutrientTile key={status.key} status={status} />
         ))}
       </div>
-      <p className="mt-4 text-[11px] leading-relaxed text-ink-faint">
-        Grobe KI-Schätzung aus {overview.daysWithEstimate} erfassten Tagen — neuere Tage zählen stärker, ältere
-        verblassen graduell statt schlagartig zu verschwinden. Kein Ersatz für eine Blutuntersuchung.
-      </p>
+      {/* Was a permanently-visible paragraph — now behind an "i", per
+          explicit request (same treatment as every other disclaimer in the
+          app). */}
+      <div className="mt-3 flex justify-end">
+        <InfoButton label="Wie werden Mikronährstoffe geschätzt?" title="Wie wird das geschätzt?">
+          Grobe KI-Schätzung aus {overview.daysWithEstimate} erfassten Tagen — neuere Tage zählen stärker, ältere
+          verblassen graduell statt schlagartig zu verschwinden. Kein Ersatz für eine Blutuntersuchung.
+        </InfoButton>
+      </div>
     </div>
   )
 }
