@@ -25,6 +25,7 @@ import { SupplementFormSheet } from '../components/SupplementFormSheet'
 import { SupplementChatSheet } from '../components/SupplementChatSheet'
 import { SupplementDetailSheet } from '../components/SupplementDetailSheet'
 import { SupplementCatalogSheet } from '../components/SupplementCatalogSheet'
+import { SuppScoreSheet } from '../components/SuppScoreSheet'
 import { InfoButton } from '../components/InfoButton'
 import { HeaderButton } from '../components/PageHeader'
 import { SPRING_SNAPPY } from '../lib/motionTokens'
@@ -43,6 +44,11 @@ export function SupplementsPage() {
   // "Heute" or "Vorschläge": browsing/adding from the catalog is an action
   // you take *from* those views, not a view of its own you'd sit in.
   const [catalogOpen, setCatalogOpen] = useState(false)
+  // Same reasoning as the Katalog button below: the Supp-Score used to be
+  // its own routed page, reached only via the Statistik card. A trophy
+  // button right beside Katalog gets there directly from Supplements too,
+  // without a detour through Statistik.
+  const [scoreOpen, setScoreOpen] = useState(false)
   const prefersReducedMotion = useReducedMotion()
 
   return (
@@ -50,9 +56,14 @@ export function SupplementsPage() {
       <PageHeader
         title="Supplements"
         actions={
-          <HeaderButton onClick={() => setCatalogOpen(true)} label="Katalog">
-            <CatalogIcon />
-          </HeaderButton>
+          <>
+            <HeaderButton onClick={() => setScoreOpen(true)} label="Supp-Score">
+              <TrophyIcon />
+            </HeaderButton>
+            <HeaderButton onClick={() => setCatalogOpen(true)} label="Katalog">
+              <CatalogIcon />
+            </HeaderButton>
+          </>
         }
       />
 
@@ -93,6 +104,7 @@ export function SupplementsPage() {
       </div>
 
       {catalogOpen && <SupplementCatalogSheet onClose={() => setCatalogOpen(false)} />}
+      {scoreOpen && <SuppScoreSheet onClose={() => setScoreOpen(false)} />}
     </div>
   )
 }
@@ -102,6 +114,15 @@ function CatalogIcon() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-[1.15rem] w-[1.15rem]">
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 0 4 21.5v-16Z" />
       <path strokeLinecap="round" d="M4 18.5A2.5 2.5 0 0 1 6.5 16H20" />
+    </svg>
+  )
+}
+
+function TrophyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-[1.15rem] w-[1.15rem]">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 4h8v4a4 4 0 0 1-8 0V4Z" />
+      <path strokeLinecap="round" d="M8 5H5a3 3 0 0 0 3 4M16 5h3a3 3 0 0 1-3 4M12 12v3M9 19h6M10 19v-2.5a2 2 0 0 1 4 0V19" />
     </svg>
   )
 }
