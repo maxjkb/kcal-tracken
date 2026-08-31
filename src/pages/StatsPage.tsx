@@ -121,6 +121,12 @@ export function StatsPage() {
   const deficitBuckets = period === 'week' ? dayData : period === 'month' ? weekData : period === 'year' ? monthData : []
   const deficitTodayKey = period === 'year' ? todayKey.slice(0, 7) : todayKey
   const averageComparison = targetKcalByKey ? computeAverageComparison(deficitBuckets, targetKcalByKey, deficitTodayKey) : null
+  // "Ziel minus Durchschnitt", per explicit request — the inverse of
+  // averageComparison.diff (actual − target): positive means the average
+  // came in under target (a deficit, shown red), zero-or-negative means at
+  // or over it (shown blue). Deliberately the user's own color mapping, not
+  // the more common "red = over target" convention.
+  const calorieBalance = averageComparison ? -averageComparison.diff : null
   const perMealData =
     period === 'day'
       ? [...(meals ?? [])]
@@ -201,14 +207,15 @@ export function StatsPage() {
             to what I need" does. Falls back to the plain total when there's
             nothing to compare against yet (no body profile, or the target
             history is still loading). */}
-        {period === 'day' || averageComparison === null ? (
+        {period === 'day' || averageComparison === null || calorieBalance === null ? (
           <StatTile value={Math.round(totals.kcal).toLocaleString('de-DE')} label="kcal gesamt" />
         ) : (
+          // No words anywhere on this tile per explicit request — just the
+          // bare balance (colored) over the bare target number (gray).
           <StatTile
-            value={`${averageComparison.diff >= 0 ? '+' : '−'}${Math.round(Math.abs(averageComparison.diff)).toLocaleString('de-DE')}`}
-            label={`${Math.round(averageComparison.target).toLocaleString('de-DE')} kcal Ziel${
-              period === 'week' ? '/Tag' : period === 'month' ? '/Woche' : '/Monat'
-            }`}
+            value={Math.round(Math.abs(calorieBalance)).toLocaleString('de-DE')}
+            valueClassName={calorieBalance > 0 ? 'text-danger' : 'text-kcal'}
+            label={Math.round(averageComparison.target).toLocaleString('de-DE')}
           />
         )}
         <StatTile
@@ -368,18 +375,21 @@ export function StatsPage() {
  */
 function StatTile({
   value,
+  valueClassName = 'text-ink',
   label,
   selected,
   onSelect,
 }: {
   value: string
+  /** Overrides the value's color — used by the deficit/surplus tile below, everything else keeps the default. */
+  valueClassName?: string
   label: string
   selected?: boolean
   onSelect?: () => void
 }) {
   const body = (
     <>
-      <div className="text-xl font-bold text-ink">{value}</div>
+      <div className={`text-xl font-bold ${valueClassName}`}>{value}</div>
       <div className="text-[10px] text-ink-soft">{label}</div>
     </>
   )
