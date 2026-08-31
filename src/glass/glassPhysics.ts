@@ -113,12 +113,6 @@ export function dot3(a: Vec3, b: Vec3): number {
   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 }
 
-/** Lichtrichtung als Einheitsvektor (zeigt von der Oberfläche ZUM Licht). */
-export function lightVector(p: Pick<GlassParams, 'lightAzimuth' | 'lightElevation'>): Vec3 {
-  const ce = Math.cos(p.lightElevation)
-  return normalize3([Math.cos(p.lightAzimuth) * ce, Math.sin(p.lightAzimuth) * ce, Math.sin(p.lightElevation)])
-}
-
 // --- 1./2. Höhenfeld und Normale ------------------------------------------
 
 /**
@@ -220,24 +214,7 @@ export function shininessFromRoughness(roughness: number): number {
   return 2 / (a * a) - 2
 }
 
-export function specularTerm(N: Vec3, L: Vec3, roughness: number): number {
-  const H = normalize3([L[0], L[1], L[2] + 1]) // V = (0,0,1)
-  const nh = Math.max(0, dot3(N, H))
-  return Math.pow(nh, shininessFromRoughness(roughness))
-}
-
 // --- 6. Kaustik ------------------------------------------------------------
-
-/**
- * Wo die Tropfenlinse das Licht darunter bündelt: gegenüber der Lichtquelle,
- * um so weiter außen, je flacher das Licht einfällt. Eine Näherung — eine
- * echte Kaustik bräuchte Photon-Mapping —, aber sie sitzt an der richtigen
- * Stelle und wandert korrekt mit, wenn das Licht sich bewegt.
- */
-export function causticCenter(L: Vec3, p: GlassParams): Vec2 {
-  const spread = p.radius * 0.42 * (1 - L[2])
-  return [-L[0] * spread, -L[1] * spread]
-}
 
 // --- Verallgemeinerung auf beliebige Formen --------------------------------
 

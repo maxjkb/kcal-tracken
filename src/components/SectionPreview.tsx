@@ -30,7 +30,6 @@ registerSectionLoaders({
   // Feed is in the main bundle — nothing to fetch.
 })
 
-
 const previewFallback = <div className="min-h-screen" />
 
 /**

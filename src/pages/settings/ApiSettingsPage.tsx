@@ -7,7 +7,6 @@ import { getModel, setModel } from '../../lib/gemini'
 import { GEMINI_MODELS } from '../../lib/geminiModels'
 import { DockedField } from '../../components/DockedField'
 
-
 export function ApiSettingsPage() {
   const [apiKey, setApiKeyInput] = useState(getApiKey() ?? '')
   const [showKey, setShowKey] = useState(false)

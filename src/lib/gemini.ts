@@ -974,7 +974,6 @@ Gewichte neue Vorschläge und Begründungen zu etwa drei Vierteln auf Basis der 
 
 Bleibe bei allgemein anerkannten, gut belegten Supplements und breiten, üblichen Dosierungsspannen aus der Literatur — keine individuelle medizinische Beratung, keine ungewöhnlichen/riskanten Kombinationen oder Hochdosierungen. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema, auf Deutsch.`
 
-
 /**
  * Generates 2–5 supplement suggestions grounded mostly in the user's actual
  * recent nutrition data (see the weighting instruction in the system

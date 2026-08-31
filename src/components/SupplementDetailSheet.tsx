@@ -162,7 +162,6 @@ export function SupplementDetailSheet(props: SupplementDetailSheetProps) {
           </div>
         )}
 
-
         <div className="mb-4">
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Bedarf</h3>
           {props.mode === 'recommendation' ? (

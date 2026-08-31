@@ -14,7 +14,6 @@ export function MacroIcon({ type, className = 'h-3 w-3' }: { type: MacroType; cl
   return <FatIcon className={className} />
 }
 
-
 function KcalIcon({ className }: { className: string }) {
   return (
     <svg viewBox="0 0 624.512149 761.423294" className={className}>
@@ -85,7 +84,6 @@ function KcalIcon({ className }: { className: string }) {
     </svg>
   )
 }
-
 
 function ProteinIcon({ className }: { className: string }) {
   return (
@@ -184,7 +182,6 @@ l-20 -46 -126 148 c-269 317 -633 658 -904 849 -153 108 -302 204 -500 324
   )
 }
 
-
 function CarbsIcon({ className }: { className: string }) {
   return (
     <svg viewBox="0 0 479.537608 902.000000" className={className}>
@@ -270,7 +267,6 @@ c4 -32 -32 -252 -58 -353 -84 -334 -328 -641 -655 -821 -130 -72 -209 -106
     </svg>
   )
 }
-
 
 function FatIcon({ className }: { className: string }) {
   return (

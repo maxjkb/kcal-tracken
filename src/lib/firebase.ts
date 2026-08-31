@@ -110,11 +110,6 @@ export function onAuthChange(callback: (user: User | null) => void): () => void 
   }
 }
 
-export async function getCurrentUser(): Promise<User | null> {
-  const services = await getFirebaseServices()
-  return services?.auth.currentUser ?? null
-}
-
 /** The URL Firebase's email link points back to — the Sync settings page, where sign-in is completed. */
 function signInRedirectUrl(): string {
   return window.location.href.split('#')[0] + '#/settings/sync'

@@ -22,7 +22,6 @@ export const GEMINI_MODELS: GeminiModelSpec[] = [
 
 export const DEFAULT_MODEL = GEMINI_MODELS[0].id
 
-
 const EXHAUSTED_KEY = 'kcal-tracker:gemini-exhausted'
 
 /** Model id → the Pacific date on which it reported an exhausted quota. */

@@ -110,9 +110,20 @@ export function SwipeNavigator({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!inSection) return
     const neighbours = [index - 1, index + 1].filter((i) => i >= 0 && i < SECTION_TABS.length)
-    const idle = window.requestIdleCallback?.bind(window) ?? ((cb: () => void) => window.setTimeout(cb, 300))
-    const id = idle(() => neighbours.forEach((i) => preloadSection(SECTION_TABS[i].to)))
-    return () => window.cancelIdleCallback?.(id as number)
+    const warm = () => neighbours.forEach((i) => preloadSection(SECTION_TABS[i].to))
+    // Schedule and cancel have to come from the SAME mechanism. They didn't:
+    // the scheduler fell back to setTimeout where requestIdleCallback is
+    // missing, but the cleanup only ever called cancelIdleCallback — which is
+    // undefined in exactly that case, so the optional call short-circuited and
+    // cancelled nothing. On iOS Safari, which is what this app actually runs
+    // on, the cleanup was therefore a no-op and the warm-up fired after
+    // unmount every time.
+    if (window.requestIdleCallback) {
+      const id = window.requestIdleCallback(warm)
+      return () => window.cancelIdleCallback(id)
+    }
+    const id = window.setTimeout(warm, 300)
+    return () => window.clearTimeout(id)
   }, [index, inSection])
 
   // A page that has its own "back" (a recipe detail, a settings sub-page)

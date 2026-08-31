@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.21',
+    date: '2026-08-31',
+    highlights: [
+      'Aufräumen unter der Haube: toter Code entfernt und ein Fehler behoben, durch den beim Wechsel zwischen den Hauptbereichen eine Aufräum-Routine auf iOS wirkungslos blieb.',
+    ],
+  },
+  {
     version: '1.19.20',
     date: '2026-08-31',
     highlights: [
@@ -470,7 +477,3 @@ export const RELEASE_NOTES: ReleaseNote[] = [
 
 export const CURRENT_VERSION = __APP_VERSION__
 
-/** The notes for the running build, if this version has any. */
-export function currentReleaseNote(): ReleaseNote | undefined {
-  return RELEASE_NOTES.find((n) => n.version === CURRENT_VERSION)
-}

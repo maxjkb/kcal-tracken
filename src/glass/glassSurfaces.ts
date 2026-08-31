@@ -33,22 +33,6 @@ export function setWakeHandler(fn: () => void) {
   wake = fn
 }
 
-/**
- * Öffentlicher Weckruf für Bewegung, die GlassStage sonst nicht hört.
- *
- * Die Ebene wacht selbst schon bei Zeiger-/Scroll-/Größenänderungen auf —
- * aber ein Tab-Wechsel per Antippen (statt Wischen) verschiebt jede Fläche
- * der Seite über eine reine Motion-Animation (SwipeNavigator), ganz ohne
- * Zeiger-Ereignis währenddessen. Ohne diesen Aufruf blieben die Flächen für
- * die Dauer der Übergangsanimation an ihrer alten Position eingefroren — bei
- * jedem einzelnen Tab-Wechsel, der häufigsten Navigation der App. App.tsx
- * ruft das bei jedem Bereichswechsel auf; ein No-Op, solange GlassStage noch
- * nicht gemountet hat (der Standard-Handler oben tut nichts).
- */
-export function wakeGlass() {
-  wake()
-}
-
 export function registerSurface(el: HTMLElement, rim: number): () => void {
   // Einmal beim Anmelden aus dem Stil gelesen statt pro Frame: der Eckradius
   // eines Bedienelements ändert sich nicht, und getComputedStyle ist deutlich
@@ -62,11 +46,6 @@ export function registerSurface(el: HTMLElement, rim: number): () => void {
     surfaces.delete(entry)
     wake()
   }
-}
-
-/** Anzahl der Flächen, die die Ebene gerade zeichnen müsste. */
-export function surfaceCount(): number {
-  return surfaces.size
 }
 
 /**

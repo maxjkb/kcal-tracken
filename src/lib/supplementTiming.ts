@@ -12,16 +12,6 @@ import type { SupplementTimeOfDay } from './db'
 const WINDOW_START_HOUR: Record<SupplementTimeOfDay, number> = { morning: 5, noon: 11, evening: 15, night: 22 }
 const WINDOW_END_HOUR: Record<SupplementTimeOfDay, number> = { morning: 11, noon: 15, evening: 22, night: 24 }
 
-/** Which slot "now" falls into, or null during the small hours (00:00–05:00) when nothing is due. */
-export function currentTimeOfDay(now: Date = new Date()): SupplementTimeOfDay | null {
-  const h = now.getHours()
-  if (h >= 5 && h < 11) return 'morning'
-  if (h >= 11 && h < 15) return 'noon'
-  if (h >= 15 && h < 22) return 'evening'
-  if (h >= 22 && h < 24) return 'night'
-  return null
-}
-
 export type SupplementSlotState = 'pending' | 'current' | 'checked' | 'missed'
 
 /**
