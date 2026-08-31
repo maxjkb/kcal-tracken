@@ -17,6 +17,16 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.18',
+    date: '2026-08-31',
+    highlights: [
+      'Die Feed-Seite heißt jetzt "Heute" — der Titel nennt den gezeigten Tag, die doppelte Überschrift darunter ist weg.',
+      'Kalorienbilanz: mehr gegessen als das Ziel wird jetzt rot, Ziel erreicht oder unterschritten blau (vorher andersherum).',
+      'Der KI-Chat-Button ist jetzt überall ein blauer Kreis mit Icon statt eines Buttons mit Text.',
+      'Supp-Detail-Sheet zeigt die Abschnitte in der Reihenfolge Dosierung, Bedarf, Wirkung.',
+    ],
+  },
+  {
     version: '1.19.17',
     date: '2026-08-31',
     highlights: [

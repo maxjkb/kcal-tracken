@@ -93,26 +93,17 @@ export function FeedPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-28">
-      <PageHeader title="Feed" actions={isToday && <TipsButton />} onTitleClick={() => setPickerOpen(true)} />
-
-      {/* The prev/next arrow tile is gone — the calendar sheet (a tap on the
-          page title above) is now the only way to change the shown day, so
-          there was nothing left for a dedicated navigator bar to do besides
-          report which day is currently shown. This plain, uncarded line
-          still does that (plus the "zu heute springen" shortcut, worth
-          keeping even without the tile it used to live in), just without
-          the card or the arrows either side of it. */}
-      <div className="mb-4 text-center">
-        <span className="block text-lg font-semibold text-ink">{formatDateHeading(dateKey)}</span>
-        {!isToday && (
-          <button
-            onClick={() => setDateKey(toLocalDateKey(new Date()))}
-            className="text-xs font-medium text-accent hover:underline"
-          >
-            Zu heute springen
-          </button>
-        )}
-      </div>
+      {/* The page IS the day, so the title carries it — "Heute" normally, the
+          actual date when looking at another one. That leaves nothing for a
+          separate heading below to add: it used to repeat the very same word
+          under a page called "Feed", which is the duplication this removes.
+          Tapping the title still opens the calendar, so no way of changing
+          the day is lost along with the line. */}
+      <PageHeader
+        title={formatDateHeading(dateKey)}
+        actions={isToday && <TipsButton />}
+        onTitleClick={() => setPickerOpen(true)}
+      />
 
       <GlassSurface rim={26} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-5 shadow-sm shadow-black/5">
         <NutrientRings kcal={totals.kcal} protein={totals.protein} carbs={totals.carbs} fat={totals.fat} targets={targets} />
