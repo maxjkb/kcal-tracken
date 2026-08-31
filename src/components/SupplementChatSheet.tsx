@@ -5,6 +5,7 @@ import { openSupplementChat, sendSupplementChatMessage } from '../lib/supplement
 import { GeminiError } from '../lib/gemini'
 import { Sheet } from './Sheet'
 import { BouncingDots } from './BouncingDots'
+import { InfoButton } from './InfoButton'
 
 /**
  * The per-supplement follow-up chat, opened from a recommendation card's
@@ -73,14 +74,20 @@ export function SupplementChatSheet({ suggestion, onClose }: { suggestion: Suppl
           <h2 className="text-lg font-semibold text-ink">{suggestion.supplementName}</h2>
           <p className="text-xs text-ink-soft">Rückfragen zu diesem Supplement</p>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Schließen"
-          className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft hover:bg-bg"
-        >
-          <CloseIcon />
-        </button>
+        <div className="flex items-center gap-1.5">
+          <InfoButton label="Hinweis zum Chat" title="Hinweis">
+            Keine medizinische Beratung. Bei Vorerkrankungen, Medikamenten oder Schwangerschaft vorher ärztlich
+            abklären.
+          </InfoButton>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Schließen"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft hover:bg-bg"
+          >
+            <CloseIcon />
+          </button>
+        </div>
       </div>
 
       <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 py-4">
@@ -132,9 +139,6 @@ export function SupplementChatSheet({ suggestion, onClose }: { suggestion: Suppl
             <SendIcon />
           </button>
         </div>
-        <p className="mt-2 px-1 text-[11px] leading-snug text-ink-faint">
-          Keine medizinische Beratung. Bei Vorerkrankungen, Medikamenten oder Schwangerschaft vorher ärztlich abklären.
-        </p>
       </div>
     </Sheet>
   )

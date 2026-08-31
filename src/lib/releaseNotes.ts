@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.8',
+    date: '2026-08-31',
+    highlights: [
+      'Medizinische Disclaimer (Supplement-Vorschläge, Supplement-Chat), die Mikronährstoff-Schätzmethode und die Kontingent-Erklärungen (Zurücksetzen, Firebase-Grenze, Genauigkeit) stehen nicht mehr dauerhaft als Fließtext auf dem Bildschirm, sondern hinter neuen i-Info-Buttons, die ein Sheet mit der Erklärung öffnen.',
+    ],
+  },
+  {
     version: '1.19.7',
     date: '2026-08-31',
     highlights: [
