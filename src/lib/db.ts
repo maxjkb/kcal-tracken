@@ -458,6 +458,34 @@ export interface MealprepVersion {
   createdAt: number
 }
 
+export interface SupplementChatMessage {
+  role: 'user' | 'model'
+  text: string
+  createdAt: number
+}
+
+/**
+ * One ongoing conversation about one supplement recommendation — opened by
+ * tapping a recommendation card (see SupplementChatSheet). Keyed by the
+ * supplement's own name, normalized (trim + lowercase), not by which
+ * SupplementAdvisorRun it came from: recommendations regenerate daily and
+ * reword themselves, but a conversation about "Magnesium" should still be
+ * the same conversation tomorrow, not orphaned by a new run picking
+ * slightly different wording. Never synced to Firebase — same precedent as
+ * the app's other purely local, purely generated tables
+ * (SupplementAdvisorRun, DailyTargetSnapshot, MealprepVersion).
+ */
+export interface SupplementChat {
+  id: string
+  supplementKey: string
+  /** Original-cased name, for display — supplementKey is lowercased and not fit to show. */
+  supplementName: string
+  /** Oldest first. The opening entry is always role="model", seeded from the recommendation's own reasoning/effects text so the conversation starts from what the user already saw, not a blank screen. */
+  messages: SupplementChatMessage[]
+  createdAt: number
+  updatedAt: number
+}
+
 class KcalDatabase extends Dexie {
   meals!: EntityTable<Meal, 'id'>
   recipes!: EntityTable<Recipe, 'id'>
@@ -468,6 +496,7 @@ class KcalDatabase extends Dexie {
   tipRuns!: EntityTable<TipsRun, 'id'>
   dailyTargetSnapshots!: EntityTable<DailyTargetSnapshot, 'date'>
   mealprepVersions!: EntityTable<MealprepVersion, 'id'>
+  supplementChats!: EntityTable<SupplementChat, 'id'>
 
   constructor() {
     super('kcal-tracker')
@@ -523,6 +552,18 @@ class KcalDatabase extends Dexie {
       dailyTargetSnapshots: 'date',
       mealprepVersions: 'id, recipeId, createdAt',
     })
+    this.version(8).stores({
+      meals: 'id, date, mealType, createdAt',
+      recipes: 'id, category, createdAt',
+      supplements: 'id, name, category, createdAt',
+      mySupplements: 'id, supplementId, createdAt',
+      supplementLog: 'id, mySupplementId, date, [mySupplementId+date+timeOfDay]',
+      supplementAdvisorRuns: 'id, date, generatedAt',
+      tipRuns: 'id, date, generatedAt, [date+slot]',
+      dailyTargetSnapshots: 'date',
+      mealprepVersions: 'id, recipeId, createdAt',
+      supplementChats: 'id, supplementKey, updatedAt',
+    })
   }
 }
 
@@ -557,6 +598,10 @@ export function newTipsRunId(): string {
 }
 
 export function newMealprepVersionId(): string {
+  return crypto.randomUUID()
+}
+
+export function newSupplementChatId(): string {
   return crypto.randomUUID()
 }
 

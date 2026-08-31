@@ -281,18 +281,21 @@ function isKeyError(err: unknown): boolean {
   return err instanceof GeminiError && (err.status === 401 || err.status === 403)
 }
 
-async function callGemini(params: {
-  systemPrompt: string
-  parts: GeminiPart[]
-  responseSchema: object
-}): Promise<Record<string, unknown>> {
+/**
+ * Runs `fn` once per model in fallback order (the user's chosen model
+ * first, then the others), with identical retry/quota bookkeeping for every
+ * caller — extracted so the JSON-schema callers (callGemini below) and the
+ * plain-text chat caller (callGeminiChatReply) share one fallback policy
+ * instead of two copies that could drift.
+ */
+async function runWithModelFallback<T>(fn: (model: string) => Promise<T>): Promise<T> {
   const preferred = getModel()
   const order = modelOrder(preferred)
   let firstError: unknown = null
 
   for (const model of order) {
     try {
-      const result = await callGeminiRaw(model, params)
+      const result = await fn(model)
       recordUsage(`gemini:${model}`)
       return result
     } catch (err) {
@@ -331,10 +334,32 @@ async function callGemini(params: {
   throw firstError
 }
 
-async function callGeminiRaw(
+async function callGemini(params: {
+  systemPrompt: string
+  parts: GeminiPart[]
+  responseSchema: object
+}): Promise<Record<string, unknown>> {
+  return runWithModelFallback((model) => callGeminiRaw(model, params))
+}
+
+/**
+ * The one place that actually calls `generateContent` and turns the HTTP
+ * response into either an error or the model's raw text — every other
+ * Gemini call in this file funnels through here. `contents` is the FULL
+ * conversation, not just one message, so a multi-turn chat caller can pass
+ * its whole history and a single-shot caller (callGeminiRaw below) just
+ * passes a one-element array. `responseSchema` is optional: omit it for a
+ * plain conversational reply that was never meant to be parsed as JSON —
+ * present it (as every non-chat caller does) to force structured JSON back.
+ */
+async function callGeminiText(
   model: string,
-  params: { systemPrompt: string; parts: GeminiPart[]; responseSchema: object },
-): Promise<Record<string, unknown>> {
+  params: {
+    systemPrompt: string
+    contents: { role: 'user' | 'model'; parts: GeminiPart[] }[]
+    responseSchema?: object
+  },
+): Promise<string> {
   const apiKey = getApiKey()
   if (!apiKey) {
     throw new GeminiError('Kein API-Key hinterlegt. Bitte in den Einstellungen eintragen.')
@@ -351,12 +376,11 @@ async function callGeminiRaw(
         'x-goog-api-key': apiKey,
       },
       body: JSON.stringify({
-        contents: [{ role: 'user', parts: params.parts }],
+        contents: params.contents,
         systemInstruction: { parts: [{ text: params.systemPrompt }] },
-        generationConfig: {
-          responseMimeType: 'application/json',
-          responseSchema: params.responseSchema,
-        },
+        generationConfig: params.responseSchema
+          ? { responseMimeType: 'application/json', responseSchema: params.responseSchema }
+          : undefined,
       }),
     })
   } catch {
@@ -397,12 +421,39 @@ async function callGeminiRaw(
   if (!text) {
     throw new GeminiError('Gemini hat keine Antwort geliefert. Bitte erneut versuchen.')
   }
+  return text
+}
 
+async function callGeminiRaw(
+  model: string,
+  params: { systemPrompt: string; parts: GeminiPart[]; responseSchema: object },
+): Promise<Record<string, unknown>> {
+  const text = await callGeminiText(model, {
+    systemPrompt: params.systemPrompt,
+    contents: [{ role: 'user', parts: params.parts }],
+    responseSchema: params.responseSchema,
+  })
   try {
     return JSON.parse(text)
   } catch {
     throw new GeminiError('Gemini-Antwort war kein gültiges JSON. Bitte erneut versuchen.')
   }
+}
+
+/**
+ * One conversational reply, given the full message history so far (oldest
+ * first) — no response schema, since a chat answer is prose meant to be
+ * read, not a structured record. `history`'s last entry is the question
+ * just asked; everything before it (including the recommendation's own
+ * reasoning/effects text as the opening "model" turn — see
+ * SupplementChatSheet) is context the model reads but doesn't re-answer.
+ */
+export async function callGeminiChatReply(
+  systemPrompt: string,
+  history: { role: 'user' | 'model'; text: string }[],
+): Promise<string> {
+  const contents = history.map((m) => ({ role: m.role, parts: [{ text: m.text }] }))
+  return runWithModelFallback((model) => callGeminiText(model, { systemPrompt, contents }))
 }
 
 export async function estimateNutrition(params: {
