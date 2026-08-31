@@ -5,6 +5,7 @@ import { notableMicronutrients } from '../lib/micronutrients'
 import { MacroBadge, MacroRingBadge } from './MacroBadge'
 import { Sheet } from './Sheet'
 import { Collapse } from './Collapse'
+import { InfoButton } from './InfoButton'
 
 export function MealDetail({
   meal,
@@ -133,10 +134,12 @@ function MealDetailContent({ meal, onEdit }: { meal: Meal; onEdit: () => void })
                 </div>
               ))}
               {meal.manuallyEdited && (
-                <p className="mt-1 text-xs text-ink-faint">
-                  Hinweis: Die Nährwerte oben wurden manuell angepasst — die Zutatenliste zeigt weiterhin die
-                  ursprüngliche KI-Schätzung und summiert sich ggf. nicht mehr exakt darauf.
-                </p>
+                <div className="mt-2 flex justify-end">
+                  <InfoButton label="Warum weicht die Zutatenliste ab?" title="Manuell angepasst">
+                    Hinweis: Die Nährwerte oben wurden manuell angepasst — die Zutatenliste zeigt weiterhin die
+                    ursprüngliche KI-Schätzung und summiert sich ggf. nicht mehr exakt darauf.
+                  </InfoButton>
+                </div>
               )}
             </div>
           </Collapse>

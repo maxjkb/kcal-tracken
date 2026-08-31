@@ -29,6 +29,7 @@ import { useIngredientScaling } from '../hooks/useIngredientScaling'
 import { useDraftAutosave, useRestoredDraft } from '../hooks/useFormDraft'
 import { draftKey } from '../lib/drafts'
 import { DraftRestoredBanner } from './DraftRestoredBanner'
+import { InfoButton } from './InfoButton'
 
 const EMPTY_NUTRITION: Nutrition = { kcal: 0, protein: 0, carbs: 0, fat: 0 }
 
@@ -541,10 +542,12 @@ function RecipeEditorContent({
                     <PlusIcon /> Zutat
                   </button>
                 )}
-                <p className="mt-2 text-xs text-ink-faint">
-                  Menge ändern skaliert die Nährwerte der Zutat automatisch. Über „Zutat +" fügst du eine weitere
-                  Zutat hinzu — die KI schätzt deren Nährwerte anhand des eingegebenen Textes.
-                </p>
+                <div className="mb-2 flex justify-end">
+                  <InfoButton label="Wie wirkt sich eine Mengenänderung aus?" title="Menge ändern">
+                    Menge ändern skaliert die Nährwerte der Zutat automatisch. Über „Zutat +" fügst du eine weitere
+                    Zutat hinzu — die KI schätzt deren Nährwerte anhand des eingegebenen Textes.
+                  </InfoButton>
+                </div>
               </div>
 
               <div>

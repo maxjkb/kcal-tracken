@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.20',
+    date: '2026-08-31',
+    highlights: [
+      'Weitere Erklärtexte sind hinter i-Buttons gewandert: Speicher, Aktualisierung, Backup, PDF-Export, Sync-Anmeldung, Bedarfsberechnung sowie die Hinweise zum Mengen-Skalieren in Mahlzeiten- und Rezept-Editor.',
+    ],
+  },
+  {
     version: '1.19.19',
     date: '2026-08-31',
     highlights: [

@@ -10,6 +10,7 @@ import { ChevronIcon } from '../../components/ChevronIcon'
 import { BouncingDots } from '../../components/BouncingDots'
 import { DayPickerModal, MonthPickerModal, YearPickerModal } from '../../components/DatePickerModal'
 import { formatPeriodLabel, getPeriodRange, shiftAnchor, type Period } from '../../lib/stats'
+import { InfoButton } from '../../components/InfoButton'
 
 const PERIODS: { key: Period; label: string }[] = [
   { key: 'day', label: 'Tag' },
@@ -178,11 +179,13 @@ export function DataSettingsPage() {
 
       <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
         <h2 className="mb-1 text-sm font-semibold text-ink">Backup & Zurücksetzen</h2>
-        <p className="mb-3 text-xs text-ink-soft">
-          Deine Daten liegen nur in diesem Browser. Das Backup enthält Mahlzeiten, Rezepte,
-          Supplements samt Einnahme-Verlauf und deine Körperwerte — exportiere regelmäßig eines,
-          falls du den Browser wechselst oder Speicher leerst.
-        </p>
+        <div className="mb-3 flex justify-end">
+          <InfoButton label="Was enthält das Backup?" title="Backup">
+            Deine Daten liegen nur in diesem Browser. Das Backup enthält Mahlzeiten, Rezepte,
+            Supplements samt Einnahme-Verlauf und deine Körperwerte — exportiere regelmäßig eines,
+            falls du den Browser wechselst oder Speicher leerst.
+          </InfoButton>
+        </div>
 
         <div className="flex flex-col gap-2">
           <button
@@ -229,10 +232,12 @@ export function DataSettingsPage() {
 
       <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
         <h2 className="mb-1 text-sm font-semibold text-ink">PDF-Export</h2>
-        <p className="mb-3 text-xs text-ink-soft">
-          Ein druckfertiges Ernährungstagebuch für einen frei wählbaren Zeitraum — Tag, Woche, Monat
-          oder Jahr.
-        </p>
+        <div className="mb-3 flex justify-end">
+          <InfoButton label="Was ist im PDF-Export enthalten?" title="PDF-Export">
+            Ein druckfertiges Ernährungstagebuch für einen frei wählbaren Zeitraum — Tag, Woche, Monat
+            oder Jahr.
+          </InfoButton>
+        </div>
 
         <div className="mb-3 flex gap-1 rounded-xl bg-bg p-1">
           {PERIODS.map(({ key, label }) => (

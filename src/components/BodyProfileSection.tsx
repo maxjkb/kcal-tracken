@@ -15,6 +15,7 @@ import {
   type Sex,
 } from '../lib/bodyProfile'
 import { recordTodaysTargetSnapshot } from '../lib/targetHistory'
+import { InfoButton } from './InfoButton'
 
 const ACTIVITY_LEVELS: ActivityLevel[] = ['sedentary', 'light', 'moderate', 'active', 'very_active']
 const GOALS: Goal[] = ['lose', 'maintain', 'gain', 'build_muscle']
@@ -71,11 +72,13 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
 
   return (
     <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
-      <p className="mb-3 text-xs text-ink-soft">
-        Wird genutzt, um deinen täglichen Kalorien- und Makrobedarf zu berechnen (Mifflin-St-Jeor-Formel)
-        — dieser erscheint dann als Prozentangabe neben deinen absoluten Werten im Feed und in der
-        Statistik. Bleibt lokal auf deinem Gerät (und synct mit, falls unter Sync eingerichtet).
-      </p>
+      <div className="mb-3 flex justify-end">
+        <InfoButton label="Wie wird der Bedarf berechnet?" title="Berechnung des Tagesbedarfs">
+          Wird genutzt, um deinen täglichen Kalorien- und Makrobedarf zu berechnen (Mifflin-St-Jeor-Formel)
+          — dieser erscheint dann als Prozentangabe neben deinen absoluten Werten im Feed und in der
+          Statistik. Bleibt lokal auf deinem Gerät (und synct mit, falls unter Sync eingerichtet).
+        </InfoButton>
+      </div>
 
       <div className="flex flex-col gap-3">
         <div>
@@ -155,10 +158,12 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
             ))}
           </div>
           {profile.goal === 'build_muscle' && (
-            <p className="mt-1.5 text-[11px] text-ink-soft">
-              Protein wird höher angesetzt (2,2g/kg). Die Kalorienbilanz kannst du unten in einem kleinen
-              Rahmen selbst wählen — kein Überschuss nötig, aber möglich.
-            </p>
+            <div className="mb-3 flex justify-end">
+              <InfoButton label="Wie wirkt sich das Ziel aus?" title="Ziel und Makros">
+                Protein wird höher angesetzt (2,2g/kg). Die Kalorienbilanz kannst du unten in einem kleinen
+                Rahmen selbst wählen — kein Überschuss nötig, aber möglich.
+              </InfoButton>
+            </div>
           )}
         </div>
 

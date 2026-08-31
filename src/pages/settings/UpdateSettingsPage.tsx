@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { SettingsBackHeader } from '../../components/SettingsBackHeader'
 import { CURRENT_VERSION } from '../../lib/releaseNotes'
+import { InfoButton } from '../../components/InfoButton'
 
 type CheckState = 'idle' | 'checking' | 'uptodate' | 'stale' | 'unsupported'
 
@@ -201,11 +202,13 @@ export function UpdateSettingsPage() {
           <span className="text-lg font-bold text-ink">{CURRENT_VERSION}</span>
         </div>
 
-        <p className="mb-3 text-xs leading-relaxed text-ink-soft">
-          Die App aktualisiert sich normalerweise von selbst, wenn du sie neu startest. Hier kannst du sofort
-          nachsehen, ob eine neuere Version bereitsteht — die Seite lädt dabei ein paar Mal neu, damit eine
-          gefundene Aktualisierung auch wirklich übernommen ist, bevor das Ergebnis angezeigt wird.
-        </p>
+        <div className="mb-3 flex justify-end">
+          <InfoButton label="Wie funktioniert die Aktualisierung?" title="Aktualisierung">
+            Die App aktualisiert sich normalerweise von selbst, wenn du sie neu startest. Hier kannst du sofort
+            nachsehen, ob eine neuere Version bereitsteht — die Seite lädt dabei ein paar Mal neu, damit eine
+            gefundene Aktualisierung auch wirklich übernommen ist, bevor das Ergebnis angezeigt wird.
+          </InfoButton>
+        </div>
 
         <button
           type="button"
@@ -256,10 +259,12 @@ export function UpdateSettingsPage() {
 
       <section className="rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
         <h2 className="mb-1 text-sm font-semibold text-ink">Wenn die neue Version nicht erscheint</h2>
-        <p className="text-xs leading-relaxed text-ink-soft">
-          Als installierte App auf dem Home-Bildschirm hält iOS die alte Fassung manchmal länger fest. Dann hilft
-          es, die App zweimal vollständig zu schließen und wieder zu öffnen. Deine Daten bleiben dabei erhalten.
-        </p>
+        <div className="flex justify-end">
+          <InfoButton label="Was tun, wenn die neue Version nicht erscheint?" title="Wenn die neue Version nicht erscheint">
+            Als installierte App auf dem Home-Bildschirm hält iOS die alte Fassung manchmal länger fest. Dann hilft
+            es, die App zweimal vollständig zu schließen und wieder zu öffnen. Deine Daten bleiben dabei erhalten.
+          </InfoButton>
+        </div>
       </section>
     </div>
   )
