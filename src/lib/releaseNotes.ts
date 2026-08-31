@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.10',
+    date: '2026-08-31',
+    highlights: [
+      'Supplements: der "Katalog"-Reiter ist verschwunden — der Katalog öffnet jetzt als Sheet über ein neues Buch-Symbol oben rechts (neben Einstellungen). Im Katalog-Sheet bleibt das Suchfeld unten fixiert, während die Liste mit einer Fade darunter durchscrollt.',
+    ],
+  },
+  {
     version: '1.19.9',
     date: '2026-08-31',
     highlights: [
