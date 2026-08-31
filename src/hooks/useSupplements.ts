@@ -195,7 +195,9 @@ export function useLatestAdvisorRun(): SupplementAdvisorRun | undefined | null {
  */
 export async function addSuggestionToMyList(suggestion: SupplementRecommendation): Promise<void> {
   const normalized = suggestion.supplementName.trim().toLowerCase()
-  const existing = await db.supplements.filter((s) => s.name.trim().toLowerCase() === normalized).first()
+  // `?? ''` for the same reason as lib/mealSuggestions.ts: these rows come
+  // from IndexedDB, where the declared type is not a runtime guarantee.
+  const existing = await db.supplements.filter((s) => (s.name ?? '').trim().toLowerCase() === normalized).first()
   const catalogEntry =
     existing ??
     (() => {

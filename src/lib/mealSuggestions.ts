@@ -31,8 +31,14 @@ export interface MealSuggestion {
   lastUsedAt: number
 }
 
-function normalizeTitle(title: string): string {
-  return title.trim().toLowerCase()
+function normalizeTitle(title: string | undefined): string {
+  // Defensive despite `Meal.title` being typed as required: these rows come
+  // straight out of IndexedDB, where the type is a promise rather than a
+  // guarantee — a restored backup, a row written by an older version, or a
+  // partial write can be missing it. It used to throw here, and because the
+  // suggestion list is built while the meal editor renders, one bad row took
+  // the entire editor down with a blank sheet.
+  return (title ?? '').trim().toLowerCase()
 }
 
 function describeIngredients(ingredients: Ingredient[] | undefined): string {
@@ -85,7 +91,7 @@ export function rankMealSuggestions(meals: Meal[], forType: MealType, limit: num
         nutrition: newest.nutrition,
         ingredients: newest.ingredients,
         micronutrients: newest.micronutrients,
-        description: newest.description.trim() || describeIngredients(newest.ingredients),
+        description: (newest.description ?? '').trim() || describeIngredients(newest.ingredients),
         mealType: dominantType,
         count: group.meals.length,
         lastUsedAt,
@@ -122,7 +128,7 @@ export function rankFrequentIngredients(meals: Meal[], limit: number): string[] 
     if (!meal.ingredients || meal.ingredients.length === 0) continue
     const seenInThisMeal = new Set<string>()
     for (const ing of meal.ingredients) {
-      const name = ing.name.trim()
+      const name = (ing.name ?? '').trim()
       if (!name) continue
       const key = name.toLowerCase()
       if (!seenInThisMeal.has(key)) {

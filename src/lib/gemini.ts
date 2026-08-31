@@ -1334,7 +1334,11 @@ const MICRONUTRIENT_BACKFILL_SYSTEM_PROMPT = `Du bekommst eine Liste bereits in 
 export async function estimateMicronutrientsBackfill(
   meals: MicronutrientBackfillInput[],
 ): Promise<Record<string, Micronutrients>> {
-  const lines = meals.map((m) => `- id=${m.id}: "${m.title}"${m.description.trim() ? ` — ${m.description.trim()}` : ''}`)
+  const lines = meals.map((m) => {
+    // Stored rows, so not necessarily complete — see lib/mealSuggestions.ts.
+    const description = (m.description ?? '').trim()
+    return `- id=${m.id}: "${m.title ?? ''}"${description ? ` — ${description}` : ''}`
+  })
 
   const parsed = await callGemini({
     systemPrompt: MICRONUTRIENT_BACKFILL_SYSTEM_PROMPT,
