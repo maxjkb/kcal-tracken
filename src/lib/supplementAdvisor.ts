@@ -137,7 +137,10 @@ function describeNutritionChange(previous: SupplementAdvisorContext, current: Su
 
   const changes: string[] = []
   for (const [key, label, unit] of labels) {
-    const before = previous.averageIntake[key]
+    // Same defensive reasoning as previousLowMicronutrients/previousEstablished
+    // below — averageIntake is exactly as "guaranteed" on a historical
+    // record as any other field this interface has ever gained.
+    const before = previous.averageIntake?.[key] ?? 0
     const after = current.averageIntake[key]
     if (before <= 0) continue
     const delta = after - before
@@ -150,16 +153,28 @@ function describeNutritionChange(previous: SupplementAdvisorContext, current: Su
     changes.push(`Körperziel gewechselt von "${previous.goalLabel}" zu "${current.goalLabel}"`)
   }
 
-  const newlyEstablished = current.established.filter((n) => !previous.established.includes(n))
+  // `previous` is whatever shape a PAST run's context happened to be stored
+  // in, not necessarily this version's SupplementAdvisorContext — a run
+  // saved before `lowMicronutrients` (or any future field) existed on this
+  // interface simply doesn't have it in IndexedDB, type declaration or not.
+  // Reading straight through .includes() on a missing array crashed inside
+  // generateAdvisorRun() itself, before it ever reached the Gemini call —
+  // which also meant the broken run was never replaced, so every later
+  // attempt (background and manual alike) hit the exact same crash against
+  // the exact same stale record, indefinitely.
+  const previousEstablished = previous.established ?? []
+  const previousLowMicronutrients = previous.lowMicronutrients ?? []
+
+  const newlyEstablished = current.established.filter((n) => !previousEstablished.includes(n))
   if (newlyEstablished.length > 0) {
     changes.push(`wird inzwischen regelmäßig eingenommen: ${newlyEstablished.join(', ')}`)
   }
 
-  const newlyLow = current.lowMicronutrients.filter((n) => !previous.lowMicronutrients.includes(n))
+  const newlyLow = current.lowMicronutrients.filter((n) => !previousLowMicronutrients.includes(n))
   if (newlyLow.length > 0) {
     changes.push(`neu unterrepräsentiert (7-Tage-Schnitt): ${newlyLow.join(', ')}`)
   }
-  const noLongerLow = previous.lowMicronutrients.filter((n) => !current.lowMicronutrients.includes(n))
+  const noLongerLow = previousLowMicronutrients.filter((n) => !current.lowMicronutrients.includes(n))
   if (noLongerLow.length > 0) {
     changes.push(`nicht mehr unterrepräsentiert: ${noLongerLow.join(', ')}`)
   }
