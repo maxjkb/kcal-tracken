@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import {
   db,
   MEAL_TYPE_LABELS,
@@ -47,6 +47,16 @@ const EMPTY_NUTRITION: Nutrition = { kcal: 0, protein: 0, carbs: 0, fat: 0 }
 type BarcodeScannerType = typeof import('./BarcodeScanner').BarcodeScanner
 
 type Step = 'input' | 'review'
+
+/**
+ * Step 1's collapsed height — tall enough for the description field's own
+ * label/textarea/dictate+send row, nothing more. Everything else on step 1
+ * (the recipe/photo/barcode row, a photo preview, hints, suggestions) starts
+ * scrolled out of view above it; see the input-step pane below for why a
+ * fixed height (not the pane's natural content height) is what makes that
+ * possible at all.
+ */
+const INPUT_STEP_COLLAPSED_HEIGHT = 208
 
 function round1(value: number): number {
   return Math.round(value * 10) / 10
@@ -106,10 +116,13 @@ export function MealEditor({
       onClose={onClose}
       sheetClassName="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-surface sm:rounded-3xl"
       closeOnBackdropClick={false}
-      // Opens part-way: the title, the field and the actions are what matter on
-      // arrival, while the suggestions below are there to be pulled up, not to
-      // bury the page the moment the sheet appears.
-      detents={[0.6, 1]}
+      // Single detent (the default) now that the "open compact, reveal more
+      // by pulling up" job lives inside step 1 itself (INPUT_STEP_COLLAPSED_HEIGHT
+      // + the sticky description field below) rather than in the sheet's own
+      // partial-open mechanism: this sheet's natural height while on step 1 is
+      // already just the compact pane, so a second, sheet-level partial detent
+      // on top of that would clip even shorter than intended and fight the
+      // pane's own scroll-driven reveal instead of complementing it.
     >
       <MealEditorContent date={date} initial={initial} defaultMealType={defaultMealType} />
     </Sheet>
@@ -238,6 +251,38 @@ function MealEditorContent({
   // Swiping right does what the back control on this step does. Null while
   // there is nothing to go back to, so the gesture stays inert on step one.
   const swipeBack = useSwipeBack(pickingRecipe ? () => setPickingRecipe(false) : step === 'review' ? () => setStep('input') : null)
+
+  // Step 1's collapsed-height pane (below) always opens scrolled to its own
+  // bottom, so the description field — the last thing in that pane's DOM —
+  // is what's actually on screen first, with the recipe/photo/barcode row,
+  // any photo preview, hints and suggestions starting scrolled out of view
+  // above it. `stickToBottomRef` keeps it pinned there as that content
+  // arrives (a photo attached, suggestions loading in) — but only until the
+  // user actually scrolls themselves, the same "stay pinned unless the user
+  // took over" rule a chat view uses for new messages.
+  const step1ScrollRef = useRef<HTMLDivElement>(null)
+  const step1ContentRef = useRef<HTMLDivElement>(null)
+  const stickToBottomRef = useRef(true)
+  useLayoutEffect(() => {
+    const scrollNode = step1ScrollRef.current
+    const contentNode = step1ContentRef.current
+    if (!scrollNode || !contentNode) return
+    // Scrolled to bottom immediately on mount — and the observer is on the
+    // CONTENT node, not the (fixed-height) scroll container itself: the
+    // container's own box never changes size, so only watching its content
+    // catches a later-arriving photo preview or suggestion list actually
+    // growing the scrollable area.
+    scrollNode.scrollTop = scrollNode.scrollHeight
+    const observer = new ResizeObserver(() => {
+      if (stickToBottomRef.current) scrollNode.scrollTop = scrollNode.scrollHeight
+    })
+    observer.observe(contentNode)
+    return () => observer.disconnect()
+  }, [])
+  function handleStep1Scroll(event: React.UIEvent<HTMLDivElement>) {
+    const node = event.currentTarget
+    stickToBottomRef.current = node.scrollHeight - node.scrollTop - node.clientHeight < 4
+  }
 
   const scaleIngredient = useIngredientScaling()
 
@@ -557,13 +602,23 @@ function MealEditorContent({
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1 overflow-hidden" {...swipeBack}>
+      <div
+        className={`flex min-h-0 overflow-hidden transition-[height] duration-300 ease-out ${
+          step === 'input' && !pickingRecipe ? '' : 'flex-1'
+        }`}
+        style={step === 'input' && !pickingRecipe ? { height: INPUT_STEP_COLLAPSED_HEIGHT } : undefined}
+        {...swipeBack}
+      >
         <div
           className="flex w-full shrink-0 transition-transform duration-300 ease-out"
           style={{ transform: `translateX(-${step === 'review' ? 100 : 0}%)` }}
         >
           {/* Step 1: input */}
-          <div className="w-full shrink-0 overflow-y-auto overflow-x-hidden px-5 pb-5">
+          <div
+            ref={pickingRecipe ? undefined : step1ScrollRef}
+            onScroll={pickingRecipe ? undefined : handleStep1Scroll}
+            className="w-full shrink-0 overflow-y-auto overflow-x-hidden px-5 pb-5"
+          >
             {pickingRecipe ? (
               <div className="flex flex-col gap-4">
                 <button
@@ -607,8 +662,52 @@ function MealEditorContent({
                 )}
               </div>
             ) : (
-              <div className="flex flex-col gap-4">
-                <div>
+              <div ref={step1ContentRef} className="flex flex-col gap-4">
+                {/* Everything here starts scrolled out of view above the
+                    description field below — this pane opens already
+                    scrolled to its own bottom (step1ScrollRef's effect
+                    above), so only the field is on screen at first.
+                    Scrolling up within the sheet reveals it, iOS-compose-
+                    style, while the field stays docked via `sticky` further
+                    down. */}
+                <div className="flex items-center gap-3">
+                  <ActionButton label="Rezept auswählen" onClick={() => setPickingRecipe(true)}>
+                    <RecipeIcon />
+                  </ActionButton>
+                  <PhotoActionButton photo={photo} onChange={setPhoto} source="camera" />
+                  <PhotoActionButton photo={photo} onChange={setPhoto} source="library" />
+                  <ActionButton label="Barcode scannen" onClick={openBarcodeScanner}>
+                    <BarcodeIcon />
+                  </ActionButton>
+                </div>
+
+                {photo && <PhotoPreview photo={photo} onChange={setPhoto} />}
+
+                {!hasApiKey && (
+                  <p className="rounded-2xl bg-fat/15 px-3 py-2 text-xs text-ink">
+                    Kein API-Key hinterlegt.{' '}
+                    <Link to="/settings/api" onClick={requestClose} className="font-semibold underline">
+                      Jetzt in den Einstellungen eintragen
+                    </Link>
+                    , um Nährwerte automatisch schätzen zu lassen.
+                  </p>
+                )}
+
+                {barcodeLoadError && <p className="text-sm font-medium text-danger">{barcodeLoadError}</p>}
+
+                {error && <p className="text-sm font-medium text-danger">{error}</p>}
+
+                <MealSuggestions mealType={mealType} onPick={handleSelectSuggestion} onEdit={handleEditSuggestion} />
+
+                {/* The docked field itself — `sticky bottom-0` within this
+                    pane's own scroll container (not `position: fixed`,
+                    which a transformed ancestor like the sheet's own drag
+                    `y` would resolve against the wrong containing block,
+                    same trap Sheet.tsx's own doc comment already explains).
+                    A near-opaque background masks whatever's mid-scroll
+                    behind it, matching the scroll-edge-fade every other
+                    docked field in the app already uses. */}
+                <div className="sticky bottom-0 -mx-5 bg-bg/95 px-5 pb-1 pt-2 backdrop-blur-sm">
                   <span className="mb-1 block text-xs text-ink-soft">Was hast du gegessen?</span>
                   <div className="flex items-start gap-2">
                     <div className="flex-1">
@@ -647,39 +746,6 @@ function MealEditorContent({
                     </div>
                   </div>
                 </div>
-
-                {/* The three ways to fill the field, as equal round options
-                    rather than full-width slabs: a saved recipe, a new photo,
-                    or one already in the library. Tinted, not solid — the one
-                    primary action is the send arrow above. */}
-                <div className="flex items-center gap-3">
-                  <ActionButton label="Rezept auswählen" onClick={() => setPickingRecipe(true)}>
-                    <RecipeIcon />
-                  </ActionButton>
-                  <PhotoActionButton photo={photo} onChange={setPhoto} source="camera" />
-                  <PhotoActionButton photo={photo} onChange={setPhoto} source="library" />
-                  <ActionButton label="Barcode scannen" onClick={openBarcodeScanner}>
-                    <BarcodeIcon />
-                  </ActionButton>
-                </div>
-
-                {photo && <PhotoPreview photo={photo} onChange={setPhoto} />}
-
-                {!hasApiKey && (
-                  <p className="rounded-2xl bg-fat/15 px-3 py-2 text-xs text-ink">
-                    Kein API-Key hinterlegt.{' '}
-                    <Link to="/settings/api" onClick={requestClose} className="font-semibold underline">
-                      Jetzt in den Einstellungen eintragen
-                    </Link>
-                    , um Nährwerte automatisch schätzen zu lassen.
-                  </p>
-                )}
-
-                {barcodeLoadError && <p className="text-sm font-medium text-danger">{barcodeLoadError}</p>}
-
-                {error && <p className="text-sm font-medium text-danger">{error}</p>}
-
-                <MealSuggestions mealType={mealType} onPick={handleSelectSuggestion} onEdit={handleEditSuggestion} />
               </div>
             )}
           </div>

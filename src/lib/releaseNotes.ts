@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.2',
+    date: '2026-08-31',
+    highlights: [
+      'Mahlzeiten-Sheet: Beim Öffnen ist jetzt zunächst nur das Texteingabefeld sichtbar. Hochscrollen im Sheet zeigt Rezept/Foto/Barcode-Optionen und Vorschläge darüber, während das Textfeld unten angedockt bleibt — wie beim iOS-Nachrichtenfeld.',
+    ],
+  },
+  {
     version: '1.19.1',
     date: '2026-08-31',
     highlights: [
