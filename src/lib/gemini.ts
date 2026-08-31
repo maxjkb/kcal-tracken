@@ -172,6 +172,13 @@ const FOOD_EXTRACTION_SYSTEM_PROMPT = `Extrahiere aus der folgenden Beschreibung
  * call. Best-effort throughout — a failure anywhere here (extraction call,
  * network, no matches) just means no grounding context is added, and the
  * main estimate proceeds exactly as it did before this existed.
+ *
+ * `thinkingBudget: 0` on the extraction call: picking out a handful of food
+ * names from a short description is closer to classification than
+ * reasoning, and this call sits directly in the wait before the main
+ * estimate can even start (it needs the result here as input) — nothing
+ * about it benefits from deliberation, so there's nothing to trade away by
+ * skipping it.
  */
 async function buildGroundingContext(description: string): Promise<string | null> {
   if (!description.trim()) return null
@@ -182,6 +189,7 @@ async function buildGroundingContext(description: string): Promise<string | null
       systemPrompt: FOOD_EXTRACTION_SYSTEM_PROMPT,
       parts: [{ text: description }],
       responseSchema: FOOD_EXTRACTION_SCHEMA,
+      thinkingBudget: 0,
     })
     const foods = Array.isArray(parsed.foods) ? parsed.foods : []
     names = foods.map((f) => String(f)).filter(Boolean).slice(0, 6)
@@ -194,6 +202,19 @@ async function buildGroundingContext(description: string): Promise<string | null
   if (matches.length === 0) return null
 
   return formatGroundingContext(matches)
+}
+
+/**
+ * Caps how long a best-effort step is allowed to hold up the caller — the
+ * losing side (if it's `promise`) is left to finish or fail on its own
+ * rather than cancelled; `buildGroundingContext` already only ever resolves
+ * (never rejects, see its own doc comment), so an orphaned call here just
+ * quietly does nothing once it lands. Used by estimateNutrition below so a
+ * slow grounding lookup delays the meal estimate by at most `ms`, not by
+ * however long Open Food Facts or the extraction call happen to take.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([promise, new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))])
 }
 
 function formatGroundingContext(matches: FoodDatabaseMatch[]): string {
@@ -338,6 +359,8 @@ async function callGemini(params: {
   systemPrompt: string
   parts: GeminiPart[]
   responseSchema: object
+  /** See callGeminiText's own doc comment. */
+  thinkingBudget?: number
 }): Promise<Record<string, unknown>> {
   return runWithModelFallback((model) => callGeminiRaw(model, params))
 }
@@ -351,6 +374,17 @@ async function callGemini(params: {
  * passes a one-element array. `responseSchema` is optional: omit it for a
  * plain conversational reply that was never meant to be parsed as JSON —
  * present it (as every non-chat caller does) to force structured JSON back.
+ *
+ * `thinkingBudget` is left unset by default, which keeps every existing
+ * caller (recipe estimation, supplement chat/advisor, tips) on whatever the
+ * model's own default thinking behaviour is — unchanged from before this
+ * existed. `0` disables thinking outright; only callers whose task is closer
+ * to structured lookup/classification than open-ended reasoning pass it (see
+ * estimateNutrition and buildGroundingContext's own extraction call), where
+ * skipping deliberation trades nothing meaningful away for a real cut in
+ * latency. Assumes the target model supports disabling it — true for every
+ * model in GEMINI_MODELS' current Flash/Flash-Lite roster; a future Pro-tier
+ * addition that requires a nonzero minimum would need this reconsidered.
  */
 async function callGeminiText(
   model: string,
@@ -358,6 +392,7 @@ async function callGeminiText(
     systemPrompt: string
     contents: { role: 'user' | 'model'; parts: GeminiPart[] }[]
     responseSchema?: object
+    thinkingBudget?: number
   },
 ): Promise<string> {
   const apiKey = getApiKey()
@@ -366,6 +401,15 @@ async function callGeminiText(
   }
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`
+
+  const generationConfig: Record<string, unknown> = {}
+  if (params.responseSchema) {
+    generationConfig.responseMimeType = 'application/json'
+    generationConfig.responseSchema = params.responseSchema
+  }
+  if (params.thinkingBudget !== undefined) {
+    generationConfig.thinkingConfig = { thinkingBudget: params.thinkingBudget }
+  }
 
   let response: Response
   try {
@@ -378,9 +422,7 @@ async function callGeminiText(
       body: JSON.stringify({
         contents: params.contents,
         systemInstruction: { parts: [{ text: params.systemPrompt }] },
-        generationConfig: params.responseSchema
-          ? { responseMimeType: 'application/json', responseSchema: params.responseSchema }
-          : undefined,
+        generationConfig: Object.keys(generationConfig).length > 0 ? generationConfig : undefined,
       }),
     })
   } catch {
@@ -426,12 +468,13 @@ async function callGeminiText(
 
 async function callGeminiRaw(
   model: string,
-  params: { systemPrompt: string; parts: GeminiPart[]; responseSchema: object },
+  params: { systemPrompt: string; parts: GeminiPart[]; responseSchema: object; thinkingBudget?: number },
 ): Promise<Record<string, unknown>> {
   const text = await callGeminiText(model, {
     systemPrompt: params.systemPrompt,
     contents: [{ role: 'user', parts: params.parts }],
     responseSchema: params.responseSchema,
+    thinkingBudget: params.thinkingBudget,
   })
   try {
     return JSON.parse(text)
@@ -476,13 +519,27 @@ export async function estimateNutrition(params: {
       : 'Schätze die Nährwerte anhand des Fotos.',
   })
 
-  const groundingContext = await buildGroundingContext(params.description)
+  // Capped at 1.5s rather than awaited unconditionally: grounding is a
+  // genuine accuracy improvement when it lands quickly, but it's an extra
+  // round-trip (its own extraction call, then an Open Food Facts search)
+  // sitting directly in front of the main estimate call — on a slow network
+  // or a briefly rate-limited model it could otherwise double the wait for a
+  // detail most descriptions don't even need. buildGroundingContext already
+  // only ever resolves (see its own doc comment), so timing it out here
+  // costs nothing beyond the context it would have added.
+  const groundingContext = await withTimeout(buildGroundingContext(params.description), 1500, null)
   if (groundingContext) parts.push({ text: groundingContext })
 
   const parsed = await callGemini({
     systemPrompt: SYSTEM_PROMPT,
     parts,
     responseSchema: NUTRITION_RESPONSE_SCHEMA,
+    // A schema-constrained ingredient-by-ingredient nutrition lookup is
+    // recall/estimation, not the kind of open-ended problem thinking helps
+    // with — disabling it is most of the actual latency win here, the main
+    // call is the expensive one (larger output than the grounding step's
+    // short name list).
+    thinkingBudget: 0,
   })
 
   const rawIngredients = Array.isArray(parsed.ingredients) ? parsed.ingredients : []

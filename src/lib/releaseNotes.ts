@@ -17,6 +17,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.3',
+    date: '2026-08-31',
+    highlights: [
+      'Mahlzeiten-Schätzung beschleunigt: das interne "Denken" ist für die Nährwert-Schätzung jetzt deaktiviert (reine Nachschlage-Aufgabe, keine Vorteile durch Grübeln), und der optionale Datenbank-Abgleich verzögert die Schätzung jetzt höchstens 1,5s statt unbegrenzt.',
+      'Neu: ein Ladebalken mit Prozentanzeige während der Mahlzeiten-Schätzung überbrückt die Wartezeit sichtbar, statt nur die Sende-Schaltfläche rotieren zu lassen.',
+    ],
+  },
+  {
     version: '1.19.2',
     date: '2026-08-31',
     highlights: [
