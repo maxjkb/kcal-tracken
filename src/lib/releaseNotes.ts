@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.15.6',
+    date: '2026-08-31',
+    highlights: [
+      'Das WebGL-Glas aus v1.14.3 wieder zurück auf das bisherige Material: beim Scrollen hinkte die WebGL-Ebene der Karten-Position sichtbar hinterher (ein architekturell bedingter Versatz zwischen nativer Scroll-Kompositierung und der pro Bild neu gezeichneten Ebene). Überall wieder das bewährte, ruckelfreie CSS-Glas.',
+    ],
+  },
+  {
     version: '1.15.5',
     date: '2026-08-31',
     highlights: [
