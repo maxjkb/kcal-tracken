@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.16.1',
+    date: '2026-08-31',
+    highlights: [
+      'Mikronährstoffe setzen sich nicht mehr jede Woche zurück: statt eines starren 7-Tage-Fensters fließt jetzt die ganze Historie gewichtet ein — neuere Tage zählen stärker, ältere verblassen graduell statt schlagartig zu verschwinden.',
+    ],
+  },
+  {
     version: '1.16.0',
     date: '2026-08-31',
     highlights: [

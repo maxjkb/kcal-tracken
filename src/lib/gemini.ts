@@ -769,7 +769,7 @@ export interface SupplementRecommendationInput {
   established: string[]
   /** On the list but taken patchily. These need a consistency nudge, not a new product. */
   irregular: { name: string; daysTaken: number; daysTracked: number }[]
-  /** Micronutrients (German labels) whose rolling 7-day average sits in the "unterrepräsentiert" band — empty when there's no body profile or no such gap. */
+  /** Micronutrients (German labels) whose recency-weighted average sits in the "unterrepräsentiert" band — empty when there's no body profile or no such gap. */
   lowMicronutrients: string[]
   /** The previous run's suggestions with their wording, so unchanged circumstances produce unchanged advice. */
   previous: { supplementName: string; reasoning: string }[] | null
@@ -840,7 +840,7 @@ Bereits eingenommene Supplements:
 - Was regelmäßig (an fast allen Tagen des letzten Monats) eingenommen wird, ist erledigt — schlage es nicht erneut vor.
 - Was auf der Liste steht, aber unregelmäßig eingenommen wird, nimm mit kind="consistency" auf: die Empfehlung ist dann nicht ein neues Produkt, sondern die regelmäßige Einnahme des vorhandenen. Nenne in der Begründung konkret, an wie vielen Tagen es genommen wurde, und wofür die Regelmäßigkeit nötig ist (z.B. Kreatin wirkt nur bei täglicher Einnahme über Wochen).
 
-Gewichte neue Vorschläge und Begründungen zu etwa drei Vierteln auf Basis der tatsächlichen Ernährungsdaten (z.B. "der Proteinbedarf wird im Schnitt um X g/Tag verfehlt", "kaum fettreicher Fisch/Omega-3-Quellen erkennbar", oder ein gemeldeter Mikronährstoff-Mangel) und zu einem Viertel auf Basis allgemein anerkannter, zum Körperziel passender Supplements auch ohne direkten Datenbezug (z.B. ist Kreatin bei Muskelaufbau generell gut belegt, unabhängig von den geloggten Mahlzeiten). Ein gemeldeter Mikronährstoff-Mangel (7-Tage-Schnitt unter Referenzwert) ist ein eigenständiger, direkter Grund für einen Vorschlag — z.B. rechtfertigt "Vitamin D unterrepräsentiert" für sich allein einen Vitamin-D-Vorschlag, auch ohne dass sich das an den Makronährstoffen zeigt.
+Gewichte neue Vorschläge und Begründungen zu etwa drei Vierteln auf Basis der tatsächlichen Ernährungsdaten (z.B. "der Proteinbedarf wird im Schnitt um X g/Tag verfehlt", "kaum fettreicher Fisch/Omega-3-Quellen erkennbar", oder ein gemeldeter Mikronährstoff-Mangel) und zu einem Viertel auf Basis allgemein anerkannter, zum Körperziel passender Supplements auch ohne direkten Datenbezug (z.B. ist Kreatin bei Muskelaufbau generell gut belegt, unabhängig von den geloggten Mahlzeiten). Ein gemeldeter Mikronährstoff-Mangel (gewichteter Langzeit-Schnitt unter Referenzwert) ist ein eigenständiger, direkter Grund für einen Vorschlag — z.B. rechtfertigt "Vitamin D unterrepräsentiert" für sich allein einen Vitamin-D-Vorschlag, auch ohne dass sich das an den Makronährstoffen zeigt.
 
 Bleibe bei allgemein anerkannten, gut belegten Supplements und breiten, üblichen Dosierungsspannen aus der Literatur — keine individuelle medizinische Beratung, keine ungewöhnlichen/riskanten Kombinationen oder Hochdosierungen. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema, auf Deutsch.`
 
@@ -871,8 +871,8 @@ export async function estimateSupplementRecommendations(
           .join(', ')}`
       : 'Kein Supplement wird unregelmäßig eingenommen.',
     input.lowMicronutrients.length > 0
-      ? `Mikronährstoffe mit erkennbarem Mangel (7-Tage-Schnitt unter Referenzwert, grobe KI-Schätzung): ${input.lowMicronutrients.join(', ')}`
-      : 'Keine erkennbare Mikronährstoff-Lücke in den letzten 7 Tagen (oder noch keine ausreichenden Daten dafür).',
+      ? `Mikronährstoffe mit erkennbarem Mangel (gewichteter Langzeit-Schnitt unter Referenzwert, grobe KI-Schätzung): ${input.lowMicronutrients.join(', ')}`
+      : 'Keine erkennbare Mikronährstoff-Lücke (oder noch keine ausreichenden Daten dafür).',
   ]
 
   if (input.previous && input.previous.length > 0) {

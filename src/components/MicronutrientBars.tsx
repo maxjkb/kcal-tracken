@@ -69,7 +69,7 @@ const THIRDS = [
 /**
  * The Statistik page's micronutrient section: one identity-colored gradient
  * track per curated nutrient, light-to-dark left-to-right, with a marker
- * pinned at the rolling week's average intake — no number, no percentage,
+ * pinned at the recency-weighted average intake — no number, no percentage,
  * on purpose (see the brainstorm this shipped from: a text/photo estimate is
  * too loose to present as a precise mg/µg figure). Position along a
  * continuous track carries more than a three-word verdict did, and — unlike
@@ -96,8 +96,8 @@ export function MicronutrientBars({ overview }: { overview: MicronutrientOvervie
         ))}
       </div>
       <p className="mt-4 text-[11px] leading-relaxed text-ink-faint">
-        Grobe KI-Schätzung, gemittelt über {overview.daysWithEstimate} von {overview.windowDays} Tagen mit geschätzten
-        Mahlzeiten — kein Ersatz für eine Blutuntersuchung.
+        Grobe KI-Schätzung aus {overview.daysWithEstimate} erfassten Tagen — neuere Tage zählen stärker, ältere
+        verblassen graduell statt schlagartig zu verschwinden. Kein Ersatz für eine Blutuntersuchung.
       </p>
     </div>
   )

@@ -172,7 +172,7 @@ function MealEditorContent({
   // itself: it reflects the estimate at the time it ran, not necessarily in
   // sync with later manual tweaks. Not worth solving here — there is no
   // per-ingredient micronutrient breakdown to rescale from, and these only
-  // ever feed a rolling weekly band, not an exact daily number.
+  // ever feed a recency-weighted band, not an exact daily number.
   const [micronutrients, setMicronutrients] = useState<Micronutrients | undefined>(
     restored ? restored.micronutrients : baseline.micronutrients,
   )
