@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.0',
+    date: '2026-08-31',
+    highlights: [
+      'Rezepte komplett neu gestaltet: die vier Kategorien sind jetzt große, farbige Kacheln statt einer schmalen Liste, jede Rezeptkarte zeigt Zutaten-/Schritt-Anzahl in größerer Schrift, und die Rezept-Detailseite hat jetzt einen farbigen Kopfbereich sowie eigene Karten für Zutaten, Zubereitung (mit nummerierten Schritten) und Mealprep statt einer reinen Textliste.',
+    ],
+  },
+  {
     version: '1.18.2',
     date: '2026-08-31',
     highlights: [

@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, toLocalDateKey, type Meal } from '../lib/db'
-import { ChevronIcon } from '../components/ChevronIcon'
+import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, toLocalDateKey, type Meal, type MealType } from '../lib/db'
 import { PageHeader } from '../components/PageHeader'
 import { MealTypeBadge } from '../components/MealTypeBadge'
+import { MealTypeIcon } from '../components/MealTypeIcon'
 import { MacroBadge } from '../components/MacroBadge'
 import { BouncingDots } from '../components/BouncingDots'
 import { RecipeEditor, type RecipeSeed } from '../components/RecipeEditor'
@@ -14,6 +14,7 @@ import { getApiKey } from '../lib/settings'
 import { getBodyProfile, computeDailyTargets } from '../lib/bodyProfile'
 import { guessMealType } from '../lib/mealTypeGuess'
 import { rankFrequentIngredients, SUGGESTION_HISTORY_DAYS } from '../lib/mealSuggestions'
+import { MEAL_TYPE_COLOR } from '../lib/mealTypeColor'
 import { GlassSurface } from '../glass/GlassSurface'
 
 /** How many recently logged meals "Zuletzt" shows — three fits comfortably below the four
@@ -26,13 +27,32 @@ const FREQUENT_INGREDIENT_COUNT = 8
 
 type EditorRequest = { kind: 'meal'; meal: Meal } | { kind: 'seed'; seed: RecipeSeed }
 
-/** The Rezepte root — one row per meal-type category (matching the Einstellungen menu's list
-  * style), plus two lower-key sections that turn the page's previously-empty lower half into
-  * useful shortcuts: "Zuletzt" (recently logged meals, one tap from becoming a saved recipe) and
-  * "Vorschläge" (AI recipe ideas grounded in actual recent eating habits, refreshed on request). */
+/**
+ * The Rezepte root.
+ *
+ * Redesigned from a single flat menu list (four thin rows, all identical
+ * except for a tiny icon) into four large, individually colored tiles — the
+ * "zu textlastig / keine optischen Elemente / langweilig" complaint was
+ * specifically about this page reading as a settings-style list rather than
+ * a place for food. Each tile now carries its own meal-type color as a soft
+ * glow (see CategoryTile below), the same color the app already uses for
+ * that meal type everywhere else (badges, MealCard) — nothing new was
+ * invented, it's just finally large enough to register as an eyecatcher
+ * instead of a 20px dot.
+ *
+ * "Zuletzt" and "Vorschläge" below keep their previous structure and
+ * behavior exactly, just at the larger type size and card-per-item spacing
+ * the rest of this pass uses — no new interaction to relearn there.
+ */
 export function RecipesPage() {
   const recentMeals = useRecentMeals(RECENT_MEALS_COUNT)
+  const allRecipes = useAllRecipes()
   const [editorRequest, setEditorRequest] = useState<EditorRequest | null>(null)
+
+  const countByCategory = new Map<MealType, number>()
+  for (const r of allRecipes ?? []) {
+    countByCategory.set(r.category, (countByCategory.get(r.category) ?? 0) + 1)
+  }
 
   // No SlideInPage here, unlike the two Rezepte drill-downs: this is a section
   // root, and SwipeNavigator already animates it in from whichever side the
@@ -43,40 +63,34 @@ export function RecipesPage() {
       <div className="mx-auto max-w-lg px-4 pb-28">
         <PageHeader title="Rezepte" />
 
-        <GlassSurface rim={22} className="glass-subtle glass-subtle-themed divide-y divide-line/60 overflow-hidden rounded-3xl shadow-sm shadow-black/5">
+        <div className="grid grid-cols-2 gap-3">
           {MEAL_TYPE_ORDER.map((type) => (
-            <Link
-              key={type}
-              to={`/recipes/${type}`}
-              className="flex items-center gap-3 px-4 py-3.5 active:bg-bg/60"
-            >
-              <MealTypeBadge type={type} />
-              <span className="flex-1 text-sm font-medium text-ink">{MEAL_TYPE_LABELS[type]}</span>
-              <ChevronIcon direction="right" className="h-4 w-4 shrink-0 text-ink-faint" />
-            </Link>
+            <CategoryTile key={type} type={type} count={countByCategory.get(type) ?? 0} />
           ))}
-        </GlassSurface>
+        </div>
 
         {recentMeals && recentMeals.length > 0 && (
-          <div className="mt-6">
-            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Zuletzt</h2>
-            <GlassSurface rim={22} className="glass-subtle glass-subtle-themed flex flex-col divide-y divide-line/60 overflow-hidden rounded-3xl">
+          <div className="mt-7">
+            <h2 className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-ink-soft">Zuletzt</h2>
+            <div className="flex flex-col gap-2.5">
               {recentMeals.map((meal) => (
-                <button
+                <GlassSurface
+                  as="button"
                   key={meal.id}
                   type="button"
+                  rim={20}
                   onClick={() => setEditorRequest({ kind: 'meal', meal })}
-                  className="flex items-center gap-3 px-4 py-3 text-left"
+                  className="press-card glass-subtle flex w-full items-center gap-3 rounded-2xl p-3.5 text-left shadow-sm shadow-black/5"
                 >
                   <MealTypeBadge type={meal.mealType} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-ink">{meal.title}</p>
+                    <p className="truncate text-sm font-semibold text-ink">{meal.title}</p>
                     <p className="text-xs text-ink-soft">{MEAL_TYPE_LABELS[meal.mealType]}</p>
                   </div>
                   <MacroBadge type="kcal" value={meal.nutrition.kcal} size="sm" />
-                </button>
+                </GlassSurface>
               ))}
-            </GlassSurface>
+            </div>
             {/* text-ink-soft, not text-ink-faint: real instructional text needs the 4.5:1 text
                 contrast bar, which ink-faint (tuned for icons/dots at the looser 3:1 bar) doesn't
                 clear in light mode — same fix already applied on the Supplements page. */}
@@ -96,6 +110,45 @@ export function RecipesPage() {
         <RecipeEditor category={editorRequest.seed.category} seed={editorRequest.seed} onClose={() => setEditorRequest(null)} />
       )}
     </>
+  )
+}
+
+/**
+ * One of the four meal-type tiles on the Rezepte root.
+ *
+ * A single `<Link>` rather than the app's usual "two controls" pattern
+ * (SettingsRow, RecipeCard): the whole tile does exactly one thing — open
+ * that category — so there's no second control competing for the tap.
+ *
+ * The color blob is a decorative, absolutely-positioned layer behind the
+ * content rather than an inline `background` on the tile itself: `.glass-
+ * subtle`'s own `background` shorthand (the frosted-material look) would
+ * otherwise just be overwritten outright by a second inline `background`
+ * on the same element, losing the glass effect entirely. Layering a
+ * separate blurred circle keeps both.
+ */
+function CategoryTile({ type, count }: { type: MealType; count: number }) {
+  const color = MEAL_TYPE_COLOR[type]
+  return (
+    <GlassSurface
+      as={Link}
+      to={`/recipes/${type}`}
+      rim={26}
+      className="press-card glass-subtle glass-subtle-themed relative flex flex-col gap-3 overflow-hidden rounded-3xl p-4 shadow-sm shadow-black/5"
+    >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-5 -top-5 h-20 w-20 rounded-full opacity-30 blur-xl"
+        style={{ background: color }}
+      />
+      <div className="relative z-10 flex flex-col gap-3">
+        <MealTypeBadge type={type} size="lg" />
+        <div>
+          <p className="text-base font-bold text-ink">{MEAL_TYPE_LABELS[type]}</p>
+          <p className="text-xs text-ink-soft">{count === 0 ? 'Noch keine Rezepte' : count === 1 ? '1 Rezept' : `${count} Rezepte`}</p>
+        </div>
+      </div>
+    </GlassSurface>
   )
 }
 
@@ -150,9 +203,12 @@ function SuggestionsSection({ onPick }: { onPick: (seed: RecipeSeed) => void }) 
   }
 
   return (
-    <div className="mt-6">
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Vorschläge</h2>
+    <div className="mt-7">
+      <div className="mb-2.5 flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+          <SparkleIcon className="h-3.5 w-3.5 text-section" />
+          Vorschläge
+        </h2>
         <button
           type="button"
           onClick={handleRefresh}
@@ -172,18 +228,23 @@ function SuggestionsSection({ onPick }: { onPick: (seed: RecipeSeed) => void }) 
       {suggestions && suggestions.length > 0 && (
         <div className="flex flex-col gap-2.5">
           {suggestions.map((s) => (
-            <GlassSurface as="div" key={s.title} rim={22} className="glass-subtle flex flex-col gap-2 rounded-3xl p-4">
+            <GlassSurface as="div" key={s.title} rim={24} className="glass-subtle glass-subtle-themed flex flex-col gap-2.5 rounded-3xl p-4">
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="truncate text-sm font-semibold text-ink">{s.title}</p>
-                    {s.novelty === 'new' && (
-                      <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
-                        Neu für dich
-                      </span>
-                    )}
+                <div className="flex min-w-0 items-start gap-2.5">
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-section-12 text-section">
+                    <MealTypeIcon type={s.category} className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="text-base font-semibold text-ink">{s.title}</p>
+                      {s.novelty === 'new' && (
+                        <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                          Neu für dich
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-ink-soft">{MEAL_TYPE_LABELS[s.category]}</p>
                   </div>
-                  <p className="text-xs text-ink-soft">{MEAL_TYPE_LABELS[s.category]}</p>
                 </div>
                 <button
                   type="button"
@@ -193,11 +254,19 @@ function SuggestionsSection({ onPick }: { onPick: (seed: RecipeSeed) => void }) 
                   Als Rezept anlegen
                 </button>
               </div>
-              <p className="text-sm text-ink-soft">{s.reasoning}</p>
+              <p className="text-sm leading-relaxed text-ink-soft">{s.reasoning}</p>
             </GlassSurface>
           ))}
         </div>
       )}
     </div>
+  )
+}
+
+function SparkleIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M12 2.5c.35 3.4 1.1 5.6 2.3 6.8s3.4 1.95 6.8 2.3c-3.4.35-5.6 1.1-6.8 2.3s-1.95 3.4-2.3 6.8c-.35-3.4-1.1-5.6-2.3-6.8S6.3 12.05 2.9 11.6c3.4-.35 5.6-1.1 6.8-2.3s1.95-3.4 2.3-6.8Z" />
+    </svg>
   )
 }

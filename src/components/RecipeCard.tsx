@@ -4,16 +4,30 @@ import { deleteRecipe } from '../hooks/useRecipes'
 import { MacroBadge, MacroRingBadge } from './MacroBadge'
 import { GlassSurface } from '../glass/GlassSurface'
 
-/** A recipe row in the Rezepte category list — same pill layout as MealCard, minus the photo (recipes never have one). */
+/**
+ * A recipe row in the Rezepte category list.
+ *
+ * Bigger and airier than the previous version — that one packed the title,
+ * four macro badges and a delete icon into a single 12px-padded strip, which
+ * was the concrete source of the "zu eng / Schrift zu klein" complaint on
+ * this page. Same information, same two-control layout (view vs. delete, as
+ * before — a <button> can't nest another <button>), just given room:
+ * a full-width title line at the normal body size, and a step/ingredient
+ * count underneath so the card shows more than a number before it's opened.
+ */
 export function RecipeCard({ recipe, onView }: { recipe: Recipe; onView: () => void }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   return (
-    <GlassSurface rim={18} className="press-card glass-subtle rounded-2xl p-3 shadow-sm shadow-black/5">
+    <GlassSurface rim={22} className="press-card glass-subtle glass-subtle-themed rounded-3xl p-4 shadow-sm shadow-black/5">
       <button className="press-target block w-full text-left" onClick={onView}>
-        <h3 className="font-medium text-ink">{recipe.title}</h3>
+        <h3 className="text-base font-semibold text-ink">{recipe.title}</h3>
+        <p className="mt-0.5 text-xs text-ink-soft">
+          {recipe.ingredients.length} {recipe.ingredients.length === 1 ? 'Zutat' : 'Zutaten'}
+          {recipe.steps.length > 0 && ` · ${recipe.steps.length} ${recipe.steps.length === 1 ? 'Schritt' : 'Schritte'}`}
+        </p>
       </button>
-      <div className="mt-1.5 flex items-center gap-1.5">
+      <div className="mt-3 flex items-center gap-2">
         <button className="press-target flex min-w-0 flex-1 flex-wrap gap-1.5 text-left" onClick={onView}>
           <MacroBadge type="kcal" value={recipe.nutrition.kcal} size="sm" />
           <MacroRingBadge type="protein" value={recipe.nutrition.protein} size="sm" />
