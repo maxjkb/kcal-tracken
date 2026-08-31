@@ -460,6 +460,16 @@ input[type="number"] {
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     inset 0 -12px 20px -16px rgba(10, 40, 70, 0.2);
   animation: liquid-drift 65s ease-in-out infinite;
+  /* Safari drops the backdrop-filter layer (the tile briefly renders fully
+     transparent/blank) whenever its OWN `transform` property changes value —
+     which happens on every tap of a .glass/.glass-subtle <button> via the
+     global `:active { transform: scale(...) }` press-feedback rule below.
+     will-change is a different property than transform, so it doesn't
+     collide with that rule's value; it just tells Safari to keep this
+     element's compositing layer allocated up front, so the scale() on press
+     mutates an already-stable layer instead of tearing the backdrop-filter
+     layer down and (intermittently) failing to rebuild it. */
+  will-change: transform;
 }
 
 /* Three keyframe stops rather than two (start/middle/end): a straight back-
@@ -509,6 +519,10 @@ input[type="number"] {
     inset 0 1px 0 rgba(255, 255, 255, 0.35),
     inset 0 -8px 14px -10px rgba(0, 0, 0, 0.35);
   color: #ffffff;
+  /* Same Safari press-transform/backdrop-filter fix as .glass above — this
+     is the material every primary button/pill in the app uses, so it's the
+     one most often actually pressed. */
+  will-change: transform;
 }
 
 /* A lighter frosted-glass treatment for cards/tiles — visible but doesn't
@@ -526,6 +540,12 @@ input[type="number"] {
   backdrop-filter: blur(22px) saturate(160%);
   -webkit-backdrop-filter: blur(22px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.6);
+  /* Same Safari press-transform/backdrop-filter fix as .glass above — this
+     is the class the Statistik tiles (kcal/Mahlzeit, Nährwerte-Ring, …) use,
+     which is exactly where the "tile disappears after tapping it" report
+     came from: they're <button>s with this background, so every tap already
+     triggered the failure mode this fixes. */
+  will-change: transform;
 }
 
 /* Composes with .glass-subtle on a page's primary card/list containers — a

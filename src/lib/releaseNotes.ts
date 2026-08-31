@@ -17,6 +17,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.15.7',
+    date: '2026-08-31',
+    highlights: [
+      'Statistik: die erste Kachel zeigt in Woche/Monat/Jahr jetzt, ob du im Schnitt über oder unter deinem Bedarf liegst — auf den Tag gerechnet in der Woche, auf die Woche im Monat, auf den Monat im Jahr. Die Tages-Ansicht zeigt weiter die absolute Summe.',
+      'Kacheln mit Liquid-Glass-Hintergrund (u. a. Ø kcal/Mahlzeit und Nährwerte in der Statistik) verschwanden gelegentlich nach dem Antippen — ein bekannter Safari-Fehler, bei dem der Blur-Hintergrund beim Loslassen manchmal nicht neu gezeichnet wurde. Behoben.',
+    ],
+  },
+  {
     version: '1.15.6',
     date: '2026-08-31',
     highlights: [
