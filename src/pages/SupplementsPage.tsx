@@ -296,7 +296,7 @@ function SuggestionsTab() {
   // so being on the list is exactly why they exist, not a reason to hide them.
   const myNames = new Set(
     (mySupplements ?? [])
-      .map((my) => (catalog ?? []).find((c) => c.id === my.supplementId)?.name.trim().toLowerCase())
+      .map((my) => ((catalog ?? []).find((c) => c.id === my.supplementId)?.name ?? '').trim().toLowerCase() || undefined)
       .filter((name): name is string => Boolean(name)),
   )
   const suggestions = (run?.suggestions ?? []).filter(

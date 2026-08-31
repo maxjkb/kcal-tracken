@@ -38,8 +38,8 @@ function MealprepSheetContent({ recipe }: { recipe: Recipe }) {
     try {
       const estimate = await estimateMealprep({
         recipeTitle: recipe.title,
-        originalIngredients: recipe.ingredients,
-        originalSteps: recipe.steps.map((s) => s.text),
+        originalIngredients: recipe.ingredients ?? [],
+        originalSteps: (recipe.steps ?? []).map((s) => s.text),
         targetDescription,
       })
       await saveMealprepVersion({

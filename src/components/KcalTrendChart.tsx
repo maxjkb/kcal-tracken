@@ -135,7 +135,13 @@ export function KcalTrendChart({
               dot={false}
               activeDot={false}
               connectNulls
-              isAnimationActive={!prefersReducedMotion}
+              // Off: recharts redraws the whole SVG path on every frame of
+              // its draw-in, for well over a second, starting exactly when the
+              // user has just navigated here — the trace showed it as the bulk
+              // of this page's per-frame work. A chart that is simply *there*
+              // when the page settles costs nothing and reads no worse; the
+              // motion budget is better spent on the navigation itself.
+              isAnimationActive={false}
               label={(props: TargetLabelProps) => <TargetEndLabel {...props} lastIndex={data.length - 1} />}
             />
           )}
@@ -168,7 +174,7 @@ export function KcalTrendChart({
             strokeWidth={2.5}
             dot={(props) => <TappableDot {...props} onSelect={toggleSelected} selectedKey={selectedKey} />}
             activeDot={false}
-            isAnimationActive={!prefersReducedMotion}
+            isAnimationActive={false}
           />
         </LineChart>
       </ResponsiveContainer>

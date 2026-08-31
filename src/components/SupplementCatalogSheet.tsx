@@ -38,7 +38,11 @@ export function SupplementCatalogSheet({ onClose }: { onClose: () => void }) {
   const needle = query.trim().toLowerCase()
   const visible = needle
     ? (supplements ?? []).filter(
-        (s) => s.name.toLowerCase().includes(needle) || s.description.toLowerCase().includes(needle),
+        // `?? ''` because these are IndexedDB rows: the declared type is not a
+        // runtime guarantee, and one row missing a description used to throw
+        // here — which happens while the catalog renders, so it took the whole
+        // sheet down rather than just skipping that entry.
+        (s) => (s.name ?? '').toLowerCase().includes(needle) || (s.description ?? '').toLowerCase().includes(needle),
       )
     : (supplements ?? [])
 

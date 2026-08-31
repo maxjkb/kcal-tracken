@@ -66,6 +66,7 @@ export function useLightSource(initial: Aim = { azimuth: 2.36, elevation: 0.95 }
   const targetRef = useRef<Aim>({ ...initial })
   const lightRef = useRef<LightState>({ ...initial, x: 0, y: 0, z: 1 })
   const gyroActiveRef = useRef(false)
+  const orientRef = useRef<((e: DeviceOrientationEvent) => void) | null>(null)
   /** Startet die Glättungsschleife neu, nachdem sie im Ruhezustand angehalten hat. */
   const wakeRef = useRef<() => void>(() => {})
   const [gyro, setGyro] = useState<GyroState>('idle')
@@ -189,9 +190,25 @@ export function useLightSource(initial: Aim = { azimuth: 2.36, elevation: 0.95 }
       targetRef.current = aimFromOffset(nx, ny)
       wakeRef.current()
     }
+    // Held in a ref so the listener survives being handed out of this
+    // callback: without it a second tap on the enable button (or a
+    // re-grant after a denied prompt) stacked a second listener on the same
+    // event, and nothing removed either one when the page unmounted — the
+    // orientation handler kept writing into a ref of a component that was
+    // already gone.
+    if (orientRef.current) window.removeEventListener('deviceorientation', orientRef.current)
+    orientRef.current = onOrient
     window.addEventListener('deviceorientation', onOrient)
     setGyro('granted')
   }, [])
+
+  useEffect(
+    () => () => {
+      if (orientRef.current) window.removeEventListener('deviceorientation', orientRef.current)
+      orientRef.current = null
+    },
+    [],
+  )
 
   return { setContainer, lightRef, gyro, enableGyro }
 }

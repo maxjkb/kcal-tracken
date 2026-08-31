@@ -17,6 +17,17 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.20.3',
+    date: '2026-08-31',
+    highlights: [
+      'Bugfix: Eine einzige unvollständige Zeile im Supp-Katalog brach den Katalog-Abgleich bei jedem Start ab — unbemerkt, weil er im Hintergrund läuft. Seither kamen keine neuen Katalog-Einträge mehr an.',
+      'Bugfix: Rezepte ohne Zutaten- oder Schrittliste rissen die ganze Kategorie- bzw. Detailseite mit runter statt nur die eine Karte leer zu lassen.',
+      'Bugfix: Beim Zurückkehren in die App liefen zwei Supp-Vorschlagsläufe gleichzeitig los — doppelte KI-Anfragen auf dein Kontingent.',
+      'Statistik öffnet spürbar flüssiger: die Tageswerte werden nur noch einmal statt bei jedem Neuzeichnen berechnet, und das Diagramm zeichnet sich nicht mehr Bild für Bild ein, während die Seite noch hereinkommt.',
+      'Der Sprung in eine Rezept-Kategorie wartet nicht mehr mitten in der Animation auf nachladenden Code.',
+    ],
+  },
+  {
     version: '1.20.2',
     date: '2026-08-31',
     highlights: [
