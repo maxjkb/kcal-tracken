@@ -185,6 +185,39 @@ export function computeDailyAverage(startKey: string, endKey: string, totalKcal:
   return totalKcal / Math.max(1, days)
 }
 
+/**
+ * Average per-bucket surplus/deficit against target — the day's own
+ * kcal-vs-need comparison, one level up: Woche compares day-by-day, Monat
+ * week-by-week, Jahr month-by-month. `buckets` and `targetByKey` are the
+ * already-bucketed actual/target arrays for whichever granularity the
+ * caller is in (bucketByDay/Week/Month + targetKcalByBucketKey), so this
+ * only has to line them up and average the difference.
+ *
+ * Only counts buckets that have already started (`key <= todayBucketKey`,
+ * comparable as plain strings since every bucket key is either an ISO date
+ * or an ISO year-month prefix of one) — the same "never counts the future"
+ * rule computeDailyAverage applies one level down, so a week that hasn't
+ * started yet in the Monat view doesn't drag the average toward a false
+ * deficit. Returns null when there's nothing elapsed yet to average (a
+ * future-anchored period) or no target data at all.
+ */
+export function computeAverageDeficit(
+  buckets: StatBucket[],
+  targetByKey: Map<string, number>,
+  todayBucketKey: string,
+): number | null {
+  let diffSum = 0
+  let count = 0
+  for (const b of buckets) {
+    if (b.key > todayBucketKey) continue
+    const target = targetByKey.get(b.key)
+    if (target === undefined) continue
+    diffSum += b.kcal - target
+    count++
+  }
+  return count > 0 ? diffSum / count : null
+}
+
 export interface MacroTotals {
   protein: number
   carbs: number

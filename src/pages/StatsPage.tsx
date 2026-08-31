@@ -18,6 +18,7 @@ import {
   bucketByDay,
   bucketByMonth,
   bucketByWeek,
+  computeAverageDeficit,
   computeDailyAverage,
   computeDailyMacroAverages,
   formatPeriodLabel,
@@ -111,6 +112,17 @@ export function StatsPage() {
   function withTarget(buckets: StatBucket[]): ChartBucket[] {
     return buckets.map((b) => ({ ...b, targetKcal: targetKcalByKey?.get(b.key) ?? null }))
   }
+
+  // Tile 1 ("kcal gesamt" on Tag) becomes a surplus/deficit readout on the
+  // other three periods, one granularity up from what's charted: Woche
+  // averages day-by-day, Monat week-by-week, Jahr month-by-month (see
+  // computeAverageDeficit). Reuses the exact buckets/lookup already built
+  // above for the chart — only the "today" key needs adjusting for Jahr's
+  // YYYY-MM bucket keys.
+  const todayKey = toLocalDateKey(new Date())
+  const deficitBuckets = period === 'week' ? dayData : period === 'month' ? weekData : period === 'year' ? monthData : []
+  const deficitTodayKey = period === 'year' ? todayKey.slice(0, 7) : todayKey
+  const averageDeficit = targetKcalByKey ? computeAverageDeficit(deficitBuckets, targetKcalByKey, deficitTodayKey) : null
   const perMealData =
     period === 'day'
       ? [...(meals ?? [])]
@@ -195,7 +207,22 @@ export function StatsPage() {
       </GlassSurface>
 
       <div className="mb-6 grid grid-cols-3 gap-2">
-        <StatTile value={Math.round(totals.kcal).toLocaleString('de-DE')} label="kcal gesamt" />
+        {/* Tag keeps the plain daily total. Woche/Monat/Jahr swap it for a
+            surplus/deficit readout instead — the absolute total of a whole
+            month means little on its own, but "on average, how do I compare
+            to what I need" does. Falls back to the plain total when there's
+            nothing to compare against yet (no body profile, or the target
+            history is still loading). */}
+        {period === 'day' || averageDeficit === null ? (
+          <StatTile value={Math.round(totals.kcal).toLocaleString('de-DE')} label="kcal gesamt" />
+        ) : (
+          <StatTile
+            value={`${averageDeficit >= 0 ? '+' : '−'}${Math.round(Math.abs(averageDeficit)).toLocaleString('de-DE')}`}
+            label={
+              period === 'week' ? 'kcal Ø/Tag ggü. Bedarf' : period === 'month' ? 'kcal Ø/Woche ggü. Bedarf' : 'kcal Ø/Monat ggü. Bedarf'
+            }
+          />
+        )}
         <StatTile
           value={Math.round(period === 'day' ? perMealAverages.kcal : dailyAverage).toLocaleString('de-DE')}
           label={period === 'day' ? 'Ø kcal / Mahlzeit' : 'Ø kcal / Tag'}
