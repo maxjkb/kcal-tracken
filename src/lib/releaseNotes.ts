@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.20.0',
+    date: '2026-08-31',
+    highlights: [
+      'Der Mahlzeiten-Editor hat eine neue Eingabezeile im Messenger-Stil: sie startet einzeilig im Glas-Look, der blaue Senden-Button sitzt fest rechts daneben, und das Diktier-Symbol sitzt im Feld — sobald der Text umbricht, springt es unter den Senden-Button.',
+    ],
+  },
+  {
     version: '1.19.21',
     date: '2026-08-31',
     highlights: [

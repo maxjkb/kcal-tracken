@@ -50,14 +50,13 @@ type BarcodeScannerType = typeof import('./BarcodeScanner').BarcodeScanner
 type Step = 'input' | 'review'
 
 /**
- * Step 1's collapsed height — tall enough for the description field's own
- * label/textarea/dictate+send row, nothing more. Everything else on step 1
- * (the recipe/photo/barcode row, a photo preview, hints, suggestions) starts
- * scrolled out of view above it; see the input-step pane below for why a
- * fixed height (not the pane's natural content height) is what makes that
- * possible at all.
+ * Fallback for step 1's collapsed height, used for the very first paint
+ * before the input row has been measured — one line plus its padding.
+ * After that the real, measured height takes over (see `inputRowRef`),
+ * because the row grows as the field wraps and a fixed height would clip
+ * the field's own top off once it did.
  */
-const INPUT_STEP_COLLAPSED_HEIGHT = 208
+const INPUT_ROW_FALLBACK_HEIGHT = 92
 
 function round1(value: number): number {
   return Math.round(value * 10) / 10
@@ -197,6 +196,16 @@ function MealEditorContent({
   // the real response actually lands — informative without claiming to
   // measure something that isn't actually observable here.
   const [estimateProgress, setEstimateProgress] = useState(0)
+  // Whether the description field currently needs more than its one starting
+  // line — drives where the dictation button lives (inside the field vs.
+  // under the send button). Measured by the field itself, since wrapping
+  // depends on its rendered width, not on the text alone.
+  const [descriptionWrapped, setDescriptionWrapped] = useState(false)
+  // The collapsed pane is exactly as tall as the docked input row, measured
+  // rather than hard-coded: the row grows when the description wraps, and a
+  // fixed height clipped the top of the field off as soon as it did.
+  const inputRowRef = useRef<HTMLDivElement>(null)
+  const [inputRowHeight, setInputRowHeight] = useState(INPUT_ROW_FALLBACK_HEIGHT)
   const estimateProgressTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   useEffect(() => {
     return () => {
@@ -292,6 +301,29 @@ function MealEditorContent({
     observer.observe(contentNode)
     return () => observer.disconnect()
   }, [])
+  useLayoutEffect(() => {
+    const node = inputRowRef.current
+    if (!node) return
+    const sync = () => setInputRowHeight(node.getBoundingClientRect().height)
+    sync()
+    const observer = new ResizeObserver(sync)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [step, pickingRecipe])
+
+  // Re-pin to the bottom whenever the input row's height changes —
+  // unconditionally, unlike the content-driven effect above, which only
+  // re-pins while the user hasn't scrolled away. Two reasons it can't defer
+  // to that flag here: the flag was already false in the collapsed state
+  // (the pane sits a few pixels short of its own maximum, so the
+  // "am I at the bottom" test never passed), and a row that grows because
+  // the user is typing in it has to stay fully visible regardless — the
+  // field's own top edge was otherwise pushed above the pane and clipped.
+  useLayoutEffect(() => {
+    const pane = step1ScrollRef.current
+    if (pane) pane.scrollTop = pane.scrollHeight
+  }, [inputRowHeight])
+
   function handleStep1Scroll(event: React.UIEvent<HTMLDivElement>) {
     const node = event.currentTarget
     stickToBottomRef.current = node.scrollHeight - node.scrollTop - node.clientHeight < 4
@@ -633,7 +665,7 @@ function MealEditorContent({
         className={`flex min-h-0 overflow-hidden transition-[height] duration-300 ease-out ${
           step === 'input' && !pickingRecipe ? '' : 'flex-1'
         }`}
-        style={step === 'input' && !pickingRecipe ? { height: INPUT_STEP_COLLAPSED_HEIGHT } : undefined}
+        style={step === 'input' && !pickingRecipe ? { height: inputRowHeight } : undefined}
         {...swipeBack}
       >
         <div
@@ -644,7 +676,15 @@ function MealEditorContent({
           <div
             ref={pickingRecipe ? undefined : step1ScrollRef}
             onScroll={pickingRecipe ? undefined : handleStep1Scroll}
-            className="w-full shrink-0 overflow-y-auto overflow-x-hidden px-5 pb-5"
+            // No bottom padding while collapsed: `sticky bottom-0` anchors to
+            // the scrollport's padding edge, so 20px of it held the docked row
+            // 20px clear of the bottom — and since the pane is exactly as tall
+            // as that row, the same 20px pushed the row's top (and with it the
+            // top of the text field) out above the pane, visibly clipped. The
+            // row brings its own bottom padding, so nothing is lost.
+            className={`w-full shrink-0 overflow-y-auto overflow-x-hidden px-5 ${
+              step === 'input' && !pickingRecipe ? 'pb-0' : 'pb-5'
+            }`}
           >
             {pickingRecipe ? (
               <div className="flex flex-col gap-4">
@@ -734,45 +774,41 @@ function MealEditorContent({
                     A near-opaque background masks whatever's mid-scroll
                     behind it, matching the scroll-edge-fade every other
                     docked field in the app already uses. */}
-                <div className="sticky bottom-0 -mx-5 bg-bg/95 px-5 pb-1 pt-2 backdrop-blur-sm">
-                  <span className="mb-1 block text-xs text-ink-soft">Was hast du gegessen?</span>
+                <div ref={inputRowRef} className="sticky bottom-0 -mx-5 bg-bg/70 px-5 pb-1 pt-2 backdrop-blur-xl">
                   <div className="flex items-start gap-2">
-                    <div className="flex-1">
+                    {/* `relative` so the dictation button can sit inside the
+                        field's own right edge while it is still one line. */}
+                    <div className="relative flex-1">
                       <AutoGrowTextarea
                         value={description}
                         onChange={setDescription}
                         disabled={cleaningUp}
-                        // Two 44px buttons and the 8px gap between them: the
-                        // field now starts level with the mic and ends level
-                        // with the send arrow instead of stopping short of it.
-                        minHeight={96}
-                        placeholder="z.B. 200g Hähnchenbrust, 150g Reis, etwas Brokkoli und 1 EL Olivenöl"
-                        className={`w-full rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none ${cleaningUp ? 'opacity-50' : ''}`}
+                        // One line to start with, level with the send button
+                        // beside it. It grows from here; the label that used
+                        // to sit above is now the placeholder, because a
+                        // messenger field explains itself and a caption over
+                        // a single line just costs a line.
+                        minHeight={44}
+                        onWrappedChange={setDescriptionWrapped}
+                        placeholder="Was hast du gegessen?"
+                        className={`glass-subtle glass-subtle-themed w-full rounded-2xl py-3 pl-3.5 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent/40 ${
+                          // Room for the embedded mic only while it is in
+                          // there — once it moves out, the text may use the
+                          // full width.
+                          descriptionWrapped ? 'pr-3.5' : 'pr-11'
+                        } ${cleaningUp ? 'opacity-50' : ''}`}
                       />
-                      {cleaningUp && (
-                        <p className="mt-1.5 flex items-center gap-2 text-xs text-ink-soft">
-                          <BouncingDots /> Diktat wird bereinigt…
-                        </p>
-                      )}
-                      {estimating && (
-                        <div className="mt-1.5">
-                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-line">
-                            <div
-                              className="h-full rounded-full bg-accent transition-[width] duration-200 ease-out"
-                              style={{ width: `${estimateProgress}%` }}
-                            />
-                          </div>
-                          <p className="mt-1 text-xs text-ink-soft">Nährwerte werden geschätzt… {Math.round(estimateProgress)}%</p>
-                        </div>
+                      {!descriptionWrapped && (
+                        <span className="absolute bottom-[0.4rem] right-2">
+                          <DictationButton onRecordingDone={handleDictationDone} disabled={cleaningUp} variant="inline" />
+                        </span>
                       )}
                     </div>
-                    {/* Dictate and send stack beside the field, in the order
-                        they're used: speak the meal, then send it. Both act on
-                        the text, so they belong next to it rather than in the
-                        row of input *sources* below — grouping by proximity is
-                        what tells you which control affects what. */}
+                    {/* Send stays pinned top-right for the whole life of the
+                        field, however tall it grows. The dictation button
+                        joins it underneath only once the field has wrapped
+                        and there is no longer room for it inside. */}
                     <div className="flex shrink-0 flex-col gap-2">
-                      <DictationButton onRecordingDone={handleDictationDone} disabled={cleaningUp} />
                       <ActionButton
                         label="Nährwerte schätzen"
                         onClick={handleEstimate}
@@ -781,8 +817,27 @@ function MealEditorContent({
                       >
                         {estimating ? <BouncingDots /> : <SendIcon />}
                       </ActionButton>
+                      {descriptionWrapped && (
+                        <DictationButton onRecordingDone={handleDictationDone} disabled={cleaningUp} variant="floating" />
+                      )}
                     </div>
                   </div>
+                  {cleaningUp && (
+                    <p className="mt-1.5 flex items-center gap-2 text-xs text-ink-soft">
+                      <BouncingDots /> Diktat wird bereinigt…
+                    </p>
+                  )}
+                  {estimating && (
+                    <div className="mt-1.5">
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-line">
+                        <div
+                          className="h-full rounded-full bg-accent transition-[width] duration-200 ease-out"
+                          style={{ width: `${estimateProgress}%` }}
+                        />
+                      </div>
+                      <p className="mt-1 text-xs text-ink-soft">Nährwerte werden geschätzt… {Math.round(estimateProgress)}%</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

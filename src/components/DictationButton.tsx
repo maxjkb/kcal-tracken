@@ -1,12 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 import { isSpeechRecognitionSupported, startDictation, type DictationSession } from '../lib/speech'
 
+/**
+ * `inline` sits inside the single-line text field at its right edge;
+ * `floating` is the standalone round button that takes its place under the
+ * send button once the field has wrapped to a second line. Same control,
+ * same blue outline motif either way — only the frame around it changes, so
+ * the icon never appears to swap identity as it moves.
+ */
+export type DictationButtonVariant = 'inline' | 'floating'
+
 export function DictationButton({
   onRecordingDone,
   disabled,
+  variant = 'floating',
 }: {
   onRecordingDone: (rawText: string) => void
   disabled?: boolean
+  variant?: DictationButtonVariant
 }) {
   const [listening, setListening] = useState(false)
   const [interim, setInterim] = useState('')
@@ -48,6 +59,16 @@ export function DictationButton({
 
   if (!supported) return null
 
+  const inline = variant === 'inline'
+  const frame = inline
+    ? // No frame at all: embedded in the field, a circle around it would read
+      // as a second, competing field edge.
+      'h-7 w-7'
+    : // Outline rather than a filled circle — the send button beside it is the
+      // one filled control, and two solid circles would compete for the eye.
+      'h-11 w-11 border-[1.5px] border-accent'
+  const resting = inline ? 'text-accent' : 'bg-transparent text-accent'
+
   return (
     <div className="relative flex flex-col items-end gap-1">
       {/* Live preview of what's being heard right now, before anything is
@@ -71,29 +92,31 @@ export function DictationButton({
         // 44px, matching ActionButton: the two now sit stacked beside the
         // text field, where a 4px size difference reads as a mistake — and 40
         // was under the 44pt minimum target size anyway.
-        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${
-          listening ? 'animate-pulse bg-danger text-white shadow-sm shadow-danger/30' : 'bg-bg text-ink-soft hover:bg-line'
+        className={`flex shrink-0 items-center justify-center rounded-full transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${
+          listening
+            ? `${inline ? 'h-7 w-7' : 'h-11 w-11'} animate-pulse bg-danger text-white shadow-sm shadow-danger/30`
+            : `${frame} ${resting}`
         }`}
       >
-        {listening ? <CheckIcon /> : <MicIcon />}
+        {listening ? <CheckIcon className={inline ? 'h-4 w-4' : 'h-5 w-5'} /> : <MicIcon className={inline ? 'h-[1.05rem] w-[1.05rem]' : 'h-5 w-5'} />}
       </button>
       {error && <span className="text-xs text-danger">{error}</span>}
     </div>
   )
 }
 
-function MicIcon() {
+function MicIcon({ className }: { className: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
       <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" />
       <path strokeLinecap="round" d="M19 11a7 7 0 0 1-14 0M12 18v3" />
     </svg>
   )
 }
 
-function CheckIcon() {
+function CheckIcon({ className }: { className: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} className="h-5 w-5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} className={className}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
     </svg>
   )
