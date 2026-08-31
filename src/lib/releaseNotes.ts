@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.15',
+    date: '2026-08-31',
+    highlights: [
+      'Vorschläge: Antippen einer Empfehlungs-Karte öffnet jetzt dasselbe Detail-Sheet wie bei "Meine Liste" (Dosierung, Wirkung, Bedarf, KI-Chat-Button, plus ein Hinzufügen-Button) — die Karte selbst zeigt weiterhin alles wie gewohnt.',
+    ],
+  },
+  {
     version: '1.19.14',
     date: '2026-08-31',
     highlights: [

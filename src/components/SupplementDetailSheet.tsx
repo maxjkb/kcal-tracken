@@ -46,10 +46,14 @@ type SupplementDetailSheetProps =
  *   SupplementFormSheet the same way it always did.
  * - `mode: 'recommendation'` — a suggestion card from "Vorschläge"
  *   (SupplementsPage's SuggestionsTab). Action button is a plus icon that
- *   adds it to the list instead — there's nothing to edit yet. The card
- *   itself keeps its own inline content untouched ("Karte bleibt, Sheet
- *   zusätzlich" — this sheet is an additional, deeper view, not a
- *   replacement for what the card already shows at a glance).
+ *   adds it to the list instead — there's nothing to edit yet. A
+ *   `kind: 'consistency'`/`'no_longer_needed'` suggestion is already on the
+ *   list, though, so it gets the same non-interactive "Schon auf der
+ *   Liste"/"Nicht mehr notwendig" pill the card itself shows instead of a
+ *   redundant add action. The card itself keeps its own inline content
+ *   untouched ("Karte bleibt, Sheet zusätzlich" — this sheet is an
+ *   additional, deeper view, not a replacement for what the card already
+ *   shows at a glance).
  *
  * "Bedarf" means something different in each mode and is computed
  * accordingly rather than forced into one shape: for 'mine' it's a live,
@@ -127,6 +131,16 @@ export function SupplementDetailSheet(props: SupplementDetailSheetProps) {
               >
                 <EditIcon />
               </button>
+            ) : props.recommendation.kind === 'consistency' ? (
+              // Already on the list — the same non-interactive pill the card
+              // itself shows, not an "add" action that would only duplicate it.
+              <span className="shrink-0 rounded-full bg-section-12 px-3 py-1.5 text-xs font-semibold text-section">
+                Schon auf der Liste
+              </span>
+            ) : props.recommendation.kind === 'no_longer_needed' ? (
+              <span className="shrink-0 rounded-full bg-danger/12 px-3 py-1.5 text-xs font-semibold text-danger">
+                Nicht mehr notwendig
+              </span>
             ) : (
               <button
                 type="button"
