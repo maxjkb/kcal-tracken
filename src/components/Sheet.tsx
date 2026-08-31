@@ -105,6 +105,53 @@ export function Sheet({
   const offsets = useRef<number[]>([0])
   const restIndex = useRef(0)
 
+  // Keyboard-aware docking: how much of the layout viewport the on-screen
+  // keyboard currently covers, tracked via visualViewport (not
+  // window.innerHeight, which stays the full screen height throughout —
+  // only visualViewport actually shrinks when the keyboard opens). Applied
+  // as bottom padding on the sheet's own fixed positioning wrapper below,
+  // not as an offset on `y`: `y` is the drag/detent gesture's own value,
+  // and folding a second, unrelated reason to move into it would have the
+  // keyboard's height fight the drag math (and vice versa) the moment both
+  // are ever true together. Padding on a flex `items-end` container is a
+  // completely independent way to push the same sheet up, so the two never
+  // have to coordinate.
+  //
+  // A field with `position: fixed` (see components/DockedField.tsx) can't
+  // do this itself when it lives inside a sheet: `y` above is a `transform`,
+  // and any transformed ancestor becomes the containing block for a fixed
+  // descendant — exactly the trap this component's own module doc already
+  // portals the whole sheet out of. Moving the sheet's own bottom edge
+  // sidesteps that entirely: nothing inside it needs `position: fixed` at
+  // all, the field just stays in normal flow and the sheet carries it up.
+  const [keyboardOffset, setKeyboardOffset] = useState(0)
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+
+    function update() {
+      const active = document.activeElement
+      const isTextEntry = active?.tagName === 'INPUT' || active?.tagName === 'TEXTAREA'
+      const withinThisSheet = isTextEntry && sheetRef.current?.contains(active)
+      if (!withinThisSheet) {
+        setKeyboardOffset(0)
+        return
+      }
+      setKeyboardOffset(Math.max(0, window.innerHeight - vv!.height - vv!.offsetTop))
+    }
+
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    document.addEventListener('focusin', update)
+    document.addEventListener('focusout', update)
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+      document.removeEventListener('focusin', update)
+      document.removeEventListener('focusout', update)
+    }
+  }, [])
+
   /** Recomputes the detent offsets from the sheet's current height. */
   const measure = useCallback(() => {
     const height = sheetRef.current?.offsetHeight ?? window.innerHeight
@@ -355,7 +402,10 @@ export function Sheet({
   return createPortal(
     <AnimatePresence onExitComplete={onClose}>
       {!closing && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center transition-[padding-bottom] duration-150 ease-out sm:items-center"
+          style={{ paddingBottom: keyboardOffset }}
+        >
           <motion.div
             className="absolute inset-0 bg-ink/30 backdrop-blur-sm"
             initial={{ opacity: 0 }}

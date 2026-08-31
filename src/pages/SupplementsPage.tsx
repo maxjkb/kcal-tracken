@@ -27,6 +27,7 @@ import { SupplementChecklistRow } from '../components/SupplementChecklist'
 import { SupplementFormSheet } from '../components/SupplementFormSheet'
 import { SupplementChatSheet } from '../components/SupplementChatSheet'
 import { SupplementDetailSheet } from '../components/SupplementDetailSheet'
+import { DockedField } from '../components/DockedField'
 import { SPRING_SNAPPY } from '../lib/motionTokens'
 import { GlassSurface } from '../glass/GlassSurface'
 
@@ -166,7 +167,7 @@ function CatalogTab() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="relative">
+      <DockedField className="relative">
         <GlassSurface
           as="input"
           rim={20}
@@ -180,7 +181,7 @@ function CatalogTab() {
         <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-soft" aria-hidden="true">
           <SearchIcon />
         </span>
-      </div>
+      </DockedField>
 
       {supplements === undefined ? (
         <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>

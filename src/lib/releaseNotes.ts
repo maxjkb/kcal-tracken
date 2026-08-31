@@ -17,6 +17,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.18.0',
+    date: '2026-08-31',
+    highlights: [
+      'Texteingaben docken jetzt Apple-Style direkt über der ausgefahrenen Tastatur an, statt weiter oben im Formular zu bleiben — betrifft alle Sheets (Mahlzeiten-Editor u.a.) sowie die Such-/Eingabefelder auf Seiten selbst.',
+      'Angedockte Felder bekommen einen leichten 3D-Schatten; darunter scrollende Inhalte blenden per Farbverlauf aus, statt hart abgeschnitten zu werden.',
+    ],
+  },
+  {
     version: '1.17.2',
     date: '2026-08-31',
     highlights: [

@@ -5,6 +5,7 @@ import { useSavedToast } from '../../hooks/useSavedToast'
 import { clearApiKey, getApiKey, setApiKey } from '../../lib/settings'
 import { getModel, setModel } from '../../lib/gemini'
 import { GEMINI_MODELS } from '../../lib/geminiModels'
+import { DockedField } from '../../components/DockedField'
 
 
 export function ApiSettingsPage() {
@@ -49,7 +50,7 @@ export function ApiSettingsPage() {
           (Google-Konto nötig, kein Zahlungsmittel erforderlich). Das Gratis-Kontingent ist
           rate-limitiert – bei "Rate-Limit erreicht" einfach kurz warten.
         </p>
-        <div className="flex gap-2">
+        <DockedField className="flex gap-2">
           <input
             type={showKey ? 'text' : 'password'}
             value={apiKey}
@@ -64,7 +65,7 @@ export function ApiSettingsPage() {
           >
             {showKey ? 'Verbergen' : 'Anzeigen'}
           </button>
-        </div>
+        </DockedField>
         <button
           onClick={handleSaveKey}
           className="glass-accent mt-3 w-full rounded-xl py-3 text-sm font-semibold"
@@ -88,13 +89,15 @@ export function ApiSettingsPage() {
           </a>{' '}
           eintragen.
         </p>
-        <input
-          list="model-suggestions"
-          type="text"
-          value={model}
-          onChange={(e) => handleModelChange(e.target.value)}
-          className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
-        />
+        <DockedField>
+          <input
+            list="model-suggestions"
+            type="text"
+            value={model}
+            onChange={(e) => handleModelChange(e.target.value)}
+            className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+          />
+        </DockedField>
         {/* Driven by GEMINI_MODELS rather than its own copy of the list. The
             two had already drifted: the rotation, the exhaustion markers and
             the quota bars all knew about a third model that the one screen

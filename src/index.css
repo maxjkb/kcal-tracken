@@ -558,6 +558,64 @@ input[type="number"] {
   border-color: color-mix(in srgb, var(--color-section) 45%, white 55%);
 }
 
+/* --- Docked keyboard-anchored text fields (components/DockedField.tsx) ---
+   Position/animation/depth here; the frosted-glass material itself comes
+   from also applying .glass at the call site (same material every other
+   piece of floating chrome — nav bars, sheets — already uses), so a docked
+   field reads as "the same kind of thing", not a one-off treatment. */
+.docked-field-active {
+  /* !important: this class is always applied alongside whatever static
+     layout classes the call site already had (e.g. Tailwind's `relative`
+     on the search field's wrapper) — those must never win the cascade
+     race against the one thing that actually makes docking work. */
+  position: fixed !important;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  padding: 0.625rem 1rem calc(0.625rem + env(safe-area-inset-bottom));
+  /* The lift itself: a field that was sitting flat in the page suddenly
+     has a shadow and floats above the keyboard — animating scale+shadow
+     together (not just a slide) is what makes it read as a material
+     actually rising off the page, not a box sliding up from off-screen. */
+  animation: docked-field-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .docked-field-active {
+    animation: none;
+  }
+}
+
+@keyframes docked-field-in {
+  from {
+    transform: translateY(16px) scale(0.98);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* The "Inhalte verschwinden hinter dem Feld beim Scrollen"-request: a thin
+   gradient strip directly above the docked field, so content passing
+   underneath fades out as it approaches instead of being hard-clipped by
+   the field's own opaque edge — Apple's own scroll-edge-effect pattern
+   (see liquid-glass.md), not a genuine 3D tilt/parallax. */
+.docked-field-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -28px;
+  height: 28px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.55));
+}
+@media (prefers-color-scheme: dark) {
+  .docked-field-fade {
+    background: linear-gradient(to bottom, transparent, rgba(28, 28, 30, 0.55));
+  }
+}
+
 /* Icon-badge backgrounds/pills — the undiluted area color, at the same two
    intensities .../12 and .../20 already used for the plain accent blue
    elsewhere, so swapping one class for the other changes nothing but the
