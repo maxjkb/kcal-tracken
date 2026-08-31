@@ -813,7 +813,12 @@ const SUPPLEMENT_RECOMMENDATION_SCHEMA = {
           reasoning: {
             type: 'STRING',
             description:
-              'Kurze, konkrete Begründung auf Deutsch (1-3 Sätze) — soweit möglich mit Bezug auf die tatsächlichen Nährwertdaten des Nutzers (z.B. eine erkennbare Lücke), sonst auf das Körperziel gestützt.',
+              'WOHER DER BEDARF KOMMT — kurze, konkrete Begründung auf Deutsch (1-3 Sätze), warum GENAU DIESER Nutzer das jetzt sehen sollte. Soweit möglich mit Bezug auf seine tatsächlichen Nährwertdaten (z.B. eine erkennbare Lücke), sonst auf sein Körperziel gestützt. Personenbezogen, nicht allgemein.',
+          },
+          effects: {
+            type: 'STRING',
+            description:
+              'WELCHE EFFEKTE das Supplement hat — kurzer, allgemeiner Satz, wofür es grundsätzlich bekannt/wirksam ist, unabhängig vom Nutzer (z.B. "Unterstützt Kraftaufbau und Trainingsleistung" bei Kreatin, "Wichtig für Knochen und Immunsystem" bei Vitamin D). Getrennt von reasoning — das begründet den PERSÖNLICHEN Bedarf, das hier beschreibt die WIRKUNG des Produkts selbst.',
           },
           kind: {
             type: 'STRING',
@@ -822,7 +827,7 @@ const SUPPLEMENT_RECOMMENDATION_SCHEMA = {
               'new = steht noch nicht auf der Liste. consistency = steht schon auf der Liste, wird aber zu unregelmäßig eingenommen; die Empfehlung lautet dann, es regelmäßig zu nehmen. no_longer_needed = steht auf der Liste UND in "Mögliche Überschüsse" (siehe unten) — die Begründung erklärt konkret, warum, und ob eher ganz absetzen oder nur die Dosis senken sinnvoll ist.',
           },
         },
-        required: ['supplementName', 'category', 'suggestedDosage', 'suggestedTimesOfDay', 'reasoning', 'kind'],
+        required: ['supplementName', 'category', 'suggestedDosage', 'suggestedTimesOfDay', 'reasoning', 'effects', 'kind'],
       },
     },
   },
@@ -914,7 +919,8 @@ export async function estimateSupplementRecommendations(
       ? s.suggestedTimesOfDay.filter((t: unknown): t is SupplementTimeOfDay => SUPPLEMENT_TIME_ENUM.includes(t as SupplementTimeOfDay))
       : [],
     reasoning: String(s.reasoning ?? ''),
-    kind: s.kind === 'consistency' ? 'consistency' : 'new',
+    effects: typeof s.effects === 'string' && s.effects.trim() ? s.effects : undefined,
+    kind: s.kind === 'consistency' || s.kind === 'no_longer_needed' ? s.kind : 'new',
   }))
 }
 

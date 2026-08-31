@@ -306,7 +306,17 @@ export interface SupplementRecommendation {
   category: SupplementCategory
   suggestedDosage: string
   suggestedTimesOfDay: SupplementTimeOfDay[]
+  /** Why THIS user is being shown this suggestion now — the personal, data-grounded half of the card ("Woher kommt der Bedarf"). */
   reasoning: string
+  /**
+   * What the supplement is generally known/used for, independent of this
+   * user's own data — the other half of the card ("Welche Effekte hat das
+   * Supplement"), e.g. "Unterstützt Kraftaufbau und Trainingsleistung" for
+   * Kreatin. Optional rather than required: suggestions stored by an older
+   * app version never asked Gemini for this and simply don't have it —
+   * the card falls back to hiding that line rather than showing "undefined".
+   */
+  effects?: string
   /**
    * `new` = not on the list yet. `consistency` = already on the list but taken
    * too irregularly to do anything, so the suggestion is to actually stick
