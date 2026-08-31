@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.16.4',
+    date: '2026-08-31',
+    highlights: [
+      'Supplement-Empfehlungen: "Zur Liste hinzufügen" ist jetzt ein einfaches Plus-Icon, jede Kachel trennt klar "Bedarf" (warum du das siehst) und "Wirkung" (was das Supplement grundsätzlich macht), und ein hinzugefügtes Supplement verschwindet sofort und dauerhaft aus den Vorschlägen — vorher tauchte es nach einem Neuladen wieder auf.',
+    ],
+  },
+  {
     version: '1.16.3',
     date: '2026-08-31',
     highlights: [

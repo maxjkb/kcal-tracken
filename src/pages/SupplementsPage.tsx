@@ -248,10 +248,11 @@ function CatalogTab() {
 function SuggestionsTab() {
   const run = useLatestAdvisorRun()
   const hasApiKey = Boolean(getApiKey())
+  const catalog = useAllSupplements()
+  const mySupplements = useMySupplements()
 
   const [retrying, setRetrying] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [addedNames, setAddedNames] = useState<Set<string>>(new Set())
 
   async function handleRetry() {
     setRetrying(true)
@@ -280,7 +281,11 @@ function SuggestionsTab() {
 
   async function handleAdd(s: SupplementRecommendation) {
     await addSuggestionToMyList(s)
-    setAddedNames((current) => new Set(current).add(s.supplementName))
+    // No local "added" bookkeeping needed: useMySupplements() below is a
+    // live Dexie query, so the moment this write lands, myNormalizedNames
+    // picks it up and the filter a few lines down drops the suggestion from
+    // the list on its own — the actual "darf nicht mehr auftauchen" rule,
+    // not just a disabled button that forgets on reload.
   }
 
   if (!hasApiKey) {
@@ -293,7 +298,18 @@ function SuggestionsTab() {
 
   if (run === undefined) return <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
 
-  const suggestions = run?.suggestions ?? []
+  // Same name-normalization addSuggestionToMyList itself matches an existing
+  // catalog entry by. Only filters out kind="new" suggestions — "consistency"
+  // and "no_longer_needed" *reference* an existing routine entry by design,
+  // so being on the list is exactly why they exist, not a reason to hide them.
+  const myNames = new Set(
+    (mySupplements ?? [])
+      .map((my) => (catalog ?? []).find((c) => c.id === my.supplementId)?.name.trim().toLowerCase())
+      .filter((name): name is string => Boolean(name)),
+  )
+  const suggestions = (run?.suggestions ?? []).filter(
+    (s) => s.kind !== 'new' || !myNames.has(s.supplementName.trim().toLowerCase()),
+  )
 
   return (
     <div className="flex flex-col gap-4">
@@ -319,14 +335,10 @@ function SuggestionsTab() {
 
       <StaggeredList className="flex flex-col gap-4">
       {suggestions.map((s) => {
-        const added = addedNames.has(s.supplementName)
         const isConsistency = s.kind === 'consistency'
-        // TODO(#15): a proper "nicht mehr notwendig" card treatment — this is
-        // just enough to not offer a nonsensical "Zur Liste hinzufügen" on an
-        // entry that's already on the list and being suggested for removal.
         const isNoLongerNeeded = s.kind === 'no_longer_needed'
         return (
-          <div key={s.supplementName} className="glass-subtle flex flex-col gap-2 rounded-3xl p-4">
+          <div key={s.supplementName} className="glass-subtle flex flex-col gap-2.5 rounded-3xl p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-ink">{s.supplementName}</p>
@@ -335,7 +347,14 @@ function SuggestionsTab() {
               {/* A consistency item is already on the list — offering "add" would
                   duplicate it, and the ask is to take it, not to acquire it.
                   Same reasoning for "nicht mehr notwendig": it's already on the
-                  list too, just being flagged for the opposite reason. */}
+                  list too, just being flagged for the opposite reason. A plain
+                  "new" suggestion gets the +-icon toggle everywhere else in this
+                  page already uses (CatalogTab) — no text label, since it's never
+                  ambiguous what a lone "+" on a supplement card means. There is
+                  no "-" state to toggle back to here: accepting a suggestion is
+                  one-directional, and the card itself disappears the moment it's
+                  added (see the myNames filter above), so there's never a moment
+                  where a "-" would have anything to remove. */}
               {isConsistency ? (
                 <span className="shrink-0 rounded-full bg-section-12 px-3 py-1.5 text-xs font-semibold text-section">
                   Schon auf der Liste
@@ -348,16 +367,32 @@ function SuggestionsTab() {
                 <button
                   type="button"
                   onClick={() => handleAdd(s)}
-                  disabled={added}
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                    added ? 'bg-bg text-ink-soft' : 'bg-accent/12 text-accent hover:bg-accent/20'
-                  }`}
+                  aria-label={`${s.supplementName} zur Liste hinzufügen`}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/12 text-accent transition hover:bg-accent/20"
                 >
-                  {added ? 'Hinzugefügt' : 'Zur Liste hinzufügen'}
+                  <PlusIcon />
                 </button>
               )}
             </div>
-            <p className="text-sm text-ink-soft">{s.reasoning}</p>
+            {/* Two clearly separate lines rather than one paragraph: "woher
+                kommt der Bedarf" (this user's own data) and "welche Effekte"
+                (what the product itself generally does) answer two different
+                questions, and folding them into one sentence buried which was
+                which. effects is optional (see SupplementRecommendation) —
+                older stored runs simply don't have it, so that line just
+                doesn't render rather than showing "undefined". */}
+            <div className="flex flex-col gap-1">
+              <p className="text-sm text-ink-soft">
+                <span className="font-medium text-ink">Bedarf: </span>
+                {s.reasoning}
+              </p>
+              {s.effects && (
+                <p className="text-sm text-ink-soft">
+                  <span className="font-medium text-ink">Wirkung: </span>
+                  {s.effects}
+                </p>
+              )}
+            </div>
             <p className="text-xs text-ink-soft">
               {s.suggestedDosage} · {s.suggestedTimesOfDay.map((t) => SUPPLEMENT_TIME_LABELS[t]).join(', ')}
             </p>
