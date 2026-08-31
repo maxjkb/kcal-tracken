@@ -22,7 +22,6 @@ import { GeminiError } from '../lib/gemini'
 import { getApiKey } from '../lib/settings'
 import { SupplementChecklistRow } from '../components/SupplementChecklist'
 import { SupplementFormSheet } from '../components/SupplementFormSheet'
-import { SupplementChatSheet } from '../components/SupplementChatSheet'
 import { SupplementDetailSheet } from '../components/SupplementDetailSheet'
 import { SupplementCatalogSheet } from '../components/SupplementCatalogSheet'
 import { SuppScoreSheet } from '../components/SuppScoreSheet'
@@ -237,7 +236,15 @@ function SuggestionsTab() {
 
   const [retrying, setRetrying] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [chatSuggestion, setChatSuggestion] = useState<SupplementRecommendation | null>(null)
+  // Opens the same unified detail sheet "Meine Liste" rows use (Dosierung/
+  // Wirkung/Bedarf + a KI-Chat button inside) — additional to the card, not
+  // a replacement for it: the card's own inline reasoning/effects text and
+  // its quick-add "+" stay exactly as they were, per explicit request
+  // ("Karte bleibt, Sheet zusätzlich"). Tapping the card's name/reasoning
+  // area used to jump straight to the chat; it opens this richer sheet
+  // instead now, with the chat one tap further in — the same two-step depth
+  // "Meine Liste" already uses, so both flows now behave identically.
+  const [viewing, setViewing] = useState<SupplementRecommendation | null>(null)
 
   async function handleRetry() {
     setRetrying(true)
@@ -325,16 +332,15 @@ function SuggestionsTab() {
         return (
           <div key={s.supplementName} className="glass-subtle flex flex-col gap-2.5 rounded-3xl p-4">
             <div className="flex items-start justify-between gap-3">
-              {/* Opens the KI-Chat, seeded with this card's own reasoning/effects
-                  text as the opening message — see SupplementChatSheet. A <button>,
-                  not the whole card: the +/pill control on the same row needs to
-                  stay its own, sibling tap target (a <button> can't legally nest
-                  another one), same constraint CatalogTab's rows already solve. */}
+              {/* Opens the detail sheet — not the whole card: the +/pill control on
+                  the same row needs to stay its own, sibling tap target (a
+                  <button> can't legally nest another one), same constraint
+                  CatalogTab's rows already solve. */}
               <button
                 type="button"
-                onClick={() => setChatSuggestion(s)}
+                onClick={() => setViewing(s)}
                 className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                aria-label={`Chat zu ${s.supplementName} öffnen`}
+                aria-label={`Details zu ${s.supplementName} öffnen`}
               >
                 <SupplementCategoryBadge category={s.category} className="h-9 w-9" />
                 <span className="min-w-0">
@@ -379,7 +385,7 @@ function SuggestionsTab() {
                 which. effects is optional (see SupplementRecommendation) —
                 older stored runs simply don't have it, so that line just
                 doesn't render rather than showing "undefined". */}
-            <button type="button" onClick={() => setChatSuggestion(s)} className="flex flex-col gap-1 text-left">
+            <button type="button" onClick={() => setViewing(s)} className="flex flex-col gap-1 text-left">
               <p className="text-sm text-ink-soft">
                 <span className="font-medium text-ink">Bedarf: </span>
                 {s.reasoning}
@@ -408,7 +414,17 @@ function SuggestionsTab() {
         {retrying ? 'Wird neu erstellt…' : 'Jetzt neu erstellen'}
       </button>
 
-      {chatSuggestion && <SupplementChatSheet suggestion={chatSuggestion} onClose={() => setChatSuggestion(null)} />}
+      {viewing && (
+        <SupplementDetailSheet
+          mode="recommendation"
+          recommendation={viewing}
+          onClose={() => setViewing(null)}
+          onAdd={() => {
+            void handleAdd(viewing)
+            setViewing(null)
+          }}
+        />
+      )}
     </div>
   )
 }
