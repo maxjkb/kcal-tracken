@@ -207,6 +207,25 @@
   --color-settings-about: #af52de; /* Purple — Version & Neues */
 
   /*
+   * Supplements category icon badges (components/SupplementCategoryBadge.tsx)
+   * — the same fix as the Einstellungen block above, and for the same reason:
+   * the whole Supplements page used to be plain black-on-white/glass cards
+   * with no color anywhere except the accent-blue checkmark, "es fehlt an
+   * Farbe" again, this time on the main page itself rather than a menu.
+   * Genuine Apple system colors again, not the photo-anchored macro/meal
+   * palette — a supplement's category badge never sits next to a meal photo
+   * or nutrient bar either.
+   */
+  --color-supp-build_muscle: #ff3b30; /* Red — Muskelaufbau & Kraft */
+  --color-supp-endurance: #ff9500; /* Orange — Ausdauer & Leistung */
+  --color-supp-recovery: #5856d6; /* Indigo — Erholung & Schlaf */
+  --color-supp-joints: #00c7be; /* Mint — Gelenke & Knochen */
+  --color-supp-immune: #34c759; /* Green — Immunsystem */
+  --color-supp-cognition: #af52de; /* Purple — Fokus & Kognition */
+  --color-supp-gut: #a2845e; /* Brown — Darm & Verdauung */
+  --color-supp-general_health: #32ade6; /* Cyan — Vitamine & Grundversorgung */
+
+  /*
    * One accent color per main area (Rezepte/Supplements/Feed/Statistik, in
    * their actual left-to-right tab order — lib/sections.ts SECTION_TABS),
    * now driven by the uploaded blue-scale palette photo rather than a
@@ -385,6 +404,15 @@ body {
     --color-settings-quota: #ffd60a;
     --color-settings-update: #66d4cf;
     --color-settings-about: #bf5af2;
+
+    --color-supp-build_muscle: #ff453a;
+    --color-supp-endurance: #ff9f0a;
+    --color-supp-recovery: #5e5ce6;
+    --color-supp-joints: #66d4cf;
+    --color-supp-immune: #30d158;
+    --color-supp-cognition: #bf5af2;
+    --color-supp-gut: #ac8e68;
+    --color-supp-general_health: #64d2ff;
 
     --color-section-feed: #64d2ff;
     --color-section-recipes: #40cbe0;
