@@ -1,5 +1,5 @@
 import { Suspense, lazy, useLayoutEffect, useRef, useState } from 'react'
-import { Route, Routes, useLocation } from 'react-router-dom'
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { BottomNav } from './components/BottomNav'
 import { SwipeNavigator } from './components/SwipeNavigator'
 import { RecipesPage, StatsPage, SupplementsPage } from './components/SectionPreview'
@@ -78,8 +78,16 @@ const SECTION_ICON_VAR: Record<Section, string> = {
 
 export default function App() {
   const [addingMeal, setAddingMeal] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
+  // Not component state: the Einstellungen sheet opens full pages from inside
+  // itself (Körperwerte, API, Sync …), and a boolean can't survive that route
+  // change — going back landed on the bare page with the sheet gone, several
+  // steps further back than "back" should mean. As a search param it is a
+  // history entry of its own: open pushes it, tapping a category pushes the
+  // page on top, and back returns to the sheet exactly as it was. Sheets that
+  // never open a page keep their own marker entry instead (see Sheet.tsx).
+  const settingsOpen = new URLSearchParams(location.search).get('sheet') === 'settings'
   const section = sectionForPath(location.pathname)
   // A static stand-in, not useLightSource(): that hook runs its own
   // pointer/device-orientation tracking loop purely to feed GlassStage's
@@ -106,7 +114,7 @@ export default function App() {
 
   return (
     <AddMealContext.Provider value={() => setAddingMeal(true)}>
-    <SettingsSheetContext.Provider value={() => setSettingsOpen(true)}>
+    <SettingsSheetContext.Provider value={() => navigate({ search: '?sheet=settings' })}>
       <SwipeProgressProvider>
       {/* Rendered outside the min-h-screen wrapper below, and that wrapper's
           own explicit bg-bg is dropped in favor of body's identical
@@ -207,7 +215,7 @@ export default function App() {
             onClose={() => setAddingMeal(false)}
           />
         )}
-        {settingsOpen && <SettingsSheet onClose={() => setSettingsOpen(false)} />}
+        {settingsOpen && <SettingsSheet onClose={() => navigate(-1)} />}
       </div>
       </SwipeProgressProvider>
     </SettingsSheetContext.Provider>

@@ -8,7 +8,6 @@ import { isStoragePersisted } from '../lib/persistence'
 import { onAuthChange } from '../lib/firebase'
 import { GlassSurface } from '../glass/GlassSurface'
 import { Sheet } from './Sheet'
-import { useSheetClose } from '../hooks/useSheetClose'
 
 /**
  * The Einstellungen root — was its own page (src/pages/SettingsPage.tsx,
@@ -26,7 +25,13 @@ import { useSheetClose } from '../hooks/useSheetClose'
  */
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   return (
-    <Sheet onClose={onClose} sheetClassName="glass flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl">
+    <Sheet
+      onClose={onClose}
+      // This sheet's open state is a search param App reads, not a marker
+      // entry — see Sheet.tsx's `manageHistory` and App.tsx's settingsOpen.
+      manageHistory={false}
+      sheetClassName="glass flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl"
+    >
       <div className="min-h-0 overflow-y-auto p-5 pt-7 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
         <h2 className="mb-4 text-lg font-semibold text-ink">Einstellungen</h2>
         <SettingsMenu />
@@ -36,7 +41,6 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
 }
 
 function SettingsMenu() {
-  const closeSheet = useSheetClose()
 
   const bodyProfile = getBodyProfile()
   const bodyProfileSubtitle = bodyProfile
@@ -64,7 +68,6 @@ function SettingsMenu() {
           icon={<BodyIcon />}
           title="Körperwerte & Ziele"
           subtitle={bodyProfileSubtitle}
-          onNavigate={closeSheet}
         />
         <SettingsRow
           to="/settings/api"
@@ -72,7 +75,6 @@ function SettingsMenu() {
           icon={<KeyIcon />}
           title="Gemini API"
           subtitle={apiKeySubtitle}
-          onNavigate={closeSheet}
         />
         <SettingsRow
           to="/settings/speicher"
@@ -80,7 +82,6 @@ function SettingsMenu() {
           icon={<StorageIcon />}
           title="Speicher"
           subtitle={storageSubtitle}
-          onNavigate={closeSheet}
         />
         <SettingsRow
           to="/settings/daten"
@@ -88,7 +89,6 @@ function SettingsMenu() {
           icon={<DataIcon />}
           title="Daten"
           subtitle="Backup & Zurücksetzen"
-          onNavigate={closeSheet}
         />
         <SettingsRow
           to="/settings/sync"
@@ -96,7 +96,6 @@ function SettingsMenu() {
           icon={<SyncIcon />}
           title="Sync"
           subtitle={syncSubtitle}
-          onNavigate={closeSheet}
         />
         <SettingsRow
           to="/settings/kontingent"
@@ -104,7 +103,6 @@ function SettingsMenu() {
           icon={<GaugeIcon />}
           title="Kontingent"
           subtitle="Anfragen an Gemini & Firebase heute"
-          onNavigate={closeSheet}
         />
       </GlassSurface>
 
@@ -118,7 +116,6 @@ function SettingsMenu() {
           icon={<DownloadIcon />}
           title="Aktualisierung"
           subtitle="Nach neuer Version suchen"
-          onNavigate={closeSheet}
         />
         <SettingsRow
           to="/settings/version"
@@ -126,7 +123,6 @@ function SettingsMenu() {
           icon={<InfoIcon />}
           title="Version & Neues"
           subtitle={`Version ${CURRENT_VERSION}`}
-          onNavigate={closeSheet}
         />
       </GlassSurface>
     </>
@@ -139,7 +135,6 @@ function SettingsRow({
   color,
   title,
   subtitle,
-  onNavigate,
 }: {
   to: string
   icon: ReactNode
@@ -147,10 +142,9 @@ function SettingsRow({
   color: string
   title: string
   subtitle: string
-  onNavigate: () => void
 }) {
   return (
-    <Link to={to} onClick={onNavigate} className="flex items-center gap-3 px-4 py-3.5 active:bg-bg">
+    <Link to={to} className="flex items-center gap-3 px-4 py-3.5 active:bg-bg">
       <span
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white"
         style={{ background: color }}
