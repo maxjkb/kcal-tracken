@@ -259,7 +259,20 @@ function SuggestionsTab() {
     try {
       await generateAdvisorRun()
     } catch (err) {
-      setError(err instanceof GeminiError ? err.message : 'Unbekannter Fehler bei der Empfehlung.')
+      // Logged either way, so remote-debugging or a browser console can see
+      // the real stack — not just what's shown in the UI.
+      console.error('Supplement-Empfehlung fehlgeschlagen:', err)
+      // Anything that isn't a GeminiError used to collapse into a single,
+      // generic "Unbekannter Fehler" with no way to tell what actually
+      // broke — a bug in the surrounding analysis code (Dexie, a malformed
+      // record) looked identical to a network hiccup. Appending the raw
+      // message/value makes the next occurrence diagnosable from a
+      // screenshot instead of a dead end.
+      setError(
+        err instanceof GeminiError
+          ? err.message
+          : `Unbekannter Fehler bei der Empfehlung: ${err instanceof Error ? err.message : String(err)}`,
+      )
     } finally {
       setRetrying(false)
     }

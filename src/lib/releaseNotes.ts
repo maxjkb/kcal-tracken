@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.15.3',
+    date: '2026-08-31',
+    highlights: [
+      'Supplement-Empfehlungen: die Fehlermeldung beim manuellen Neu-Erstellen zeigt jetzt den tatsächlichen Fehler statt nur „Unbekannter Fehler" — hilft, einen weiterhin bestehenden Fehlerfall genauer einzugrenzen.',
+    ],
+  },
+  {
     version: '1.15.2',
     date: '2026-08-30',
     highlights: [

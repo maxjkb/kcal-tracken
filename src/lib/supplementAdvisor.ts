@@ -91,12 +91,18 @@ async function analyzeIntake(): Promise<{ average: Nutrition; periodDays: number
   const todayKey = toLocalDateKey(new Date())
   const meals = await db.meals.where('date').between(startKey, todayKey, true, true).toArray()
 
+  // `m.nutrition?.field ?? 0` rather than trusting the type: Nutrition is
+  // required on Meal, but a record from before that was true, or written
+  // outside the app's own save paths, could still lack it — and this runs
+  // on every retry, so one such meal anywhere in the last 14 days would
+  // otherwise throw a plain TypeError that reaches the UI as an
+  // unexplained "Unbekannter Fehler", not a GeminiError with a real message.
   const totals = meals.reduce(
     (acc, m) => ({
-      kcal: acc.kcal + m.nutrition.kcal,
-      protein: acc.protein + m.nutrition.protein,
-      carbs: acc.carbs + m.nutrition.carbs,
-      fat: acc.fat + m.nutrition.fat,
+      kcal: acc.kcal + (m.nutrition?.kcal ?? 0),
+      protein: acc.protein + (m.nutrition?.protein ?? 0),
+      carbs: acc.carbs + (m.nutrition?.carbs ?? 0),
+      fat: acc.fat + (m.nutrition?.fat ?? 0),
     }),
     { kcal: 0, protein: 0, carbs: 0, fat: 0 },
   )
