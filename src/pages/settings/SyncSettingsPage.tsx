@@ -21,6 +21,7 @@ import {
   signOutSync,
 } from '../../lib/firebase'
 import { getSyncError, getSyncStatus, onSyncStatusChange, resyncNow, startSync, stopSync } from '../../lib/sync'
+import { DockedField } from '../../components/DockedField'
 
 /**
  * Sync setup. Tracke ships with its own Firebase project baked in
@@ -358,7 +359,7 @@ export function SyncSettingsPage() {
                 Link stattdessen in Safari geöffnet (z. B. als installierte "Zum Home-Bildschirm"-App)?
                 Adresse aus der Safari-Adressleiste kopieren und hier einfügen:
               </p>
-              <div className="flex gap-2">
+              <DockedField className="flex gap-2">
                 <input
                   type="text"
                   value={pasteInput}
@@ -373,7 +374,7 @@ export function SyncSettingsPage() {
                 >
                   Bestätigen
                 </button>
-              </div>
+              </DockedField>
             </div>
           </>
         )}
