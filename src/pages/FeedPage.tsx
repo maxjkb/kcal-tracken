@@ -89,7 +89,7 @@ export function FeedPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-28">
-      <PageHeader title="Feed" actions={isToday && <TipsButton />} />
+      <PageHeader title="Feed" actions={isToday && <TipsButton />} onTitleClick={() => setPickerOpen(true)} />
 
       {/* The date bar sits below the title rather than beside it: every other
           main page opens with a bare title on its own line, and Feed matching
@@ -106,9 +106,11 @@ export function FeedPage() {
           <ChevronIcon direction="left" />
         </button>
         <div className="text-center">
-          <button onClick={() => setPickerOpen(true)} className="px-3 py-3 text-lg font-semibold text-ink hover:opacity-70">
-            {formatDateHeading(dateKey)}
-          </button>
+          {/* No longer a button: opening the calendar sheet is now the page
+              title's job (PageHeader's onTitleClick above) — StatsPage.tsx
+              has the sibling change, moving the same trigger onto a second
+              tap of the already-active period pill instead. */}
+          <span className="block px-3 py-3 text-lg font-semibold text-ink">{formatDateHeading(dateKey)}</span>
           {!isToday && (
             <button
               onClick={() => setDateKey(toLocalDateKey(new Date()))}
