@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.13',
+    date: '2026-08-31',
+    highlights: [
+      'Katalog: das "Zur Liste hinzufügen"-Sheet hat jetzt oben rechts einen KI-Chat-Button für Rückfragen zu diesem Supplement — der Rest des Sheets ist unverändert.',
+    ],
+  },
+  {
     version: '1.19.12',
     date: '2026-08-31',
     highlights: [
