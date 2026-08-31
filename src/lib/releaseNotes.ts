@@ -17,6 +17,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.16.0',
+    date: '2026-08-31',
+    highlights: [
+      'Nährwertringe im Feed: der unbefüllte Hintergrund ist jetzt ein heller, ausgeblasster Pastellton statt fast schwarz.',
+      'Statistik-Diagramm: die Ziel-Linie ist jetzt eine dünne, durchgehende Linie mit dem exakten Wert direkt an ihrem rechten Ende (z. B. „2.759 kcal/Tag").',
+    ],
+  },
+  {
     version: '1.15.8',
     date: '2026-08-31',
     highlights: [

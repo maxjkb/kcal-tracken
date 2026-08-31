@@ -108,7 +108,7 @@ export function KcalTrendChart({
     <div className="flex h-full flex-col">
       {hasTargetLine && (
         <div className="mb-1.5 flex items-center gap-1.5 self-end">
-          <span className="h-0 w-4 border-t-2 border-dashed" style={{ borderColor: TARGET_COLOR }} aria-hidden="true" />
+          <span className="h-0 w-4 border-t border-solid" style={{ borderColor: TARGET_COLOR }} aria-hidden="true" />
           <span className="text-[11px] font-medium" style={{ color: TARGET_COLOR }}>
             Ziel
           </span>
@@ -133,7 +133,11 @@ export function KcalTrendChart({
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={data}
-          margin={{ top: 12, right: 8, left: -20, bottom: 0 }}
+          // right: 8 used to be enough when the target line carried no label
+          // of its own — now its exact value is drawn as text past its last
+          // point (see TargetEndLabel below), which needs real room to its
+          // right or it'd be clipped by the chart's own SVG bounds.
+          margin={{ top: 12, right: 124, left: -20, bottom: 0 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" vertical={false} />
           <XAxis dataKey="label" stroke="var(--color-ink-soft)" fontSize={11} tickLine={false} axisLine={false} interval="preserveStartEnd" />
@@ -143,12 +147,14 @@ export function KcalTrendChart({
               type="monotone"
               dataKey="targetKcal"
               stroke={TARGET_COLOR}
-              strokeWidth={2}
-              strokeDasharray="6 4"
+              strokeWidth={1.25}
               dot={false}
               activeDot={false}
               connectNulls
               isAnimationActive={!prefersReducedMotion}
+              label={(props: TargetLabelProps) => (
+                <TargetEndLabel {...props} lastIndex={data.length - 1} unitLabel={unitLabel} />
+              )}
             />
           )}
           {average > 0 && (
@@ -247,6 +253,33 @@ export function KcalTrendChart({
  * more often than hitting.
  */
 const TAP_RADIUS = 20
+
+/** Recharts calls a Line's `label` renderer once per plotted point with this shape (x/y come typed as `string | number` even though they're always numeric in practice) — only the fields TargetEndLabel actually reads. */
+interface TargetLabelProps {
+  x?: string | number
+  y?: string | number
+  index?: number
+  value?: string | number | boolean | null
+}
+
+/**
+ * The target line's exact value, written once at its own right end instead
+ * of living only in the legend above the chart — recharts calls this once
+ * per point, so it renders nothing until `index` is the last one actually
+ * plotted. `x`/`y` are that last point's own plotted position, not a fixed
+ * chart corner, so the label always sits right where the line stops,
+ * whatever value it happens to end on. Text starts a few px clear of the
+ * point itself (line strokes and text glyphs touching read as a rendering
+ * glitch, not a label) — margin.right on the chart leaves real room for it.
+ */
+function TargetEndLabel({ x, y, index, value, lastIndex, unitLabel }: TargetLabelProps & { lastIndex: number; unitLabel: string }) {
+  if (x === undefined || y === undefined || index !== lastIndex || value == null) return <g />
+  return (
+    <text x={Number(x) + 6} y={y} dy={4} fontSize={10} fontWeight={700} fill={TARGET_COLOR}>
+      {Math.round(Number(value)).toLocaleString('de-DE')} kcal/{unitLabel}
+    </text>
+  )
+}
 
 function TappableDot({
   cx,

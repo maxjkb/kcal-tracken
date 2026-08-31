@@ -43,8 +43,15 @@ function shade(color: string, amount: number): string {
 /** Past this the ring stops wrapping — one full lap over itself is the most that still reads clearly. */
 const MAX_PERCENT = 200
 
-/** How dark the untouched track is, and the two ends of the progress gradient. */
-const TRACK_SHADE = -0.74
+/**
+ * How light the untouched track is, and the two ends of the progress
+ * gradient. Track used to mix 74% toward black — a near-black ring on both
+ * themes, not a track at all. Now mixes toward white instead, so an empty
+ * ring reads as a faded pastel tint of its own nutrient color (still
+ * clearly "this ring", just quiet) rather than a dark void the progress arc
+ * has to fight for attention against.
+ */
+const TRACK_SHADE = 0.8
 const GRADIENT_START = -0.3
 const GRADIENT_END = 0.14
 
