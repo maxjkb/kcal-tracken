@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.5',
+    date: '2026-08-31',
+    highlights: [
+      'Feed und Statistik: die Vor-/Zurück-Pfeile neben der Datums-/Zeitraum-Anzeige sind jetzt ebenfalls entfernt — Datum bzw. Zeitraum ändert sich nur noch über das Kalender-Sheet (Titel-Tap in Feed, zweiter Pillen-Tap in Statistik).',
+    ],
+  },
+  {
     version: '1.19.4',
     date: '2026-08-31',
     highlights: [
