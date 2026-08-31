@@ -1,21 +1,43 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronIcon } from '../components/ChevronIcon'
-import { PageHeader } from '../components/PageHeader'
+import { ChevronIcon } from './ChevronIcon'
 import { CURRENT_VERSION } from '../lib/releaseNotes'
 import { getApiKey } from '../lib/settings'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { isStoragePersisted } from '../lib/persistence'
 import { onAuthChange } from '../lib/firebase'
 import { GlassSurface } from '../glass/GlassSurface'
+import { Sheet } from './Sheet'
+import { useSheetClose } from '../hooks/useSheetClose'
 
 /**
- * The Einstellungen root — a category menu (icon, title, current-status
- * subtitle, chevron) instead of every section's full content at once,
- * mirroring iOS's own Settings app: tap a category to drill into its
- * detail screen (src/pages/settings/*).
+ * The Einstellungen root — was its own page (src/pages/SettingsPage.tsx,
+ * removed), now a Sheet opened from PageHeader's gear button on every main
+ * page (see hooks/useSettingsSheet.ts). A category menu (icon, title,
+ * current-status subtitle, chevron) mirroring iOS's own Settings app: tap a
+ * category to drill into its detail screen (src/pages/settings/*), which
+ * stays a real route — only this top-level menu became a sheet, the eight
+ * sub-pages are unaffected and still navigate/back exactly as before.
+ *
+ * Each row now carries its own identity color (index.css's
+ * --color-settings-* tokens) instead of every icon sharing plain
+ * --color-accent — see the block comment there for why a settings menu is
+ * exempt from the macro/meal palette's photo-derived discipline.
  */
-export function SettingsPage() {
+export function SettingsSheet({ onClose }: { onClose: () => void }) {
+  return (
+    <Sheet onClose={onClose} sheetClassName="glass flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl">
+      <div className="min-h-0 overflow-y-auto p-5 pt-7 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
+        <h2 className="mb-4 text-lg font-semibold text-ink">Einstellungen</h2>
+        <SettingsMenu />
+      </div>
+    </Sheet>
+  )
+}
+
+function SettingsMenu() {
+  const closeSheet = useSheetClose()
+
   const bodyProfile = getBodyProfile()
   const bodyProfileSubtitle = bodyProfile
     ? `Ziel: ${computeDailyTargets(bodyProfile).kcal} kcal/Tag`
@@ -29,59 +51,60 @@ export function SettingsPage() {
   }, [])
   const storageSubtitle = persisted === true ? 'Aktiv' : persisted === false ? 'Nicht aktiv' : 'Wird geprüft…'
 
-  // No "not set up" branch any more: the Firebase project has been baked into
-  // the app since #29, so getFirebaseConfig() never returns null and the
-  // fallback was unreachable copy that could only mislead.
   const [syncEmail, setSyncEmail] = useState<string | null>(null)
   useEffect(() => onAuthChange((user) => setSyncEmail(user?.email ?? null)), [])
   const syncSubtitle = syncEmail ? `Angemeldet als ${syncEmail}` : 'Nicht angemeldet'
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-28">
-      <PageHeader title="Einstellungen" showSettings={false} />
-
+    <>
       <GlassSurface rim={22} className="glass-subtle divide-y divide-line/60 overflow-hidden rounded-3xl shadow-sm shadow-black/5">
         <SettingsRow
           to="/settings/koerperwerte"
-          iconBg="bg-accent"
+          color="var(--color-settings-body)"
           icon={<BodyIcon />}
           title="Körperwerte & Ziele"
           subtitle={bodyProfileSubtitle}
+          onNavigate={closeSheet}
         />
         <SettingsRow
           to="/settings/api"
-          iconBg="bg-accent"
+          color="var(--color-settings-api)"
           icon={<KeyIcon />}
           title="Gemini API"
           subtitle={apiKeySubtitle}
+          onNavigate={closeSheet}
         />
         <SettingsRow
           to="/settings/speicher"
-          iconBg="bg-accent"
+          color="var(--color-settings-storage)"
           icon={<StorageIcon />}
           title="Speicher"
           subtitle={storageSubtitle}
+          onNavigate={closeSheet}
         />
         <SettingsRow
           to="/settings/daten"
-          iconBg="bg-accent"
+          color="var(--color-settings-data)"
           icon={<DataIcon />}
           title="Daten"
           subtitle="Backup & Zurücksetzen"
+          onNavigate={closeSheet}
         />
         <SettingsRow
           to="/settings/sync"
-          iconBg="bg-accent"
+          color="var(--color-settings-sync)"
           icon={<SyncIcon />}
           title="Sync"
           subtitle={syncSubtitle}
+          onNavigate={closeSheet}
         />
         <SettingsRow
           to="/settings/kontingent"
-          iconBg="bg-accent"
+          color="var(--color-settings-quota)"
           icon={<GaugeIcon />}
           title="Kontingent"
           subtitle="Anfragen an Gemini & Firebase heute"
+          onNavigate={closeSheet}
         />
       </GlassSurface>
 
@@ -91,39 +114,47 @@ export function SettingsPage() {
       <GlassSurface rim={22} className="glass-subtle mt-6 divide-y divide-line/60 overflow-hidden rounded-3xl shadow-sm shadow-black/5">
         <SettingsRow
           to="/settings/aktualisierung"
-          iconBg="bg-accent"
+          color="var(--color-settings-update)"
           icon={<DownloadIcon />}
           title="Aktualisierung"
           subtitle="Nach neuer Version suchen"
+          onNavigate={closeSheet}
         />
         <SettingsRow
           to="/settings/version"
-          iconBg="bg-accent"
+          color="var(--color-settings-about)"
           icon={<InfoIcon />}
           title="Version & Neues"
           subtitle={`Version ${CURRENT_VERSION}`}
+          onNavigate={closeSheet}
         />
       </GlassSurface>
-    </div>
+    </>
   )
 }
 
 function SettingsRow({
   to,
   icon,
-  iconBg,
+  color,
   title,
   subtitle,
+  onNavigate,
 }: {
   to: string
   icon: ReactNode
-  iconBg: string
+  /** A --color-settings-* custom property, applied as this row's own icon-badge color (index.css). */
+  color: string
   title: string
   subtitle: string
+  onNavigate: () => void
 }) {
   return (
-    <Link to={to} className="flex items-center gap-3 px-4 py-3.5 active:bg-bg">
-      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white ${iconBg}`}>
+    <Link to={to} onClick={onNavigate} className="flex items-center gap-3 px-4 py-3.5 active:bg-bg">
+      <span
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white"
+        style={{ background: color }}
+      >
         {icon}
       </span>
       <span className="min-w-0 flex-1">

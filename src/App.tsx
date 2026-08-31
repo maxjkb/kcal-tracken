@@ -8,7 +8,8 @@ import { SwipeProgressProvider } from './lib/swipeProgress'
 import { TopGradient } from './components/TopGradient'
 import { BackgroundRings } from './components/BackgroundRings'
 import { FeedPage } from './pages/FeedPage'
-import { SettingsPage } from './pages/SettingsPage'
+import { SettingsSheet } from './components/SettingsSheet'
+import { SettingsSheetContext } from './hooks/useSettingsSheet'
 import { BodyProfilePage } from './pages/settings/BodyProfilePage'
 import { ApiSettingsPage } from './pages/settings/ApiSettingsPage'
 import { StorageSettingsPage } from './pages/settings/StorageSettingsPage'
@@ -78,6 +79,7 @@ const SECTION_ICON_VAR: Record<Section, string> = {
 
 export default function App() {
   const [addingMeal, setAddingMeal] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const location = useLocation()
   const section = sectionForPath(location.pathname)
   // A static stand-in, not useLightSource(): that hook runs its own
@@ -105,6 +107,7 @@ export default function App() {
 
   return (
     <AddMealContext.Provider value={() => setAddingMeal(true)}>
+    <SettingsSheetContext.Provider value={() => setSettingsOpen(true)}>
       <SwipeProgressProvider>
       {/* Rendered outside the min-h-screen wrapper below, and that wrapper's
           own explicit bg-bg is dropped in favor of body's identical
@@ -154,7 +157,6 @@ export default function App() {
                 </Suspense>
               }
             />
-            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/settings/koerperwerte" element={<BodyProfilePage />} />
             <Route path="/settings/api" element={<ApiSettingsPage />} />
             <Route path="/settings/speicher" element={<StorageSettingsPage />} />
@@ -214,8 +216,10 @@ export default function App() {
             onClose={() => setAddingMeal(false)}
           />
         )}
+        {settingsOpen && <SettingsSheet onClose={() => setSettingsOpen(false)} />}
       </div>
       </SwipeProgressProvider>
+    </SettingsSheetContext.Provider>
     </AddMealContext.Provider>
   )
 }

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { useAddMeal } from '../hooks/useAddMeal'
+import { useSettingsSheet } from '../hooks/useSettingsSheet'
 
 /** Scroll distance over which the edge effect fades in — short enough to feel immediate, long enough not to flicker. */
 const EDGE_FADE_PX = 28
@@ -45,11 +46,12 @@ export function PageHeader({
   title: string
   /** Page-specific round buttons, rendered before the shared ones. Use HeaderButton for a matching shape. */
   actions?: ReactNode
-  /** False on the Einstellungen page itself — a gear linking to the page you're already on is noise. */
+  /** Set false to hide the gear (kept for API flexibility; every current page shows it, now that Einstellungen is a sheet rather than a page you could already be on). */
   showSettings?: boolean
   className?: string
 }) {
   const addMeal = useAddMeal()
+  const openSettings = useSettingsSheet()
   const prefersReducedMotion = useReducedMotion()
   const { scrollY } = useScroll()
 
@@ -83,7 +85,7 @@ export function PageHeader({
         <div className="flex shrink-0 items-center gap-2">
           {actions}
           {showSettings && (
-            <HeaderButton as={Link} to="/settings" label="Einstellungen">
+            <HeaderButton onClick={openSettings} label="Einstellungen">
               <SettingsIcon />
             </HeaderButton>
           )}

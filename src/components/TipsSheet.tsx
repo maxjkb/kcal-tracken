@@ -106,7 +106,7 @@ function TipsSheetContent({ onClose }: { onClose: () => void }) {
         {!hasApiKey && (
           <p className="rounded-2xl bg-fat/15 px-3 py-2 text-xs text-ink">
             Kein API-Key hinterlegt.{' '}
-            <Link to="/settings" onClick={onClose} className="font-semibold underline">
+            <Link to="/settings/api" onClick={onClose} className="font-semibold underline">
               Jetzt in den Einstellungen eintragen
             </Link>
             , um Tipps zu erhalten.

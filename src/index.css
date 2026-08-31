@@ -186,6 +186,27 @@
   --color-micro-iodine: #4caad4;
 
   /*
+   * Einstellungen category icon badges (pages/SettingsSheet.tsx) — one
+   * identity color per row instead of every icon sharing plain
+   * --color-accent, the actual "es fehlt an Farbe" complaint this answers.
+   * Genuine Apple system colors, not derived from the uploaded photo
+   * palette the macro/meal/micronutrient tokens above are anchored to —
+   * deliberately, unlike those: a settings menu is its own, purely
+   * iconographic context that never appears on screen next to a meal photo
+   * or a nutrient bar, so there's no shared-palette discipline to keep
+   * here, and Indigo (ruled out for meal/dinner above for exactly that
+   * reason) is fair game.
+   */
+  --color-settings-body: #ff9500; /* Orange — Körperwerte & Ziele */
+  --color-settings-api: #5856d6; /* Indigo — Gemini API */
+  --color-settings-storage: #8e8e93; /* Gray — Speicher */
+  --color-settings-data: #32ade6; /* Cyan — Daten */
+  --color-settings-sync: #34c759; /* Green — Sync */
+  --color-settings-quota: #ffcc00; /* Yellow — Kontingent */
+  --color-settings-update: #00c7be; /* Mint — Aktualisierung */
+  --color-settings-about: #af52de; /* Purple — Version & Neues */
+
+  /*
    * One accent color per main area (Rezepte/Supplements/Feed/Statistik, in
    * their actual left-to-right tab order — lib/sections.ts SECTION_TABS),
    * now driven by the uploaded blue-scale palette photo rather than a
@@ -355,6 +376,15 @@ body {
     --color-micro-zinc: #8eb6cb;
     --color-micro-potassium: #b6a89a;
     --color-micro-iodine: #94cce5;
+
+    --color-settings-body: #ff9f0a;
+    --color-settings-api: #5e5ce6;
+    --color-settings-storage: #8e8e93;
+    --color-settings-data: #64d2ff;
+    --color-settings-sync: #30d158;
+    --color-settings-quota: #ffd60a;
+    --color-settings-update: #66d4cf;
+    --color-settings-about: #bf5af2;
 
     --color-section-feed: #64d2ff;
     --color-section-recipes: #40cbe0;
