@@ -123,11 +123,12 @@ export function StatsPage() {
   const deficitBuckets = period === 'week' ? dayData : period === 'month' ? weekData : period === 'year' ? monthData : []
   const deficitTodayKey = period === 'year' ? todayKey.slice(0, 7) : todayKey
   const averageComparison = targetKcalByKey ? computeAverageComparison(deficitBuckets, targetKcalByKey, deficitTodayKey) : null
-  // "Ziel minus Durchschnitt", per explicit request — the inverse of
-  // averageComparison.diff (actual − target): positive means the average
-  // came in under target (a deficit, shown red), zero-or-negative means at
-  // or over it (shown blue). Deliberately the user's own color mapping, not
-  // the more common "red = over target" convention.
+  // "Ziel minus Durchschnitt" — the inverse of averageComparison.diff
+  // (actual − target). Negative means the average came in OVER target (more
+  // eaten than planned) and reads red; zero-or-positive means on or under
+  // target and reads blue. This mapping was the other way round until
+  // v1.19.18 and was corrected on explicit request — over target is the
+  // state worth flagging, which is also the convention everywhere else.
   const calorieBalance = averageComparison ? -averageComparison.diff : null
   const perMealData =
     period === 'day'
@@ -216,7 +217,7 @@ export function StatsPage() {
           // bare balance (colored) over the bare target number (gray).
           <StatTile
             value={Math.round(Math.abs(calorieBalance)).toLocaleString('de-DE')}
-            valueClassName={calorieBalance > 0 ? 'text-danger' : 'text-kcal'}
+            valueClassName={calorieBalance < 0 ? 'text-danger' : 'text-kcal'}
             label={Math.round(averageComparison.target).toLocaleString('de-DE')}
           />
         )}

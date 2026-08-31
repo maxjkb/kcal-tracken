@@ -239,10 +239,11 @@ function SupplementFormContent({
           <button
             type="button"
             onClick={() => setChatOpen(true)}
-            className="flex shrink-0 items-center gap-1 rounded-full bg-accent/12 px-3 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent/20"
+            aria-label="KI Chat"
+            title="KI Chat"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-white transition hover:opacity-90 active:scale-95"
           >
             <ChatIcon />
-            KI Chat
           </button>
         )}
       </div>
@@ -359,7 +360,7 @@ function SupplementFormContent({
 
 function ChatIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
       <path d="M4 5h16v11H8l-4 4V5Z" />
     </svg>
   )
