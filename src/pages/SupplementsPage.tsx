@@ -198,6 +198,7 @@ function TodayTab() {
 
       {state.mode === 'view' && (
         <SupplementDetailSheet
+          mode="mine"
           mySupplement={viewedMySupplement ?? state.mySupplement}
           supplement={supplementById.get(state.mySupplement.supplementId)}
           onClose={() => setState({ mode: 'closed' })}

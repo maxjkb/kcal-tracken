@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.14',
+    date: '2026-08-31',
+    highlights: [
+      'Supplements → Heute: das Detail-Sheet zeigt jetzt klar beschriftet Dosierung, Wirkung und Bedarf, dazu einen neuen KI-Chat-Button neben dem (jetzt reinen Icon-)Bearbeiten-Button.',
+    ],
+  },
+  {
     version: '1.19.13',
     date: '2026-08-31',
     highlights: [
