@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.16.2',
+    date: '2026-08-31',
+    highlights: [
+      'Genommene Supplements fließen jetzt in die Mikronährstoff-Bilanz ein: die KI schätzt beim Hinzufügen grob, was eine Tagesdosis an Vitaminen/Mineralstoffen beisteuert, und das zählt an Tagen, an denen das Supplement abgehakt wurde, zur Statistik dazu.',
+    ],
+  },
+  {
     version: '1.16.1',
     date: '2026-08-31',
     highlights: [

@@ -11,6 +11,8 @@ import {
   type SupplementRecommendation,
   type SupplementTimeOfDay,
 } from '../lib/db'
+import { estimateSupplementContribution } from '../lib/gemini'
+import { getApiKey } from '../lib/settings'
 
 /** The full catalog (seed + custom), newest custom additions first-ish — sorted by name for a stable, browsable list. */
 export function useAllSupplements(): Supplement[] | undefined {
@@ -56,15 +58,82 @@ export async function addMySupplement(
 ): Promise<void> {
   const existing = await db.mySupplements.where('supplementId').equals(fields.supplementId).first()
   if (existing) {
-    await db.mySupplements.put({ ...existing, ...fields })
+    await updateMySupplement({ ...existing, ...fields })
     return
   }
   const entry: MySupplement = { ...fields, id: newMySupplementId(), createdAt: Date.now() }
   await db.mySupplements.put(entry)
+  void refreshSupplementContribution(entry.id, fields.supplementId, fields.dosage)
 }
 
+/**
+ * Saves an edited entry, and — only when the dosage text itself actually
+ * changed — kicks off a best-effort background re-estimate of what that
+ * dosage now contributes to the tracked micronutrients (see
+ * refreshSupplementContribution). Reading the previous row here rather than
+ * trusting each caller to check first means every write path (the edit
+ * sheet, addMySupplement's re-add branch above) gets this for free.
+ */
 export async function updateMySupplement(entry: MySupplement): Promise<void> {
+  const previous = await db.mySupplements.get(entry.id)
   await db.mySupplements.put(entry)
+  if (!previous || previous.dosage !== entry.dosage) {
+    void refreshSupplementContribution(entry.id, entry.supplementId, entry.dosage)
+  }
+}
+
+/**
+ * Best-effort background fill for MySupplement.contribution — same shape as
+ * lib/micronutrients.ts's backfillMissingMicronutrients: no API key, or a
+ * failed estimate, just leaves the entry without a contribution (it simply
+ * doesn't add to the micronutrient picture yet) rather than blocking the
+ * add/edit that triggered it or surfacing a visible error for something the
+ * user never directly asked to see. Re-reads the row before writing the
+ * result back, since the Gemini round trip can outlive an edit or removal
+ * that happened while it was in flight.
+ */
+async function refreshSupplementContribution(mySupplementId: string, supplementId: string, dosage: string): Promise<void> {
+  if (!getApiKey()) return
+  try {
+    const catalogEntry = await db.supplements.get(supplementId)
+    if (!catalogEntry) return
+    const contribution = await estimateSupplementContribution(catalogEntry.name, dosage)
+    const current = await db.mySupplements.get(mySupplementId)
+    if (!current) return
+    await db.mySupplements.put({ ...current, contribution })
+  } catch {
+    // Best-effort — the next dosage save (or backfillMissingSupplementContributions
+    // on a later launch) simply tries again.
+  }
+}
+
+/**
+ * Fills in `contribution` for routine entries added before this field
+ * existed, up to a per-launch cap — mirrors backfillMissingMicronutrients
+ * one level up (routine entries rather than meals), including the same
+ * "give up for this launch on the first failure, the rest retry next time"
+ * behaviour. A user's active routine is realistically small (a handful of
+ * entries, not hundreds of meals), so this runs sequentially with no
+ * batching and no per-launch cap of its own.
+ */
+export async function backfillMissingSupplementContributions(): Promise<void> {
+  if (!getApiKey()) return
+  const missing = await db.mySupplements.filter((s) => !s.contribution).toArray()
+  if (missing.length === 0) return
+
+  const catalog = await db.supplements.toArray()
+  const nameById = new Map(catalog.map((s) => [s.id, s.name]))
+
+  for (const entry of missing) {
+    const name = nameById.get(entry.supplementId)
+    if (!name) continue
+    try {
+      const contribution = await estimateSupplementContribution(name, entry.dosage)
+      await db.mySupplements.put({ ...entry, contribution })
+    } catch {
+      return
+    }
+  }
 }
 
 /** Removes a supplement from the active routine. Past check-ins for it are left in place — they stay valid history for the adherence stats, they just no longer surface anywhere since nothing references this id going forward. */

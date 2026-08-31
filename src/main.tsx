@@ -9,6 +9,7 @@ import { syncSupplementCatalog } from './lib/supplementSeed.ts'
 import { refreshAdvisorIfStale, watchForNewDay } from './lib/supplementAdvisor.ts'
 import { refreshTipsIfStale } from './lib/tips.ts'
 import { backfillMissingMicronutrients } from './lib/micronutrients.ts'
+import { backfillMissingSupplementContributions } from './hooks/useSupplements.ts'
 import { recordTodaysTargetSnapshot } from './lib/targetHistory.ts'
 
 // Fire-and-forget: ask the browser to exempt this origin's storage (API key,
@@ -39,6 +40,11 @@ void refreshTipsIfStale()
 // backfillMissingMicronutrients. Runs every launch; becomes a cheap no-op
 // once nothing is left to fill in.
 void backfillMissingMicronutrients()
+
+// Fire-and-forget: same idea, one level up — rough micronutrient
+// contributions for routine entries added before that field existed. See
+// backfillMissingSupplementContributions.
+void backfillMissingSupplementContributions()
 
 // Fire-and-forget: freezes today's kcal target the first time today is ever
 // seen, so the Statistik target line can never rewrite a past day's target

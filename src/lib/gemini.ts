@@ -1193,8 +1193,8 @@ const MICRONUTRIENT_BACKFILL_SYSTEM_PROMPT = `Du bekommst eine Liste bereits in 
  * ingredient breakdown, and many meals per call (see
  * lib/micronutrients.ts's backfillMissingMicronutrients for the batching).
  * A full estimateNutrition-quality pass per historical meal would work too,
- * but at many times the quota cost for numbers that only ever feed a rolling
- * weekly band — the accuracy that buys is never visible.
+ * but at many times the quota cost for numbers that only ever feed a
+ * recency-weighted band — the accuracy that buys is never visible.
  */
 export async function estimateMicronutrientsBackfill(
   meals: MicronutrientBackfillInput[],
@@ -1214,4 +1214,27 @@ export async function estimateMicronutrientsBackfill(
     result[entry.id] = parseMicronutrients(entry.micronutrients)
   }
   return result
+}
+
+// --- Mikronährstoff-Beitrag eines eigenen Supplements ----------------------
+
+const SUPPLEMENT_CONTRIBUTION_SYSTEM_PROMPT = `Du bekommst den Namen eines Nahrungsergänzungsmittels und die tatsächliche persönliche Dosierung, die der Nutzer davon einnimmt (nicht zwingend die Herstellerangabe). Schätze GROB, wie viel jeder der zehn folgenden Mikronährstoffe EINE VOLLE TAGESDOSIS bei dieser persönlichen Dosierung tatsächlich liefert, anhand allgemein bekannter Gehalte üblicher Präparate dieser Art. Liefert das Präparat einen Mikronährstoff nicht nennenswert (z.B. liefert reines Kreatin kein Vitamin D), setze ihn auf 0 — erfinde keinen Beitrag. Das sind grobe Richtwerte für einen internen Abgleich mit dem Tagesbedarf über mehrere Tage gemittelt, keine exakte Laboranalyse. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema.`
+
+/**
+ * How much one full daily dose of a user's own supplement (at their actual
+ * personal dosage, not the catalog's generic typicalDosage) contributes to
+ * each of the ten tracked micronutrients — reuses MICRONUTRIENT_SCHEMA/
+ * parseMicronutrients, the exact same shape a meal's own estimate has, so
+ * lib/micronutrients.ts can add the two together without a second code
+ * path. Called once when a supplement is added or its dosage changes (see
+ * useSupplements.ts) — best-effort, same as estimateMicronutrientsBackfill:
+ * a failed or skipped call just leaves the entry without a contribution.
+ */
+export async function estimateSupplementContribution(name: string, dosage: string): Promise<Micronutrients> {
+  const parsed = await callGemini({
+    systemPrompt: SUPPLEMENT_CONTRIBUTION_SYSTEM_PROMPT,
+    parts: [{ text: `Supplement: ${name}\nPersönliche Dosierung: ${dosage.trim() || 'keine Angabe, übliche Dosierung annehmen'}` }],
+    responseSchema: MICRONUTRIENT_SCHEMA,
+  })
+  return parseMicronutrients(parsed)
 }
