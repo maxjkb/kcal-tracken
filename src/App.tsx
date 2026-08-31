@@ -1,4 +1,4 @@
-import { Suspense, lazy, useLayoutEffect, useState } from 'react'
+import { Suspense, lazy, useLayoutEffect, useRef, useState } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { BottomNav } from './components/BottomNav'
 import { SwipeNavigator } from './components/SwipeNavigator'
@@ -22,8 +22,7 @@ import { lazyRetry } from './lib/lazyRetry'
 import { toLocalDateKey } from './lib/db'
 import { guessMealType } from './lib/mealTypeGuess'
 import { GlassStage } from './glass/GlassStage'
-import { useLightSource } from './glass/useLightSource'
-import { wakeGlass } from './glass/glassSurfaces'
+import type { LightState } from './glass/useLightSource'
 
 const RecipeCategoryPage = lazy(
   lazyRetry(() => import('./pages/RecipeCategoryPage').then((m) => ({ default: m.RecipeCategoryPage }))),
@@ -80,7 +79,13 @@ export default function App() {
   const [addingMeal, setAddingMeal] = useState(false)
   const location = useLocation()
   const section = sectionForPath(location.pathname)
-  const { lightRef } = useLightSource()
+  // A static stand-in, not useLightSource(): that hook runs its own
+  // pointer/device-orientation tracking loop purely to feed GlassStage's
+  // light uniform, which is now disabled below and never reads it. Kept as
+  // an inert ref only to satisfy GlassStage's prop type — no tracking loop
+  // means no wasted work. useLightSource() itself is untouched; /lab's own
+  // pages still use it live for the WebGL/CSS/SVG comparison.
+  const lightRef = useRef<LightState>({ azimuth: 0, elevation: 0, x: 0, y: 0, z: 1 })
 
   // Set on <body> rather than a wrapping element: Sheets (MealEditor, RecipeEditor, the date
   // pickers, …) portal straight to document.body, outside this component's own DOM subtree, so a
@@ -97,21 +102,6 @@ export default function App() {
     }
   }, [section])
 
-  // Wakes the WebGL glass layer on every route change, not just a change of
-  // section. Two separate page-transition components move glass surfaces via
-  // a Motion transform without any pointer event GlassStage's own wake
-  // sources (pointermove/scroll/resize) would hear: SwipeNavigator settles
-  // the whole page on a tab tap (a section change, but also a plain link, the
-  // back button…), and SlideInPage slides a Rezepte drill-down in from the
-  // right on mount — which doesn't change section (Kategorie → Rezept stays
-  // "recipes" throughout) but still carries every RecipeCard on the page
-  // along with it. Keying on location.pathname rather than section catches
-  // both, and any future page-transition component along with them, without
-  // this needing to know which component is doing the animating.
-  useLayoutEffect(() => {
-    wakeGlass()
-  }, [location.pathname])
-
   return (
     <AddMealContext.Provider value={() => setAddingMeal(true)}>
       <SwipeProgressProvider>
@@ -124,16 +114,25 @@ export default function App() {
           problem, it's always the bottom-most layer. */}
       <BackgroundRings />
       {section && <TopGradient />}
-      {/* The WebGL glass layer for every flow-positioned card/tile/segmented
-          control across the app (marked with the `gl-surface` class — see
-          each page). Rendered once, app-wide, rather than per-page: one
-          canvas is cheaper than several, and a single shared light source
-          keeps every surface's highlight consistent while navigating.
-          `enabled` is unconditionally true — GlassStage itself decides
-          whether WebGL actually renders (falling back to the untouched CSS
-          material on missing WebGL2, context loss, or "reduce
-          transparency"), so nothing here needs its own fallback logic. */}
-      <GlassStage lightRef={lightRef} enabled />
+      {/* Disabled (was unconditionally on in v1.14.3): the WebGL layer tracks
+          each flow-positioned card's position by reading getBoundingClientRect()
+          once per requestAnimationFrame and redrawing the canvas there — but
+          native scroll is driven by the browser's compositor thread, which
+          can already be several pixels further along than whatever position
+          the main thread last read by the time that frame actually paints.
+          That gap is the "lags behind and drifts during scroll" the WebGL
+          glass visibly showed under real use — architectural, not a bug in
+          this call site, and not something a canvas overlay tracking DOM
+          scroll from the main thread can fully close. CSS backdrop-filter
+          glass doesn't have this problem: it composites in the same native
+          layer that scrolls, with no separate read-and-redraw step to lag
+          behind. `enabled={false}` here is the whole revert — GlassStage
+          itself already treats "disabled" identically to "WebGL2 missing":
+          it removes .glass-gl-active and steps back, and every .gl-surface
+          simply renders its original CSS material again, unchanged. The
+          GlassStage/GlassSurface machinery and the /lab prototype are left
+          in place rather than deleted, in case this is revisited. */}
+      <GlassStage lightRef={lightRef} enabled={false} />
       <div className="min-h-screen">
         <SwipeNavigator>
           <Routes>
