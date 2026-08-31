@@ -13,11 +13,6 @@ function normalizeKey(name: string): string {
   return name.trim().toLowerCase()
 }
 
-/** The stored conversation for a supplement, or undefined if none exists yet — a `useLiveQuery` wrapper, not this function itself, is what makes SupplementChatSheet reactive to new messages. */
-export function findSupplementChat(supplementName: string): Promise<SupplementChat | undefined> {
-  return db.supplementChats.where('supplementKey').equals(normalizeKey(supplementName)).first()
-}
-
 /**
  * Opens (or reopens) the conversation for one recommendation — creates the
  * thread the first time, seeded with the recommendation's own reasoning +

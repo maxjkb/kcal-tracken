@@ -69,10 +69,6 @@ export function recordUsage(id: string): void {
   notify()
 }
 
-export function getUsage(id: string): number {
-  return read().counts[id] ?? 0
-}
-
 /** All counters for the current day, for the settings screen. */
 export function getAllUsage(): Record<string, number> {
   return read().counts

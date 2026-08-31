@@ -21,16 +21,8 @@ export function useAllSupplements(): Supplement[] | undefined {
   return useLiveQuery(() => db.supplements.orderBy('name').toArray(), [])
 }
 
-export function useSupplement(id: string | undefined): Supplement | undefined {
-  return useLiveQuery(() => (id ? db.supplements.get(id) : undefined), [id])
-}
-
 export async function saveSupplement(supplement: Supplement): Promise<void> {
   await db.supplements.put(supplement)
-}
-
-export async function deleteSupplement(id: string): Promise<void> {
-  await db.supplements.delete(id)
 }
 
 /** Adds a user-created catalog entry (the "Zutat +"-style manual path, not from an AI suggestion). */
