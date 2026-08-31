@@ -13,6 +13,7 @@ import { computeSlotState } from '../lib/supplementTiming'
 import { useNow } from '../hooks/useNow'
 import { REDUCED_MOTION_TRANSITION, SPRING_DEFAULT, SPRING_SNAPPY } from '../lib/motionTokens'
 import { GlassSurface } from '../glass/GlassSurface'
+import { SupplementCategoryBadge } from './SupplementCategoryBadge'
 
 /**
  * One supplement's row of time-of-day slots for a given day. Only the
@@ -54,9 +55,12 @@ export function SupplementChecklistRow({
 
   return (
     <GlassSurface rim={18} className="glass-subtle glass-subtle-themed flex items-center justify-between gap-3 rounded-2xl px-4 py-3">
-      <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
-        <p className="truncate text-sm font-medium text-ink">{supplement?.name ?? 'Supplement'}</p>
-        {mySupplement.dosage && <p className="truncate text-xs text-ink-soft">{mySupplement.dosage}</p>}
+      <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+        {supplement && <SupplementCategoryBadge category={supplement.category} className="h-9 w-9" />}
+        <span className="min-w-0">
+          <p className="truncate text-sm font-medium text-ink">{supplement?.name ?? 'Supplement'}</p>
+          {mySupplement.dosage && <p className="truncate text-xs text-ink-soft">{mySupplement.dosage}</p>}
+        </span>
       </button>
       <div className="flex shrink-0 items-center gap-2">
         {orderedTimes.map((timeOfDay) => (

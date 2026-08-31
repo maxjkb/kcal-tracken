@@ -233,6 +233,18 @@ export const SUPPLEMENT_CATEGORY_LABELS: Record<SupplementCategory, string> = {
   general_health: 'Vitamine & Grundversorgung',
 }
 
+/** One `--color-supp-*` custom property per category (index.css) — the identity color behind SupplementCategoryBadge, shared so every place a category shows up (checklist rows, suggestion cards) draws from the same source. */
+export const SUPPLEMENT_CATEGORY_COLORS: Record<SupplementCategory, string> = {
+  build_muscle: 'var(--color-supp-build_muscle)',
+  endurance: 'var(--color-supp-endurance)',
+  recovery: 'var(--color-supp-recovery)',
+  joints: 'var(--color-supp-joints)',
+  immune: 'var(--color-supp-immune)',
+  cognition: 'var(--color-supp-cognition)',
+  gut: 'var(--color-supp-gut)',
+  general_health: 'var(--color-supp-general_health)',
+}
+
 /**
  * A known supplement — the catalog entry. Both the built-in seed list
  * (`lib/supplementSeed.ts`) and anything the user adds manually live in this

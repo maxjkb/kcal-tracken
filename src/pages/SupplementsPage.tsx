@@ -26,6 +26,7 @@ import { SupplementChatSheet } from '../components/SupplementChatSheet'
 import { SupplementDetailSheet } from '../components/SupplementDetailSheet'
 import { SupplementCatalogSheet } from '../components/SupplementCatalogSheet'
 import { SuppScoreSheet } from '../components/SuppScoreSheet'
+import { SupplementCategoryBadge } from '../components/SupplementCategoryBadge'
 import { InfoButton } from '../components/InfoButton'
 import { HeaderButton } from '../components/PageHeader'
 import { SPRING_SNAPPY } from '../lib/motionTokens'
@@ -127,6 +128,17 @@ function TrophyIcon() {
   )
 }
 
+function EmptyStateIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+      <g transform="rotate(-30 12 12)">
+        <rect x="3" y="8" width="18" height="8" rx="4" />
+        <line x1="12" y1="8" x2="12" y2="16" />
+      </g>
+    </svg>
+  )
+}
+
 function TodayTab() {
   const todayKey = toLocalDateKey(new Date())
   const mySupplements = useMySupplements()
@@ -163,6 +175,9 @@ function TodayTab() {
         <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
       ) : mySupplements.length === 0 ? (
         <GlassSurface rim={26} className="glass-subtle glass-subtle-themed flex flex-col items-center gap-3 rounded-3xl px-6 py-10 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/12 text-accent">
+            <EmptyStateIcon />
+          </span>
           <p className="text-sm text-ink-soft">
             Noch keine Supplements auf deiner Liste. Füge welche über den Katalog hinzu, oder lass dir unter
             „Vorschläge" welche empfehlen.
@@ -314,9 +329,17 @@ function SuggestionsTab() {
                   not the whole card: the +/pill control on the same row needs to
                   stay its own, sibling tap target (a <button> can't legally nest
                   another one), same constraint CatalogTab's rows already solve. */}
-              <button type="button" onClick={() => setChatSuggestion(s)} className="min-w-0 flex-1 text-left" aria-label={`Chat zu ${s.supplementName} öffnen`}>
-                <p className="text-sm font-semibold text-ink">{s.supplementName}</p>
-                <p className="text-xs text-ink-soft">{SUPPLEMENT_CATEGORY_LABELS[s.category]}</p>
+              <button
+                type="button"
+                onClick={() => setChatSuggestion(s)}
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                aria-label={`Chat zu ${s.supplementName} öffnen`}
+              >
+                <SupplementCategoryBadge category={s.category} className="h-9 w-9" />
+                <span className="min-w-0">
+                  <p className="text-sm font-semibold text-ink">{s.supplementName}</p>
+                  <p className="text-xs text-ink-soft">{SUPPLEMENT_CATEGORY_LABELS[s.category]}</p>
+                </span>
               </button>
               {/* A consistency item is already on the list — offering "add" would
                   duplicate it, and the ask is to take it, not to acquire it.

@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.12',
+    date: '2026-08-31',
+    highlights: [
+      'Supplements-Hauptseite redesignt: jedes Supplement zeigt jetzt ein farbiges, kategorie-eigenes Icon (Kraft, Ausdauer, Schlaf, Gelenke, Immunsystem, Fokus, Darm, Vitamine) statt reinem Schwarz-auf-Weiß-Text — sowohl in "Heute" als auch bei den Vorschlägen.',
+    ],
+  },
+  {
     version: '1.19.11',
     date: '2026-08-31',
     highlights: [
