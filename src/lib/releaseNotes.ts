@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.1',
+    date: '2026-08-31',
+    highlights: [
+      'Bugfix: Wer beim Bearbeiten einer Mahlzeit oder eines Supplements das Sheet schließt (Wischen oder Antippen des Griffs), landet jetzt wieder bei der Detailansicht statt dass alles komplett zugeht.',
+    ],
+  },
+  {
     version: '1.19.0',
     date: '2026-08-31',
     highlights: [

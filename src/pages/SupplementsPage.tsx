@@ -17,6 +17,7 @@ import {
   removeMySupplement,
   useAllSupplements,
   useLatestAdvisorRun,
+  useMySupplement,
   useMySupplements,
   useSupplementLogForDate,
 } from '../hooks/useSupplements'
@@ -91,12 +92,27 @@ function TodayTab() {
   const supplements = useAllSupplements()
   const logEntries = useSupplementLogForDate(todayKey)
   // Tapping a row now opens the detail sheet (description + current need)
-  // first, not the edit form directly — `editing` is reached from a button
-  // inside that sheet (see SupplementDetailSheet's onEdit), the same
+  // first, not the edit form directly — the edit form is reached from a
+  // button inside that sheet (see SupplementDetailSheet's onEdit), the same
   // view→edit handoff MealDetail/MealEditor already use, one state swap
   // rather than two sheets stacked on top of each other.
-  const [viewing, setViewing] = useState<MySupplement | null>(null)
-  const [editing, setEditing] = useState<MySupplement | null>(null)
+  //
+  // A single discriminated-union state (not two independent booleans/values)
+  // so "closing" the edit form has somewhere correct to go back to: it was
+  // reached from the view sheet, so its own Sheet onClose (swipe-down,
+  // handle tap, or a completed save — all funnel through the same callback)
+  // returns to 'view', not all the way to 'closed'. Two separate `viewing`/
+  // `editing` states previously couldn't express that — closing the edit
+  // form just cleared `editing` while `viewing` stayed null from the earlier
+  // handoff, closing the whole flow instead of returning to the view.
+  const [state, setState] = useState<
+    { mode: 'closed' } | { mode: 'view'; mySupplement: MySupplement } | { mode: 'edit'; mySupplement: MySupplement }
+  >({ mode: 'closed' })
+  // Live, not just `state.mySupplement` itself: after the edit form hands
+  // back to 'view', that value is still the pre-edit snapshot — this re-reads
+  // the just-saved dosage/times. Falls back to the snapshot while the query
+  // is still resolving, so there's no loading flash.
+  const viewedMySupplement = useMySupplement(state.mode === 'view' ? state.mySupplement.id : undefined)
 
   const supplementById = new Map((supplements ?? []).map((s) => [s.id, s]))
 
@@ -119,27 +135,28 @@ function TodayTab() {
             supplement={supplementById.get(my.supplementId)}
             date={todayKey}
             logEntries={logEntries}
-            onOpen={() => setViewing(my)}
+            onOpen={() => setState({ mode: 'view', mySupplement: my })}
           />
         ))
       )}
 
-      {viewing && (
+      {state.mode === 'view' && (
         <SupplementDetailSheet
-          mySupplement={viewing}
-          supplement={supplementById.get(viewing.supplementId)}
-          onClose={() => setViewing(null)}
-          onEdit={() => {
-            setEditing(viewing)
-            setViewing(null)
-          }}
+          mySupplement={viewedMySupplement ?? state.mySupplement}
+          supplement={supplementById.get(state.mySupplement.supplementId)}
+          onClose={() => setState({ mode: 'closed' })}
+          onEdit={() => setState({ mode: 'edit', mySupplement: state.mySupplement })}
         />
       )}
 
-      {editing && (
+      {state.mode === 'edit' && (
         <SupplementFormSheet
-          editing={{ mySupplement: editing, supplement: supplementById.get(editing.supplementId) }}
-          onClose={() => setEditing(null)}
+          editing={{ mySupplement: state.mySupplement, supplement: supplementById.get(state.mySupplement.supplementId) }}
+          // Back to 'view', not 'closed': see the state comment above. Except
+          // when the entry was actually removed — then there's nothing left
+          // to view, so onRemoved closes the flow all the way out instead.
+          onClose={() => setState({ mode: 'view', mySupplement: state.mySupplement })}
+          onRemoved={() => setState({ mode: 'closed' })}
         />
       )}
     </div>
