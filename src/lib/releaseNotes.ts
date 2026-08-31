@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.19',
+    date: '2026-08-31',
+    highlights: [
+      'Aus "Supplement" wird überall "Supp", aus "Supplements" wird "Supps" — inklusive Seitentitel, Navigation und der Texte, die die KI schreibt.',
+    ],
+  },
+  {
     version: '1.19.18',
     date: '2026-08-31',
     highlights: [

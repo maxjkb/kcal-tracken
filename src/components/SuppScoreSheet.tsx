@@ -87,11 +87,11 @@ export function SuppScoreSheet({ onClose }: { onClose: () => void }) {
         </GlassSurface>
 
         <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Pro Supplement</h3>
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Pro Supp</h3>
           {score === undefined ? (
             <p className="py-4 text-center text-sm text-ink-soft">Lädt…</p>
           ) : score.rows.length === 0 ? (
-            <p className="py-4 text-center text-sm text-ink-soft">Noch keine Supplements auf der Liste.</p>
+            <p className="py-4 text-center text-sm text-ink-soft">Noch keine Supps auf der Liste.</p>
           ) : (
             <div className="flex flex-col gap-3">
               {score.rows.map((r) => {

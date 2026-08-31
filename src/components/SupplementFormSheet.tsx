@@ -204,7 +204,7 @@ function SupplementFormContent({
       draft.clear()
       requestClose()
     } catch (err) {
-      setError(describeSaveError(err, 'Supplement'))
+      setError(describeSaveError(err, 'Supp'))
     } finally {
       setSaving(false)
     }
@@ -223,7 +223,7 @@ function SupplementFormContent({
       // The one handler here that had a finally but no catch: a failed write
       // re-enabled the button and said nothing, so the entry looked removable
       // but never went away.
-      setError(describeSaveError(err, 'Supplement'))
+      setError(describeSaveError(err, 'Supp'))
     } finally {
       setSaving(false)
     }
@@ -233,7 +233,7 @@ function SupplementFormContent({
     <>
       <div className="mb-4 flex items-start justify-between gap-3">
         <h2 className="text-lg font-semibold text-ink">
-          {editing ? 'Supplement bearbeiten' : isCustomEntry ? 'Eigenes Supplement' : 'Zur Liste hinzufügen'}
+          {editing ? 'Supp bearbeiten' : isCustomEntry ? 'Eigenes Supp' : 'Zur Liste hinzufügen'}
         </h2>
         {catalogChatSuggestion && (
           <button

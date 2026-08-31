@@ -15,7 +15,7 @@ import { SupplementChatSheet } from './SupplementChatSheet'
 import { SupplementCategoryBadge } from './SupplementCategoryBadge'
 
 const BAND_EXPLANATION: Record<'low' | 'average' | 'good' | 'surplus', (name: string) => string> = {
-  low: (name) => `Dein ${name}-Spiegel liegt aktuell unter dem Referenzwert — hier deckt das Supplement eine echte Lücke.`,
+  low: (name) => `Dein ${name}-Spiegel liegt aktuell unter dem Referenzwert — hier deckt das Supp eine echte Lücke.`,
   average: (name) => `Dein ${name}-Spiegel liegt aktuell im durchschnittlichen Bereich.`,
   good: (name) => `Dein ${name}-Spiegel liegt aktuell gut im Referenzbereich.`,
   surplus: (name) => `Dein ${name}-Spiegel liegt aktuell deutlich über dem Referenzwert — ein Blick in die Empfehlungen kann sich lohnen.`,
@@ -75,7 +75,7 @@ export function SupplementDetailSheet(props: SupplementDetailSheetProps) {
   const overview = useMicronutrientOverview(toLocalDateKey(new Date()))
   const [chatOpen, setChatOpen] = useState(false)
 
-  const name = props.mode === 'mine' ? (props.supplement?.name ?? 'Supplement') : props.recommendation.supplementName
+  const name = props.mode === 'mine' ? (props.supplement?.name ?? 'Supp') : props.recommendation.supplementName
   const category = props.mode === 'mine' ? props.supplement?.category : props.recommendation.category
   const description = props.mode === 'mine' ? props.supplement?.description : props.recommendation.effects
   const dosageLine =
@@ -175,12 +175,12 @@ export function SupplementDetailSheet(props: SupplementDetailSheetProps) {
             <p className="text-sm text-ink-soft">Lädt…</p>
           ) : !contribution ? (
             <p className="text-sm text-ink-soft">
-              Wird noch ermittelt — sobald bekannt ist, wie viel dieses Supplement zu deinen erfassten Mikronährstoffen
+              Wird noch ermittelt — sobald bekannt ist, wie viel dieses Supp zu deinen erfassten Mikronährstoffen
               beiträgt, erscheint hier eine Einschätzung.
             </p>
           ) : relevantKeys.length === 0 ? (
             <p className="text-sm text-ink-soft">
-              Für dieses Supplement gibt es keine direkte Bedarfsanzeige — es deckt keinen der zehn erfassten
+              Für dieses Supp gibt es keine direkte Bedarfsanzeige — es deckt keinen der zehn erfassten
               Mikronährstoffe ab.
             </p>
           ) : (

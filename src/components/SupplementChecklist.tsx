@@ -58,7 +58,7 @@ export function SupplementChecklistRow({
       <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-3 text-left">
         {supplement && <SupplementCategoryBadge category={supplement.category} className="h-9 w-9" />}
         <span className="min-w-0">
-          <p className="truncate text-sm font-medium text-ink">{supplement?.name ?? 'Supplement'}</p>
+          <p className="truncate text-sm font-medium text-ink">{supplement?.name ?? 'Supp'}</p>
           {mySupplement.dosage && <p className="truncate text-xs text-ink-soft">{mySupplement.dosage}</p>}
         </span>
       </button>

@@ -144,7 +144,7 @@ export function DataSettingsPage() {
         `${backup.meals.length} Mahlzeiten`,
         Array.isArray(backup.recipes) && backup.recipes.length > 0 ? `${backup.recipes.length} Rezepte` : null,
         Array.isArray(backup.mySupplements) && backup.mySupplements.length > 0
-          ? `${backup.mySupplements.length} Supplements`
+          ? `${backup.mySupplements.length} Supps`
           : null,
       ].filter(Boolean)
       flash(`${counts.join(', ')} importiert.`)

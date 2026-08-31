@@ -18,7 +18,7 @@ export interface SectionTab {
 
 export const SECTION_TABS: SectionTab[] = [
   { to: '/recipes', label: 'Rezepte', end: false },
-  { to: '/supplements', label: 'Supplements', end: false },
+  { to: '/supplements', label: 'Supps', end: false },
   { to: '/', label: 'Feed', end: true },
   { to: '/stats', label: 'Statistik', end: false },
 ]

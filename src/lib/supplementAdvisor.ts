@@ -72,7 +72,7 @@ export async function analyzeAdherence(): Promise<SupplementAdherence[]> {
   const nameById = new Map(catalog.map((s) => [s.id, s.name]))
 
   return mySupplements.map((my) => {
-    const name = nameById.get(my.supplementId) ?? 'Unbekanntes Supplement'
+    const name = nameById.get(my.supplementId) ?? 'Unbekanntes Supp'
     const daysTaken = daysById.get(my.id)?.size ?? 0
     const daysSinceAdded = Math.floor((Date.now() - my.createdAt) / 86_400_000) + 1
     const daysTracked = Math.max(1, Math.min(ADHERENCE_WINDOW_DAYS, daysSinceAdded))
@@ -229,7 +229,7 @@ async function findExcessSupplements(
     if (!my.contribution) continue
     const nutrients = MICRONUTRIENT_ORDER.filter((key) => surplusKeys.has(key) && (my.contribution![key] ?? 0) > 0)
     if (nutrients.length === 0) continue
-    result.push({ name: nameById.get(my.supplementId) ?? 'Unbekanntes Supplement', nutrients: nutrients.map((k) => MICRONUTRIENT_LABELS[k]) })
+    result.push({ name: nameById.get(my.supplementId) ?? 'Unbekanntes Supp', nutrients: nutrients.map((k) => MICRONUTRIENT_LABELS[k]) })
   }
   return result
 }
