@@ -16,6 +16,7 @@ import { guessMealType } from '../lib/mealTypeGuess'
 import { rankFrequentIngredients, SUGGESTION_HISTORY_DAYS } from '../lib/mealSuggestions'
 import { MEAL_TYPE_COLOR } from '../lib/mealTypeColor'
 import { GlassSurface } from '../glass/GlassSurface'
+import { InfoButton } from '../components/InfoButton'
 
 /** How many recently logged meals "Zuletzt" shows — three fits comfortably below the four
   * category tiles without the page feeling crowded; picked over showing all/many since these are
@@ -94,9 +95,11 @@ export function RecipesPage() {
             {/* text-ink-soft, not text-ink-faint: real instructional text needs the 4.5:1 text
                 contrast bar, which ink-faint (tuned for icons/dots at the looser 3:1 bar) doesn't
                 clear in light mode — same fix already applied on the Supplements page. */}
-            <p className="mt-2 text-xs text-ink-soft">
-              Antippen übernimmt die Mahlzeit als Ausgangspunkt für ein neues Rezept.
-            </p>
+            <div className="mb-2 flex justify-end">
+              <InfoButton label="Was passiert beim Antippen?" title="Aus Mahlzeit ein Rezept machen">
+                Antippen übernimmt die Mahlzeit als Ausgangspunkt für ein neues Rezept.
+              </InfoButton>
+            </div>
           </div>
         )}
 

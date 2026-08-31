@@ -40,6 +40,7 @@ import { useIngredientScaling } from '../hooks/useIngredientScaling'
 import { useDraftAutosave, useRestoredDraft } from '../hooks/useFormDraft'
 import { draftKey } from '../lib/drafts'
 import { DraftRestoredBanner } from './DraftRestoredBanner'
+import { InfoButton } from './InfoButton'
 
 const EMPTY_NUTRITION: Nutrition = { kcal: 0, protein: 0, carbs: 0, fat: 0 }
 
@@ -870,9 +871,11 @@ function MealEditorContent({
                       </div>
                     ))}
                   </div>
-                  <p className="mt-2 text-xs text-ink-faint">
-                    Menge ändern skaliert die Nährwerte dieser Zutat automatisch (keine neue Schätzung).
-                  </p>
+                  <div className="mb-2 flex justify-end">
+                    <InfoButton label="Wie wirkt sich eine Mengenänderung aus?" title="Menge ändern">
+                      Menge ändern skaliert die Nährwerte dieser Zutat automatisch (keine neue Schätzung).
+                    </InfoButton>
+                  </div>
                 </div>
               )}
 

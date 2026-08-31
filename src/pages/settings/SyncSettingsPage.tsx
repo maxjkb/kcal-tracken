@@ -22,6 +22,7 @@ import {
 } from '../../lib/firebase'
 import { getSyncError, getSyncStatus, onSyncStatusChange, resyncNow, startSync, stopSync } from '../../lib/sync'
 import { DockedField } from '../../components/DockedField'
+import { InfoButton } from '../../components/InfoButton'
 
 /**
  * Sync setup. Tracke ships with its own Firebase project baked in
@@ -333,10 +334,12 @@ export function SyncSettingsPage() {
               </p>
             ) : (
               <>
-                <p className="mb-3 text-xs text-ink-soft">
-                  Anmeldung ohne Passwort per Link per E-Mail. Auf jedem Gerät, das synchronisieren soll,
-                  mit derselben E-Mail-Adresse anmelden.
-                </p>
+                <div className="mb-3 flex justify-end">
+                  <InfoButton label="Wie funktioniert die Anmeldung?" title="Anmeldung">
+                    Anmeldung ohne Passwort per Link per E-Mail. Auf jedem Gerät, das synchronisieren soll,
+                    mit derselben E-Mail-Adresse anmelden.
+                  </InfoButton>
+                </div>
                 <input
                   type="email"
                   value={email}
@@ -383,9 +386,11 @@ export function SyncSettingsPage() {
       </section>
 
       {user && (
-        <p className="mb-6 px-1 text-xs text-ink-soft">
-          Synchronisiert werden Mahlzeiten, Rezepte, Körperwerte & Ziele sowie der Gemini-API-Key.
-        </p>
+        <div className="mt-3 flex justify-end">
+          <InfoButton label="Was wird synchronisiert?" title="Umfang der Synchronisation">
+            Synchronisiert werden Mahlzeiten, Rezepte, Körperwerte & Ziele sowie der Gemini-API-Key.
+          </InfoButton>
+        </div>
       )}
 
       <SavedToast message={message} />
