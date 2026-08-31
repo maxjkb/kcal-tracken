@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.7',
+    date: '2026-08-31',
+    highlights: [
+      'Statistik-Graph: zieht sich jetzt über die volle Kachelbreite und zeigt nur noch reine Zahlen (keine "kcal"/"Ø"/"Ziel"-Wörter mehr im Diagramm). Ein neues i-Symbol neben der Kachelüberschrift öffnet ein Sheet mit der Farb-Legende und der Ziel-Linien-Erklärung.',
+    ],
+  },
+  {
     version: '1.19.6',
     date: '2026-08-31',
     highlights: [

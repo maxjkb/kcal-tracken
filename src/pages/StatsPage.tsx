@@ -9,6 +9,7 @@ import { SupplementScoreCard } from '../components/SupplementScoreCard'
 import { MicronutrientBars } from '../components/MicronutrientBars'
 import { useMicronutrientOverview } from '../hooks/useMicronutrients'
 import { KcalTrendChart, type ChartBucket } from '../components/KcalTrendChart'
+import { ChartLegendSheet } from '../components/ChartLegendSheet'
 import type { StatBucket } from '../lib/stats'
 import { targetKcalAsNutritionMap, targetKcalByBucketKey, useDailyTargetKcalMap } from '../lib/targetHistory'
 import { PageHeader } from '../components/PageHeader'
@@ -42,6 +43,7 @@ export function StatsPage() {
   const [period, setPeriod] = useState<Period>('week')
   const [anchorKey, setAnchorKey] = useState(() => toLocalDateKey(new Date()))
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [legendOpen, setLegendOpen] = useState(false)
   // Which of the two summaries the area below expands on. Chart first: the
   // shape over time is what the period views exist for, the macro breakdown is
   // the follow-up question.
@@ -292,9 +294,24 @@ export function StatsPage() {
         </>
       ) : (
         <div className="rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
-          {(period === 'week' || period === 'month') && meals !== undefined && barData.length > 0 && (
-            <div className="mb-2 text-xs font-semibold text-ink-soft">{monthHeadingLabel(startKey, endKey)}</div>
-          )}
+          {/* The "i" sits on the same line as this card's own heading, per
+              explicit request — even on Jahr, which has no heading text of
+              its own, `justify-between` still pushes it to the right. */}
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-ink-soft">
+              {(period === 'week' || period === 'month') && meals !== undefined && barData.length > 0
+                ? monthHeadingLabel(startKey, endKey)
+                : ''}
+            </span>
+            <button
+              type="button"
+              onClick={() => setLegendOpen(true)}
+              aria-label="Legende zum Diagramm"
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-bg text-[10px] font-bold text-ink-faint hover:text-ink-soft"
+            >
+              i
+            </button>
+          </div>
           {/* min-h rather than a fixed h-56: the detail panel opens inside this
               box, and a fixed height would squeeze the chart instead of letting
               the card grow. */}
@@ -304,7 +321,6 @@ export function StatsPage() {
             ) : (
               <KcalTrendChart
                 data={withTarget(period === 'year' ? monthData : barData)}
-                unitLabel={period === 'year' ? 'Monat' : period === 'month' ? 'Woche' : 'Tag'}
                 targets={dailyTargets}
                 emptyLabel="Keine Einträge in diesem Zeitraum."
                 onSelectBucket={(bucket: StatBucket) =>
@@ -360,6 +376,9 @@ export function StatsPage() {
           }}
           onClose={() => setPickerOpen(false)}
         />
+      )}
+      {legendOpen && (
+        <ChartLegendSheet hasTargetLine={Boolean(targetKcalByKey)} onClose={() => setLegendOpen(false)} />
       )}
     </div>
   )
