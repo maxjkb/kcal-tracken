@@ -172,7 +172,7 @@ function describeNutritionChange(previous: SupplementAdvisorContext, current: Su
 
   const newlyLow = current.lowMicronutrients.filter((n) => !previousLowMicronutrients.includes(n))
   if (newlyLow.length > 0) {
-    changes.push(`neu unterrepräsentiert (7-Tage-Schnitt): ${newlyLow.join(', ')}`)
+    changes.push(`neu unterrepräsentiert (Langzeit-Schnitt): ${newlyLow.join(', ')}`)
   }
   const noLongerLow = previousLowMicronutrients.filter((n) => !current.lowMicronutrients.includes(n))
   if (noLongerLow.length > 0) {
@@ -214,7 +214,7 @@ export async function generateAdvisorRun(): Promise<SupplementAdvisorRun> {
   const [adherence, intake, microOverview] = await Promise.all([
     analyzeAdherence(),
     analyzeIntake(),
-    // Same rolling 7-day picture the Statistik page shows — no separate,
+    // Same recency-weighted picture the Statistik page shows — no separate,
     // hidden window here, so "why is this suggested" always matches what's
     // visible elsewhere in the app. Skipped without a body profile, same
     // gate the bands themselves need (iron's reference value depends on sex).

@@ -316,7 +316,7 @@ export interface SupplementAdvisorContext {
   periodDays: number
   /** Names taken on at least ESTABLISHED_DAYS of the last 30 days. */
   established: string[]
-  /** Micronutrients whose rolling 7-day average sits in the "unterrepräsentiert" band (see lib/micronutrients.ts) — German labels, empty when there's no body profile or no such gap. */
+  /** Micronutrients whose recency-weighted average sits in the "unterrepräsentiert" band (see lib/micronutrients.ts) — German labels, empty when there's no body profile or no such gap. */
   lowMicronutrients: string[]
 }
 
