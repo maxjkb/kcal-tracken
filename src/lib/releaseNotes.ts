@@ -17,6 +17,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.17.1',
+    date: '2026-08-31',
+    highlights: [
+      'Supplementscore ist jetzt fortlaufend statt an den Statistik-Zeitraum gebunden — er setzt sich nicht mehr zurück, egal welche Ansicht (Tag/Woche/Monat/Jahr) gerade offen ist.',
+      'Neue Supp-Score-Seite: Antippen des Scores öffnet jetzt eine eigene Seite mit Aufschlüsselung pro Supplement und einer Kalenderübersicht, statt auf die Heute-Ansicht zu springen.',
+    ],
+  },
+  {
     version: '1.17.0',
     date: '2026-08-31',
     highlights: [

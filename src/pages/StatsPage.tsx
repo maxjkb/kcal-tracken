@@ -321,7 +321,7 @@ export function StatsPage() {
         </div>
       )}
 
-      <SupplementScoreCard startKey={startKey} endKey={endKey} />
+      <SupplementScoreCard />
 
       {pickerOpen && period === 'day' && (
         <DayPickerModal

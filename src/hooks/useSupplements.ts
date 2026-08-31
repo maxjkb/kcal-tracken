@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   db,
@@ -13,6 +14,7 @@ import {
 } from '../lib/db'
 import { estimateSupplementContribution } from '../lib/gemini'
 import { getApiKey } from '../lib/settings'
+import { computeSupplementScore, type SupplementScoreOverview } from '../lib/supplementScore'
 
 /** The full catalog (seed + custom), newest custom additions first-ish — sorted by name for a stable, browsable list. */
 export function useAllSupplements(): Supplement[] | undefined {
@@ -152,6 +154,28 @@ export function useSupplementLogInRange(startKey: string, endKey: string): Suppl
     () => db.supplementLog.where('date').between(startKey, endKey, true, true).toArray(),
     [startKey, endKey],
   )
+}
+
+/**
+ * The cumulative, all-time Supplementscore (see lib/supplementScore.ts) —
+ * feeds both SupplementScoreCard and SuppScorePage, so the number shown in
+ * Statistik and the breakdown behind it are always computed from the exact
+ * same query, never two slightly different ones. Reads the *entire*
+ * supplementLog table rather than a bounded range: unlike the meal/advisor
+ * tables there is no natural per-launch cap here — a personal routine's log
+ * stays small (tens of rows a month per entry, not the hundreds a meal
+ * history can reach), so an unbounded live query is cheap and always
+ * correct rather than needing its own staleness/pruning story.
+ */
+export function useSupplementScore(): SupplementScoreOverview | undefined {
+  const mySupplements = useMySupplements()
+  const supplements = useAllSupplements()
+  const logEntries = useLiveQuery(() => db.supplementLog.toArray(), [])
+
+  return useMemo(() => {
+    if (!mySupplements || !supplements || !logEntries) return undefined
+    return computeSupplementScore(mySupplements, supplements, logEntries)
+  }, [mySupplements, supplements, logEntries])
 }
 
 /** The newest stored advisor run — what the Vorschläge tab renders. Live, so the daily background refresh appears without a reload. */
