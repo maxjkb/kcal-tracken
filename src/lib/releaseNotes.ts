@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.16.3',
+    date: '2026-08-31',
+    highlights: [
+      'Neue Mikronährstoff-Stufe „im Überschuss": treibt ein aktives Supplement zusammen mit der Ernährung einen Nährstoff weit über den Bedarf, prüft die KI jetzt bei jeder Empfehlung, ob es noch notwendig ist — sonst erscheint es als „Nicht mehr notwendig" mit Begründung, statt weiter als gewöhnlicher Vorschlag.',
+    ],
+  },
+  {
     version: '1.16.2',
     date: '2026-08-31',
     highlights: [

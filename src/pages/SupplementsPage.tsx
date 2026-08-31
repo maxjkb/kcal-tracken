@@ -321,6 +321,10 @@ function SuggestionsTab() {
       {suggestions.map((s) => {
         const added = addedNames.has(s.supplementName)
         const isConsistency = s.kind === 'consistency'
+        // TODO(#15): a proper "nicht mehr notwendig" card treatment — this is
+        // just enough to not offer a nonsensical "Zur Liste hinzufügen" on an
+        // entry that's already on the list and being suggested for removal.
+        const isNoLongerNeeded = s.kind === 'no_longer_needed'
         return (
           <div key={s.supplementName} className="glass-subtle flex flex-col gap-2 rounded-3xl p-4">
             <div className="flex items-start justify-between gap-3">
@@ -329,10 +333,16 @@ function SuggestionsTab() {
                 <p className="text-xs text-ink-soft">{SUPPLEMENT_CATEGORY_LABELS[s.category]}</p>
               </div>
               {/* A consistency item is already on the list — offering "add" would
-                  duplicate it, and the ask is to take it, not to acquire it. */}
+                  duplicate it, and the ask is to take it, not to acquire it.
+                  Same reasoning for "nicht mehr notwendig": it's already on the
+                  list too, just being flagged for the opposite reason. */}
               {isConsistency ? (
                 <span className="shrink-0 rounded-full bg-section-12 px-3 py-1.5 text-xs font-semibold text-section">
                   Schon auf der Liste
+                </span>
+              ) : isNoLongerNeeded ? (
+                <span className="shrink-0 rounded-full bg-danger/12 px-3 py-1.5 text-xs font-semibold text-danger">
+                  Nicht mehr notwendig
                 </span>
               ) : (
                 <button

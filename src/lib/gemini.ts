@@ -771,6 +771,8 @@ export interface SupplementRecommendationInput {
   irregular: { name: string; daysTaken: number; daysTracked: number }[]
   /** Micronutrients (German labels) whose recency-weighted average sits in the "unterrepräsentiert" band — empty when there's no body profile or no such gap. */
   lowMicronutrients: string[]
+  /** Active routine entries whose own contribution touches a micronutrient now in the "Überschuss" band (diet + this supplement together) — empty in the normal case where nothing is excessive. */
+  excessSupplements: { name: string; nutrients: string[] }[]
   /** The previous run's suggestions with their wording, so unchanged circumstances produce unchanged advice. */
   previous: { supplementName: string; reasoning: string }[] | null
   /** Plain-language summary of how the nutrition data moved since that previous run, or null if nothing material changed. */
@@ -815,9 +817,9 @@ const SUPPLEMENT_RECOMMENDATION_SCHEMA = {
           },
           kind: {
             type: 'STRING',
-            enum: ['new', 'consistency'],
+            enum: ['new', 'consistency', 'no_longer_needed'],
             description:
-              'new = steht noch nicht auf der Liste. consistency = steht schon auf der Liste, wird aber zu unregelmäßig eingenommen; die Empfehlung lautet dann, es regelmäßig zu nehmen.',
+              'new = steht noch nicht auf der Liste. consistency = steht schon auf der Liste, wird aber zu unregelmäßig eingenommen; die Empfehlung lautet dann, es regelmäßig zu nehmen. no_longer_needed = steht auf der Liste UND in "Mögliche Überschüsse" (siehe unten) — die Begründung erklärt konkret, warum, und ob eher ganz absetzen oder nur die Dosis senken sinnvoll ist.',
           },
         },
         required: ['supplementName', 'category', 'suggestedDosage', 'suggestedTimesOfDay', 'reasoning', 'kind'],
@@ -839,6 +841,11 @@ Anzahl: Nenne genau so viele Vorschläge, wie sachlich begründet sind. Es gibt 
 Bereits eingenommene Supplements:
 - Was regelmäßig (an fast allen Tagen des letzten Monats) eingenommen wird, ist erledigt — schlage es nicht erneut vor.
 - Was auf der Liste steht, aber unregelmäßig eingenommen wird, nimm mit kind="consistency" auf: die Empfehlung ist dann nicht ein neues Produkt, sondern die regelmäßige Einnahme des vorhandenen. Nenne in der Begründung konkret, an wie vielen Tagen es genommen wurde, und wofür die Regelmäßigkeit nötig ist (z.B. Kreatin wirkt nur bei täglicher Einnahme über Wochen).
+
+Mögliche Überschüsse: Du bekommst ggf. eine Liste aktiver Supplements, deren eigener Beitrag (zusammen mit der Ernährung) einen Mikronährstoff inzwischen weit über den Referenzwert treibt ("Überschuss"-Band). Prüfe für JEDEN Eintrag dieser Liste eigenständig, ob ein Vorschlag mit kind="no_longer_needed" gerechtfertigt ist:
+- Ist der Überschuss wirklich auf DIESES Supplement zurückzuführen und gibt es keinen erkennbaren anderen Grund, es trotzdem in dieser Dosis fortzuführen, schlage kind="no_longer_needed" vor. Sag in der Begründung konkret, welcher Nährstoff betroffen ist und ob eher ganz absetzen oder nur die Dosis reduzieren sinnvoll ist.
+- Erscheint der Überschuss unbedenklich oder ist das Supplement aus anderen Gründen (z.B. Körperziel) weiter sinnvoll, mach dazu KEINEN Vorschlag — nicht jeder Eintrag dieser Liste braucht eine Reaktion.
+- Ein Supplement aus dieser Liste taucht niemals gleichzeitig als "consistency"-Vorschlag auf — beides widerspricht sich.
 
 Gewichte neue Vorschläge und Begründungen zu etwa drei Vierteln auf Basis der tatsächlichen Ernährungsdaten (z.B. "der Proteinbedarf wird im Schnitt um X g/Tag verfehlt", "kaum fettreicher Fisch/Omega-3-Quellen erkennbar", oder ein gemeldeter Mikronährstoff-Mangel) und zu einem Viertel auf Basis allgemein anerkannter, zum Körperziel passender Supplements auch ohne direkten Datenbezug (z.B. ist Kreatin bei Muskelaufbau generell gut belegt, unabhängig von den geloggten Mahlzeiten). Ein gemeldeter Mikronährstoff-Mangel (gewichteter Langzeit-Schnitt unter Referenzwert) ist ein eigenständiger, direkter Grund für einen Vorschlag — z.B. rechtfertigt "Vitamin D unterrepräsentiert" für sich allein einen Vitamin-D-Vorschlag, auch ohne dass sich das an den Makronährstoffen zeigt.
 
@@ -873,6 +880,11 @@ export async function estimateSupplementRecommendations(
     input.lowMicronutrients.length > 0
       ? `Mikronährstoffe mit erkennbarem Mangel (gewichteter Langzeit-Schnitt unter Referenzwert, grobe KI-Schätzung): ${input.lowMicronutrients.join(', ')}`
       : 'Keine erkennbare Mikronährstoff-Lücke (oder noch keine ausreichenden Daten dafür).',
+    input.excessSupplements.length > 0
+      ? `Mögliche Überschüsse — aktive Supplements, deren eigener Beitrag einen Mikronährstoff jetzt weit über den Referenzwert treibt (für jedes eigenständig prüfen, ob kind="no_longer_needed" gerechtfertigt ist): ${input.excessSupplements
+          .map((e) => `${e.name} (betrifft: ${e.nutrients.join(', ')})`)
+          .join('; ')}`
+      : 'Kein aktives Supplement treibt derzeit einen Mikronährstoff in den Überschuss.',
   ]
 
   if (input.previous && input.previous.length > 0) {

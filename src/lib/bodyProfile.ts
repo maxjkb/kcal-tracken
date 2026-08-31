@@ -185,18 +185,32 @@ export function computeMicronutrientTargets(sex: Sex): MicronutrientTargets {
   return { ...MICRONUTRIENT_REFERENCE, iron: IRON_REFERENCE_BY_SEX[sex] }
 }
 
-export type MicronutrientBand = 'low' | 'average' | 'good'
+export type MicronutrientBand = 'low' | 'average' | 'good' | 'surplus'
 
-/** Below this fraction of the reference intake, a rolling average counts as "unterrepräsentiert". */
+/** Below this fraction of the reference intake, the average counts as "unterrepräsentiert". */
 const BAND_LOW_THRESHOLD = 0.67
 /** At or above this fraction, it counts as "gut" rather than merely "durchschnittlich". */
 const BAND_GOOD_THRESHOLD = 1.1
+/**
+ * At or above this fraction — double the reference intake, not just
+ * comfortably above it — it counts as "Überschuss" rather than merely
+ * "gut". This is what actually drives the "is this supplement still
+ * necessary" check in lib/supplementAdvisor.ts once diet and supplements
+ * are summed together (see lib/micronutrients.ts): a generous but ordinary
+ * intake shouldn't read as an actionable overshoot, only a genuinely large
+ * one should. Deliberately a plain multiple of the *target* rather than a
+ * real safety/upper-limit (UL) reference value per nutrient — the app has
+ * no such data, and a wrong absolute number would read as medical advice
+ * it isn't. This is a conservative heuristic, not a safety judgement.
+ */
+const BAND_SURPLUS_THRESHOLD = 2.0
 
-/** Turns a rolling-average intake into one of the three bands the UI actually shows — see lib/micronutrients.ts for where the average itself comes from. */
+/** Turns an average intake into one of the four bands the UI shows — see lib/micronutrients.ts for where the average itself comes from. */
 export function bandForIntake(averageIntake: number, target: number): MicronutrientBand {
   if (target <= 0) return 'average'
   const ratio = averageIntake / target
   if (ratio < BAND_LOW_THRESHOLD) return 'low'
+  if (ratio >= BAND_SURPLUS_THRESHOLD) return 'surplus'
   if (ratio >= BAND_GOOD_THRESHOLD) return 'good'
   return 'average'
 }
