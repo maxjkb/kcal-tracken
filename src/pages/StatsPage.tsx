@@ -167,7 +167,11 @@ export function StatsPage() {
         {PERIODS.map(({ key, label }) => (
           <button
             key={key}
-            onClick={() => setPeriod(key)}
+            // Tapping the period you're already on has nothing left to
+            // switch to, so that tap now opens the calendar sheet instead —
+            // the trigger the date-navigator's own middle tile used to be,
+            // before it was removed below in favor of this.
+            onClick={() => (period === key ? setPickerOpen(true) : setPeriod(key))}
             className={`relative flex-1 rounded-full py-3 text-sm font-medium transition-colors ${
               period === key ? 'text-ink' : 'text-ink-soft hover:text-ink'
             }`}
@@ -194,9 +198,11 @@ export function StatsPage() {
         >
           <ChevronIcon direction="left" />
         </button>
-        <button onClick={() => setPickerOpen(true)} className="px-3 py-3 text-sm font-medium text-ink hover:opacity-70">
-          {formatPeriodLabel(period, anchorKey)}
-        </button>
+        {/* Plain text, not a button: opening the calendar sheet moved to a
+            second tap on the active period pill above (see the segmented
+            control's onClick) — this tile only reports where the arrows
+            either side of it currently point. */}
+        <span className="px-3 py-3 text-sm font-medium text-ink">{formatPeriodLabel(period, anchorKey)}</span>
         <button
           onClick={() => setAnchorKey((k) => shiftAnchor(period, k, 1))}
           className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white"

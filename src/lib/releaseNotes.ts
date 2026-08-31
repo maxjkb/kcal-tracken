@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.18.2',
+    date: '2026-08-31',
+    highlights: [
+      'Die Datums-/Zeitraum-Kachel in Feed und Statistik ist nicht mehr antippbar. Stattdessen: Auf Feed öffnet ein Tipp auf den Titel "Feed" den Kalender; in Statistik öffnet ein zweites Tippen auf die bereits aktive Pille (Tag/Woche/Monat/Jahr) den passenden Kalender/Monats-/Jahres-Picker.',
+    ],
+  },
+  {
     version: '1.18.1',
     date: '2026-08-31',
     highlights: [

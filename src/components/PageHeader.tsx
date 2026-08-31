@@ -41,6 +41,7 @@ export function PageHeader({
   title,
   actions,
   showSettings = true,
+  onTitleClick,
   className = '',
 }: {
   title: string
@@ -48,6 +49,14 @@ export function PageHeader({
   actions?: ReactNode
   /** Set false to hide the gear (kept for API flexibility; every current page shows it, now that Einstellungen is a sheet rather than a page you could already be on). */
   showSettings?: boolean
+  /**
+   * Makes the title itself a tap target. FeedPage is the one caller: its own
+   * date-heading button ("Heute"/"Montag, 17. August") used to open the
+   * calendar sheet, but that put the trigger on a tile that otherwise just
+   * displays the current day — this moves it onto the page title instead,
+   * freeing that tile to be plain, non-interactive text (see FeedPage.tsx).
+   */
+  onTitleClick?: () => void
   className?: string
 }) {
   const addMeal = useAddMeal()
@@ -81,7 +90,15 @@ export function PageHeader({
         style={{ opacity: edgeOpacity }}
       />
       <div className="relative flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tight text-ink">{title}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-ink">
+          {onTitleClick ? (
+            <button type="button" onClick={onTitleClick} className="text-left active:opacity-70">
+              {title}
+            </button>
+          ) : (
+            title
+          )}
+        </h1>
         <div className="flex shrink-0 items-center gap-2">
           {actions}
           {showSettings && (
