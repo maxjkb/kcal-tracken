@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { useMealsForDate } from '../hooks/useMeals'
+import { useMeal, useMealsForDate } from '../hooks/useMeals'
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, toLocalDateKey, type Meal, type MealType } from '../lib/db'
 import { MealCard } from '../components/MealCard'
 import { MealEditor } from '../components/MealEditor'
@@ -57,6 +57,11 @@ export function FeedPage() {
   const [editorState, setEditorState] = useState<
     { mode: 'closed' } | { mode: 'edit'; meal: Meal } | { mode: 'view'; meal: Meal }
   >({ mode: 'closed' })
+  // Live, not just `editorState.meal` itself: after MealEditor's onClose
+  // hands back to 'view' (see below), that snapshot is still the pre-edit
+  // meal — this re-reads the just-saved data. Falls back to the snapshot
+  // while the query is still resolving, so there's no loading flash.
+  const viewedMeal = useMeal(editorState.mode === 'view' ? editorState.meal.id : undefined)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [collapsed, setCollapsed] = useState<Record<MealType, boolean>>({
     breakfast: false,
@@ -196,14 +201,25 @@ export function FeedPage() {
 
       {editorState.mode === 'view' && (
         <MealDetail
-          meal={editorState.meal}
+          meal={viewedMeal ?? editorState.meal}
           onClose={() => setEditorState({ mode: 'closed' })}
           onEdit={() => setEditorState({ mode: 'edit', meal: editorState.meal })}
         />
       )}
 
       {editorState.mode === 'edit' && (
-        <MealEditor date={dateKey} initial={editorState.meal} onClose={() => setEditorState({ mode: 'closed' })} />
+        <MealEditor
+          date={dateKey}
+          initial={editorState.meal}
+          // Back to 'view', not 'closed': this editor was reached from
+          // MealDetail's own "Bearbeiten", so closing it (swipe-down,
+          // handle tap, or a completed save — all funnel through the same
+          // Sheet onClose) should return to that view, the "Hauptseite" of
+          // this two-step flow, not skip past it to the Feed underneath.
+          // App.tsx's own `addingMeal` MealEditor has no view to return to
+          // and keeps its plain onClose.
+          onClose={() => setEditorState({ mode: 'view', meal: editorState.meal })}
+        />
       )}
     </div>
   )

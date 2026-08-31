@@ -46,6 +46,17 @@ export function useMySupplements(): MySupplement[] | undefined {
 }
 
 /**
+ * One routine entry by id, live. Used by SupplementsPage's TodayTab to
+ * re-read the just-saved dosage/times after closing SupplementFormSheet's
+ * edit view (see the editing → viewing handoff there) — the `MySupplement`
+ * object already held in that state is the pre-edit snapshot, so restoring
+ * the view with it as-is would show stale values.
+ */
+export function useMySupplement(id: string | undefined): MySupplement | undefined {
+  return useLiveQuery(() => (id ? db.mySupplements.get(id) : undefined), [id])
+}
+
+/**
  * Adds a catalog entry to the routine, or updates it if it is already there.
  *
  * Nothing used to stop the same supplement being added twice: the catalog row

@@ -11,6 +11,23 @@ export function useMealsForDate(dateKey: string): Meal[] | undefined {
   )
 }
 
+/**
+ * One meal by id, live — `undefined` while the query is still running, `null`
+ * when there is genuinely no such meal. Same undefined/null split as
+ * useRecipe/useRecipes.ts's own doc comment explains: Dexie's `get` resolves
+ * to `undefined` for a miss, the same value useLiveQuery reports while still
+ * loading, so a caller that needs to tell "loading" from "gone" needs this
+ * split rather than a bare `get`.
+ *
+ * Used by FeedPage to re-show MealDetail with the just-saved data after
+ * closing MealEditor (see the mode:'edit' → mode:'view' handoff there) — the
+ * `meal` object already sitting in that state is the pre-edit snapshot, so
+ * showing it as-is after a save would display stale numbers.
+ */
+export function useMeal(id: string | undefined): Meal | null | undefined {
+  return useLiveQuery(async () => (id ? ((await db.meals.get(id)) ?? null) : null), [id])
+}
+
 /** All meals between two date keys, inclusive, sorted by date then creation time. */
 export function useMealsInRange(startKey: string, endKey: string): Meal[] | undefined {
   return useLiveQuery(async () => {

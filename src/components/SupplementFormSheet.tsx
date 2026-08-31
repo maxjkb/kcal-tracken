@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState, type RefObject } from 'react'
 import {
   SUPPLEMENT_CATEGORY_LABELS,
   SUPPLEMENT_TIME_LABELS,
@@ -37,14 +37,33 @@ export function SupplementFormSheet({
   supplement,
   editing,
   onClose,
+  onRemoved,
 }: {
   supplement?: Supplement
   editing?: { mySupplement: MySupplement; supplement: Supplement | undefined }
   onClose: () => void
+  /**
+   * Called instead of `onClose` when the sheet closes because the entry was
+   * removed (handleRemove below), rather than saved or simply cancelled.
+   * Optional, defaulting to `onClose` — only a caller that swaps back to a
+   * "view" sheet on a normal close (SupplementsPage's TodayTab) needs the
+   * distinction, to skip that swap when there's nothing left to view.
+   *
+   * Every exit — save, remove, swipe-down, handle tap — funnels through the
+   * same `<Sheet onClose>` below, so which one actually happened has to be
+   * recorded before requestClose() runs; `removedRef` is that record,
+   * written by handleRemove inside SupplementFormContent and read here once
+   * the sheet's exit animation completes.
+   */
+  onRemoved?: () => void
 }) {
+  const removedRef = useRef(false)
   return (
-    <Sheet onClose={onClose} sheetClassName="glass flex w-full max-w-lg flex-col rounded-t-3xl p-5 pt-7 sm:rounded-3xl">
-      <SupplementFormContent supplement={supplement ?? editing?.supplement} editing={editing} />
+    <Sheet
+      onClose={() => (removedRef.current ? (onRemoved ?? onClose)() : onClose())}
+      sheetClassName="glass flex w-full max-w-lg flex-col rounded-t-3xl p-5 pt-7 sm:rounded-3xl"
+    >
+      <SupplementFormContent supplement={supplement ?? editing?.supplement} editing={editing} removedRef={removedRef} />
     </Sheet>
   )
 }
@@ -64,9 +83,12 @@ function isSameSupplementDraft(a: SupplementDraft, b: SupplementDraft): boolean 
 function SupplementFormContent({
   supplement,
   editing,
+  removedRef,
 }: {
   supplement?: Supplement
   editing?: { mySupplement: MySupplement; supplement: Supplement | undefined }
+  /** Set to true right before requestClose() in handleRemove — see SupplementFormSheet's own doc comment on why. */
+  removedRef: RefObject<boolean>
 }) {
   const requestClose = useSheetClose()
   // Also true when editing an entry whose catalog row has gone (a restored
@@ -172,6 +194,7 @@ function SupplementFormContent({
     try {
       await removeMySupplement(editing.mySupplement.id)
       draft.clear()
+      removedRef.current = true
       requestClose()
     } catch (err) {
       // The one handler here that had a finally but no catch: a failed write
