@@ -18,7 +18,7 @@ import {
   bucketByDay,
   bucketByMonth,
   bucketByWeek,
-  computeAverageDeficit,
+  computeAverageComparison,
   computeDailyAverage,
   computeDailyMacroAverages,
   formatPeriodLabel,
@@ -116,13 +116,13 @@ export function StatsPage() {
   // Tile 1 ("kcal gesamt" on Tag) becomes a surplus/deficit readout on the
   // other three periods, one granularity up from what's charted: Woche
   // averages day-by-day, Monat week-by-week, Jahr month-by-month (see
-  // computeAverageDeficit). Reuses the exact buckets/lookup already built
+  // computeAverageComparison). Reuses the exact buckets/lookup already built
   // above for the chart — only the "today" key needs adjusting for Jahr's
   // YYYY-MM bucket keys.
   const todayKey = toLocalDateKey(new Date())
   const deficitBuckets = period === 'week' ? dayData : period === 'month' ? weekData : period === 'year' ? monthData : []
   const deficitTodayKey = period === 'year' ? todayKey.slice(0, 7) : todayKey
-  const averageDeficit = targetKcalByKey ? computeAverageDeficit(deficitBuckets, targetKcalByKey, deficitTodayKey) : null
+  const averageComparison = targetKcalByKey ? computeAverageComparison(deficitBuckets, targetKcalByKey, deficitTodayKey) : null
   const perMealData =
     period === 'day'
       ? [...(meals ?? [])]
@@ -213,14 +213,14 @@ export function StatsPage() {
             to what I need" does. Falls back to the plain total when there's
             nothing to compare against yet (no body profile, or the target
             history is still loading). */}
-        {period === 'day' || averageDeficit === null ? (
+        {period === 'day' || averageComparison === null ? (
           <StatTile value={Math.round(totals.kcal).toLocaleString('de-DE')} label="kcal gesamt" />
         ) : (
           <StatTile
-            value={`${averageDeficit >= 0 ? '+' : '−'}${Math.round(Math.abs(averageDeficit)).toLocaleString('de-DE')}`}
-            label={
-              period === 'week' ? 'kcal Ø/Tag ggü. Bedarf' : period === 'month' ? 'kcal Ø/Woche ggü. Bedarf' : 'kcal Ø/Monat ggü. Bedarf'
-            }
+            value={`${averageComparison.diff >= 0 ? '+' : '−'}${Math.round(Math.abs(averageComparison.diff)).toLocaleString('de-DE')}`}
+            label={`${Math.round(averageComparison.target).toLocaleString('de-DE')} kcal Ziel${
+              period === 'week' ? '/Tag' : period === 'month' ? '/Woche' : '/Monat'
+            }`}
           />
         )}
         <StatTile
