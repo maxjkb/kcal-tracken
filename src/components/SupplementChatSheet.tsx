@@ -72,7 +72,7 @@ export function SupplementChatSheet({ suggestion, onClose }: { suggestion: Suppl
       <div className="flex shrink-0 items-center justify-between border-b border-line/60 px-5 py-4">
         <div>
           <h2 className="text-lg font-semibold text-ink">{suggestion.supplementName}</h2>
-          <p className="text-xs text-ink-soft">Rückfragen zu diesem Supplement</p>
+          <p className="text-xs text-ink-soft">Rückfragen zu diesem Supp</p>
         </div>
         <div className="flex items-center gap-1.5">
           <InfoButton label="Hinweis zum Chat" title="Hinweis">

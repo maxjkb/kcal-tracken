@@ -48,7 +48,7 @@ export function SupplementScoreCard() {
         className="glass-subtle glass-subtle-themed mt-4 block w-full rounded-3xl p-5 text-left shadow-sm shadow-black/5 transition active:opacity-80"
       >
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-ink">Supplementscore</h2>
+          <h2 className="text-sm font-semibold text-ink">Supp-Score</h2>
           <span className="flex items-center gap-1.5">
             {score.overallScore !== null && (
               <span className="flex items-baseline gap-1">

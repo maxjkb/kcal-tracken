@@ -55,7 +55,7 @@ export function SupplementCatalogSheet({ onClose }: { onClose: () => void }) {
             <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
           ) : visible.length === 0 ? (
             <p className="py-8 text-center text-sm text-ink-soft">
-              Nichts gefunden für „{query.trim()}". Du kannst es unten als eigenes Supplement anlegen.
+              Nichts gefunden für „{query.trim()}". Du kannst es unten als eigenes Supp anlegen.
             </p>
           ) : (
             SUPPLEMENT_CATEGORY_ORDER.map((category) => {
@@ -116,7 +116,7 @@ export function SupplementCatalogSheet({ onClose }: { onClose: () => void }) {
             onClick={() => setAddingCustom(true)}
             className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-line py-3 text-sm font-medium text-ink-soft hover:bg-bg"
           >
-            + Eigenes Supplement
+            + Eigenes Supp
           </button>
         </div>
 

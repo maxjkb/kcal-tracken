@@ -564,7 +564,7 @@ function MealEditorContent({
   if (matchedSupplements) {
     return (
       <div className="flex flex-col gap-4 p-5 pt-7">
-        <h2 className="text-lg font-semibold text-ink">Supplement erkannt</h2>
+        <h2 className="text-lg font-semibold text-ink">Supp erkannt</h2>
         <p className="text-sm text-ink-soft">
           In deiner Beschreibung erwähnt — heute als eingenommen markieren?
         </p>

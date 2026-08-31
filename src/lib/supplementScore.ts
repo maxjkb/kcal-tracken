@@ -58,7 +58,7 @@ export function computeSupplementScore(
     ).length
     return {
       id: my.id,
-      name: supplementById.get(my.supplementId)?.name ?? 'Supplement',
+      name: supplementById.get(my.supplementId)?.name ?? 'Supp',
       totalSlots,
       checkedSlots,
     }

@@ -54,7 +54,7 @@ export function SupplementsPage() {
   return (
     <div className="mx-auto max-w-lg px-4 pb-28">
       <PageHeader
-        title="Supplements"
+        title="Supps"
         actions={
           <>
             <HeaderButton onClick={() => setScoreOpen(true)} label="Supp-Score">
@@ -96,7 +96,7 @@ export function SupplementsPage() {
       {/* Was a permanently-visible paragraph — now behind an "i" like every
           other disclaimer in the app, per explicit request. */}
       <div className="mt-8 flex justify-center">
-        <InfoButton label="Hinweis zu den Supplement-Vorschlägen" title="Hinweis">
+        <InfoButton label="Hinweis zu den Supp-Vorschlägen" title="Hinweis">
           Diese Vorschläge basieren auf deinen geloggten Daten und allgemein bekannten Zusammenhängen — sie sind
           keine medizinische Beratung. Bei Vorerkrankungen, Medikamenten oder Schwangerschaft vorher ärztlich
           abklären.
@@ -178,7 +178,7 @@ function TodayTab() {
             <EmptyStateIcon />
           </span>
           <p className="text-sm text-ink-soft">
-            Noch keine Supplements auf deiner Liste. Füge welche über den Katalog hinzu, oder lass dir unter
+            Noch keine Supps auf deiner Liste. Füge welche über den Katalog hinzu, oder lass dir unter
             „Vorschläge" welche empfehlen.
           </p>
         </GlassSurface>
@@ -321,7 +321,7 @@ function SuggestionsTab() {
 
       {run !== null && suggestions.length === 0 && (
         <p className="py-6 text-center text-sm text-ink-soft">
-          Aktuell keine Vorschläge — deine Ernährung und deine Supplement-Routine geben gerade nichts her.
+          Aktuell keine Vorschläge — deine Ernährung und deine Supp-Routine geben gerade nichts her.
         </p>
       )}
 
