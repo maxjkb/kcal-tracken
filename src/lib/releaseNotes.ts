@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.17.0',
+    date: '2026-08-31',
+    highlights: [
+      'Neuer KI-Chat zu Supplement-Empfehlungen: Antippen einer Vorschlags-Kachel öffnet einen Chat, der mit dem schon generierten Empfehlungstext beginnt — danach lassen sich individuelle Rückfragen zu genau diesem Supplement und deinem konkreten Bedarf stellen. Die Konversation bleibt gespeichert.',
+    ],
+  },
+  {
     version: '1.16.4',
     date: '2026-08-31',
     highlights: [

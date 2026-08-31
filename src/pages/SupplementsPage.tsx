@@ -25,6 +25,7 @@ import { GeminiError } from '../lib/gemini'
 import { getApiKey } from '../lib/settings'
 import { SupplementChecklistRow } from '../components/SupplementChecklist'
 import { SupplementFormSheet } from '../components/SupplementFormSheet'
+import { SupplementChatSheet } from '../components/SupplementChatSheet'
 import { SPRING_SNAPPY } from '../lib/motionTokens'
 import { GlassSurface } from '../glass/GlassSurface'
 
@@ -253,6 +254,7 @@ function SuggestionsTab() {
 
   const [retrying, setRetrying] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [chatSuggestion, setChatSuggestion] = useState<SupplementRecommendation | null>(null)
 
   async function handleRetry() {
     setRetrying(true)
@@ -340,10 +342,15 @@ function SuggestionsTab() {
         return (
           <div key={s.supplementName} className="glass-subtle flex flex-col gap-2.5 rounded-3xl p-4">
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
+              {/* Opens the KI-Chat, seeded with this card's own reasoning/effects
+                  text as the opening message — see SupplementChatSheet. A <button>,
+                  not the whole card: the +/pill control on the same row needs to
+                  stay its own, sibling tap target (a <button> can't legally nest
+                  another one), same constraint CatalogTab's rows already solve. */}
+              <button type="button" onClick={() => setChatSuggestion(s)} className="min-w-0 flex-1 text-left" aria-label={`Chat zu ${s.supplementName} öffnen`}>
                 <p className="text-sm font-semibold text-ink">{s.supplementName}</p>
                 <p className="text-xs text-ink-soft">{SUPPLEMENT_CATEGORY_LABELS[s.category]}</p>
-              </div>
+              </button>
               {/* A consistency item is already on the list — offering "add" would
                   duplicate it, and the ask is to take it, not to acquire it.
                   Same reasoning for "nicht mehr notwendig": it's already on the
@@ -381,7 +388,7 @@ function SuggestionsTab() {
                 which. effects is optional (see SupplementRecommendation) —
                 older stored runs simply don't have it, so that line just
                 doesn't render rather than showing "undefined". */}
-            <div className="flex flex-col gap-1">
+            <button type="button" onClick={() => setChatSuggestion(s)} className="flex flex-col gap-1 text-left">
               <p className="text-sm text-ink-soft">
                 <span className="font-medium text-ink">Bedarf: </span>
                 {s.reasoning}
@@ -392,7 +399,7 @@ function SuggestionsTab() {
                   {s.effects}
                 </p>
               )}
-            </div>
+            </button>
             <p className="text-xs text-ink-soft">
               {s.suggestedDosage} · {s.suggestedTimesOfDay.map((t) => SUPPLEMENT_TIME_LABELS[t]).join(', ')}
             </p>
@@ -409,6 +416,8 @@ function SuggestionsTab() {
       >
         {retrying ? 'Wird neu erstellt…' : 'Jetzt neu erstellen'}
       </button>
+
+      {chatSuggestion && <SupplementChatSheet suggestion={chatSuggestion} onClose={() => setChatSuggestion(null)} />}
     </div>
   )
 }
