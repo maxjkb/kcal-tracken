@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.15.4',
+    date: '2026-08-31',
+    highlights: [
+      'Supplement-Empfehlungen: der eigentliche Fehler gefunden und behoben — ein gespeicherter Empfehlungslauf von vor Einführung der Mikronährstoff-Erkennung ließ jeden weiteren Versuch (automatisch wie manuell) dauerhaft an derselben Stelle scheitern. Aktualisiert sich jetzt wieder zuverlässig.',
+    ],
+  },
+  {
     version: '1.15.3',
     date: '2026-08-31',
     highlights: [
