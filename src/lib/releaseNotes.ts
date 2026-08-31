@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.6',
+    date: '2026-08-31',
+    highlights: [
+      'Statistik (Woche/Monat/Jahr): die erste Kachel zeigt jetzt Ziel minus Durchschnitt statt der reinen Kalorienzahl — rot bei einem Defizit, blau bei Erreichen/Überschreiten des Ziels, ganz ohne Wörter (nur die Zahl, darunter grau die reine Ziel-Kalorien-Zahl).',
+    ],
+  },
+  {
     version: '1.19.5',
     date: '2026-08-31',
     highlights: [
