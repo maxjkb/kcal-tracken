@@ -17,6 +17,15 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.20.1',
+    date: '2026-08-31',
+    highlights: [
+      'Der Mahlzeiten-Editor lässt sich jetzt wirklich aufziehen: hochwischen vergrößert das Sheet, das Textfeld bleibt unten stehen und Rezept-, Foto- und Barcode-Auswahl kommen darüber zum Vorschein.',
+      'Das Antippen des Textfelds reagiert sofort statt verzögert — der Tipp wurde bisher von der Wisch-Erkennung des Sheets abgefangen.',
+      'Übergänge zwischen den Hauptbereichen werden nicht mehr von nachladenden Seiten unterbrochen, und mehrere unnötig teure Effekte sind raus.',
+    ],
+  },
+  {
     version: '1.20.0',
     date: '2026-08-31',
     highlights: [

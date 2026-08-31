@@ -58,6 +58,9 @@ type Step = 'input' | 'review'
  */
 const INPUT_ROW_FALLBACK_HEIGHT = 92
 
+/** The grip strip Sheet draws above its content — part of what the peek has to show. */
+const SHEET_HANDLE_HEIGHT = 32
+
 function round1(value: number): number {
   return Math.round(value * 10) / 10
 }
@@ -111,20 +114,33 @@ export function MealEditor({
   defaultMealType?: MealType
   onClose: () => void
 }) {
+  // Measured by the content (the input row lives there), held here because the
+  // Sheet is the thing that has to open at that height. Sized to show the
+  // handle plus the row and nothing else.
+  const [inputRowHeight, setInputRowHeight] = useState(INPUT_ROW_FALLBACK_HEIGHT)
+  const [stepContentHeight, setStepContentHeight] = useState<number | undefined>(undefined)
+
   return (
     <Sheet
       onClose={onClose}
       sheetClassName="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-surface sm:rounded-3xl"
       closeOnBackdropClick={false}
-      // Single detent (the default) now that the "open compact, reveal more
-      // by pulling up" job lives inside step 1 itself (INPUT_STEP_COLLAPSED_HEIGHT
-      // + the sticky description field below) rather than in the sheet's own
-      // partial-open mechanism: this sheet's natural height while on step 1 is
-      // already just the compact pane, so a second, sheet-level partial detent
-      // on top of that would clip even shorter than intended and fight the
-      // pane's own scroll-driven reveal instead of complementing it.
+      // Opens showing only the input row; pulling up grows the sheet, and the
+      // recipe/photo/barcode row and the suggestions come into view above the
+      // field, which stays put at the bottom throughout. This is a height
+      // change rather than one of Sheet's translate detents on purpose: a
+      // detent reveals the sheet's TOP strip, and the thing that has to stay
+      // on screen here sits at its bottom.
+      peekHeight={SHEET_HANDLE_HEIGHT + inputRowHeight}
+      expandedHeight={stepContentHeight === undefined ? undefined : SHEET_HANDLE_HEIGHT + stepContentHeight}
     >
-      <MealEditorContent date={date} initial={initial} defaultMealType={defaultMealType} />
+      <MealEditorContent
+        date={date}
+        initial={initial}
+        defaultMealType={defaultMealType}
+        onInputRowHeight={setInputRowHeight}
+        onStepContentHeight={setStepContentHeight}
+      />
     </Sheet>
   )
 }
@@ -137,10 +153,16 @@ function MealEditorContent({
   date,
   initial,
   defaultMealType,
+  onInputRowHeight,
+  onStepContentHeight,
 }: {
   date: string
   initial?: Meal
   defaultMealType?: MealType
+  /** Reports the docked input row's measured height, so the Sheet can open at exactly that. */
+  onInputRowHeight: (height: number) => void
+  /** Reports how tall the currently shown step's own content is, so pulling the sheet open stops there rather than at the tallest step's height. */
+  onStepContentHeight: (height: number) => void
 }) {
   const requestClose = useSheetClose()
 
@@ -205,7 +227,13 @@ function MealEditorContent({
   // rather than hard-coded: the row grows when the description wraps, and a
   // fixed height clipped the top of the field off as soon as it did.
   const inputRowRef = useRef<HTMLDivElement>(null)
-  const [inputRowHeight, setInputRowHeight] = useState(INPUT_ROW_FALLBACK_HEIGHT)
+  // Everything the sheet shows above the carousel — its header, and the
+  // restored-draft banner when there is one — counts toward both the peek
+  // and the open height. Measured rather than hard-coded, so a banner
+  // appearing doesn't silently push the field out of the peek.
+  const headerRef = useRef<HTMLDivElement>(null)
+  const bannerRef = useRef<HTMLDivElement>(null)
+  const carouselRef = useRef<HTMLDivElement>(null)
   const estimateProgressTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   useEffect(() => {
     return () => {
@@ -304,25 +332,22 @@ function MealEditorContent({
   useLayoutEffect(() => {
     const node = inputRowRef.current
     if (!node) return
-    const sync = () => setInputRowHeight(node.getBoundingClientRect().height)
+    const content = step1ContentRef.current
+    const sync = () => {
+      const chrome =
+        (headerRef.current?.getBoundingClientRect().height ?? 0) +
+        (bannerRef.current?.getBoundingClientRect().height ?? 0)
+      onInputRowHeight(chrome + node.getBoundingClientRect().height)
+      if (content) onStepContentHeight(chrome + content.getBoundingClientRect().height)
+    }
     sync()
     const observer = new ResizeObserver(sync)
     observer.observe(node)
+    if (content) observer.observe(content)
+    if (headerRef.current) observer.observe(headerRef.current)
+    if (bannerRef.current) observer.observe(bannerRef.current)
     return () => observer.disconnect()
-  }, [step, pickingRecipe])
-
-  // Re-pin to the bottom whenever the input row's height changes —
-  // unconditionally, unlike the content-driven effect above, which only
-  // re-pins while the user hasn't scrolled away. Two reasons it can't defer
-  // to that flag here: the flag was already false in the collapsed state
-  // (the pane sits a few pixels short of its own maximum, so the
-  // "am I at the bottom" test never passed), and a row that grows because
-  // the user is typing in it has to stay fully visible regardless — the
-  // field's own top edge was otherwise pushed above the pane and clipped.
-  useLayoutEffect(() => {
-    const pane = step1ScrollRef.current
-    if (pane) pane.scrollTop = pane.scrollHeight
-  }, [inputRowHeight])
+  }, [step, pickingRecipe, onInputRowHeight, onStepContentHeight])
 
   function handleStep1Scroll(event: React.UIEvent<HTMLDivElement>) {
     const node = event.currentTarget
@@ -634,7 +659,7 @@ function MealEditorContent({
 
   return (
     <>
-      <div className="flex shrink-0 items-center justify-between p-5 pb-4 pt-7">
+      <div ref={headerRef} className="flex shrink-0 items-center justify-between p-5 pb-4 pt-7">
         {step === 'review' ? (
           <button onClick={() => setStep('input')} className="text-ink-soft hover:text-ink" aria-label="Zurück">
             <BackIcon />
@@ -656,16 +681,15 @@ function MealEditorContent({
       </div>
 
       {restoredNotice && (
-        <div className="shrink-0 px-5">
+        <div ref={bannerRef} className="shrink-0 px-5">
           <DraftRestoredBanner onDiscard={discardDraft} />
         </div>
       )}
 
       <div
-        className={`flex min-h-0 overflow-hidden transition-[height] duration-300 ease-out ${
-          step === 'input' && !pickingRecipe ? '' : 'flex-1'
-        }`}
-        style={step === 'input' && !pickingRecipe ? { height: inputRowHeight } : undefined}
+        ref={carouselRef}
+        className={`flex min-h-0 overflow-hidden ${step === 'input' && !pickingRecipe ? '' : 'flex-1'}`}
+
         {...swipeBack}
       >
         <div
@@ -676,15 +700,7 @@ function MealEditorContent({
           <div
             ref={pickingRecipe ? undefined : step1ScrollRef}
             onScroll={pickingRecipe ? undefined : handleStep1Scroll}
-            // No bottom padding while collapsed: `sticky bottom-0` anchors to
-            // the scrollport's padding edge, so 20px of it held the docked row
-            // 20px clear of the bottom — and since the pane is exactly as tall
-            // as that row, the same 20px pushed the row's top (and with it the
-            // top of the text field) out above the pane, visibly clipped. The
-            // row brings its own bottom padding, so nothing is lost.
-            className={`w-full shrink-0 overflow-y-auto overflow-x-hidden px-5 ${
-              step === 'input' && !pickingRecipe ? 'pb-0' : 'pb-5'
-            }`}
+            className="w-full shrink-0 overflow-y-auto overflow-x-hidden px-5 pb-5"
           >
             {pickingRecipe ? (
               <div className="flex flex-col gap-4">
@@ -774,7 +790,13 @@ function MealEditorContent({
                     A near-opaque background masks whatever's mid-scroll
                     behind it, matching the scroll-edge-fade every other
                     docked field in the app already uses. */}
-                <div ref={inputRowRef} className="sticky bottom-0 -mx-5 bg-bg/70 px-5 pb-1 pt-2 backdrop-blur-xl">
+                {/* No backdrop-blur here: the sheet behind this row is
+                    opaque (bg-surface), so the filter blurs a flat color and
+                    changes nothing — screenshots of the row with and without
+                    it are pixel-identical. What it did cost was a separate
+                    compositing layer, re-blurred on every frame while the
+                    sheet animates its height. */}
+                <div ref={inputRowRef} className="sticky bottom-0 -mx-5 bg-bg px-5 pb-1 pt-2">
                   <div className="flex items-start gap-2">
                     {/* `relative` so the dictation button can sit inside the
                         field's own right edge while it is still one line. */}
