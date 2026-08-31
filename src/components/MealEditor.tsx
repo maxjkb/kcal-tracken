@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   db,
   MEAL_TYPE_LABELS,
@@ -190,6 +190,18 @@ function MealEditorContent({
     restored ? restored.micronutrients : baseline.micronutrients,
   )
   const [estimating, setEstimating] = useState(false)
+  // Simulated, not measured: a single generateContent call has no partial-
+  // progress signal to report (see handleEstimate below), so this is a
+  // timer-driven ease toward ~92% while waiting, jumping to 100% only once
+  // the real response actually lands — informative without claiming to
+  // measure something that isn't actually observable here.
+  const [estimateProgress, setEstimateProgress] = useState(0)
+  const estimateProgressTimer = useRef<ReturnType<typeof setInterval> | null>(null)
+  useEffect(() => {
+    return () => {
+      if (estimateProgressTimer.current) clearInterval(estimateProgressTimer.current)
+    }
+  }, [])
   const [cleaningUp, setCleaningUp] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -350,6 +362,15 @@ function MealEditorContent({
     }
     setEstimating(true)
     setError(null)
+    // Starts at a visible jump (not 0, which reads as stalled the instant it
+    // appears) and eases toward 92% — each tick covers 10% of the remaining
+    // distance, so it moves quickly at first and settles into a slow creep
+    // the longer the real request takes, never claiming to be done before it
+    // actually is.
+    setEstimateProgress(8)
+    estimateProgressTimer.current = setInterval(() => {
+      setEstimateProgress((p) => Math.min(92, p + (92 - p) * 0.1))
+    }, 180)
     try {
       const result = await estimateNutrition({ description, photoDataUrl: photo })
       setTitle((current) => current || result.suggestedTitle)
@@ -359,10 +380,15 @@ function MealEditorContent({
       setNote(result.note)
       setManuallyEdited(false)
       setHasResult(true)
+      setEstimateProgress(100)
       setStep('review')
     } catch (err) {
       setError(err instanceof GeminiError ? err.message : 'Unbekannter Fehler bei der Schätzung.')
     } finally {
+      if (estimateProgressTimer.current) {
+        clearInterval(estimateProgressTimer.current)
+        estimateProgressTimer.current = null
+      }
       setEstimating(false)
     }
   }
@@ -726,6 +752,17 @@ function MealEditorContent({
                         <p className="mt-1.5 flex items-center gap-2 text-xs text-ink-soft">
                           <BouncingDots /> Diktat wird bereinigt…
                         </p>
+                      )}
+                      {estimating && (
+                        <div className="mt-1.5">
+                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-line">
+                            <div
+                              className="h-full rounded-full bg-accent transition-[width] duration-200 ease-out"
+                              style={{ width: `${estimateProgress}%` }}
+                            />
+                          </div>
+                          <p className="mt-1 text-xs text-ink-soft">Nährwerte werden geschätzt… {Math.round(estimateProgress)}%</p>
+                        </div>
                       )}
                     </div>
                     {/* Dictate and send stack beside the field, in the order
