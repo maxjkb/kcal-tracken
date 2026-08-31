@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.17',
+    date: '2026-08-31',
+    highlights: [
+      'Zurückwischen in Sheets führt jetzt dahin, wo man herkam: aus einem Unter-Sheet zurück ins darüberliegende Sheet, und aus einer Einstellungs-Unterseite zurück ins Einstellungen-Sheet — statt wie bisher alles zu schließen und auf der Hauptseite zu landen.',
+    ],
+  },
+  {
     version: '1.19.16',
     date: '2026-08-31',
     highlights: [

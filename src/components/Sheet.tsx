@@ -69,6 +69,34 @@ function rubberband(offset: number, dimension: number, constant = 0.55): number 
  * element, so a sheet that scrolls would carry the handle out of view with the
  * first swipe.
  */
+/**
+ * Every sheet currently on screen, outermost first.
+ *
+ * A sheet used to exist nowhere in the browser's history, so the system back
+ * gesture (or the Zurück button) popped the *route* instead — from a
+ * sub-sheet that meant the whole stack vanished and the user landed back on
+ * a main page, several steps further back than they asked for. Each open
+ * sheet now occupies one history entry, so back peels exactly one layer:
+ * sub-sheet → parent sheet → page.
+ */
+const openSheets: { close: () => void }[] = []
+
+/**
+ * history.back() calls this module made itself, to take a sheet's own entry
+ * back off the stack when it closed by tap/save instead of by going back.
+ * Those fire popstate too, and without this counter each one would be read
+ * as a second back press and close the sheet underneath as well.
+ */
+let selfPops = 0
+
+function handleSheetPop() {
+  if (selfPops > 0) {
+    selfPops--
+    return
+  }
+  openSheets.pop()?.close()
+}
+
 export function Sheet({
   onClose,
   children,
@@ -76,6 +104,7 @@ export function Sheet({
   closeOnBackdropClick = true,
   closeOnDrag = true,
   detents = [1],
+  manageHistory = true,
 }: {
   onClose: () => void
   children: ReactNode
@@ -87,10 +116,43 @@ export function Sheet({
   closeOnDrag?: boolean
   /** Resting heights as fractions of the sheet's full height, smallest first. Opens at the smallest. */
   detents?: number[]
+  /**
+   * Whether this sheet manages its own history entry (see `openSheets`).
+   * Only a sheet whose open state already lives in the URL sets this false —
+   * SettingsSheet does, because it opens full pages from inside itself and so
+   * has to survive a route change and come back, which a marker entry can't
+   * express. Everything else leaves it on.
+   */
+  manageHistory?: boolean
 }) {
   const [closing, setClosing] = useState(false)
   const prefersReducedMotion = useReducedMotion()
   const requestClose = useCallback(() => setClosing(true), [])
+
+  // Claims one history entry for as long as this sheet is open, so the back
+  // gesture closes it rather than navigating the page out from under it. The
+  // pushed entry duplicates the current one (same URL, same router state), so
+  // react-router sees no location change going either way — it exists purely
+  // as something for `back` to consume.
+  useEffect(() => {
+    if (!manageHistory) return
+    const entry = { close: requestClose }
+    window.history.pushState(window.history.state, '')
+    openSheets.push(entry)
+    if (openSheets.length === 1) window.addEventListener('popstate', handleSheetPop)
+    return () => {
+      const i = openSheets.indexOf(entry)
+      // Still listed means this sheet closed on its own (save, tap, swipe
+      // down) rather than by a back press, so its entry is still on the
+      // stack and has to come off. Closed *by* back and it is already gone.
+      if (i !== -1) {
+        openSheets.splice(i, 1)
+        selfPops++
+        window.history.back()
+      }
+      if (openSheets.length === 0) window.removeEventListener('popstate', handleSheetPop)
+    }
+  }, [manageHistory, requestClose])
 
   const dragEnabled = closeOnDrag && !prefersReducedMotion
   const y = useMotionValue(0)
