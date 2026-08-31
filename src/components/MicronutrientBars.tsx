@@ -37,10 +37,11 @@ const MICRO_ABBREVIATION: Record<MicronutrientKey, string> = {
   iodine: 'I',
 }
 
-const BAND_SR_LABEL: Record<'low' | 'average' | 'good', string> = {
+const BAND_SR_LABEL: Record<'low' | 'average' | 'good' | 'surplus', string> = {
   low: 'gering',
   average: 'durchschnittlich',
   good: 'gut',
+  surplus: 'im Überschuss',
 }
 
 /** Ratio at which the marker sits at the track's right edge — beyond this it stays pinned there, since the point is roughly where you land, not the exact multiple of the target. */

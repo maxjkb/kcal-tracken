@@ -1,6 +1,7 @@
 import {
   db,
   MICRONUTRIENT_LABELS,
+  MICRONUTRIENT_ORDER,
   newSupplementAdvisorRunId,
   toLocalDateKey,
   type Nutrition,
@@ -9,7 +10,7 @@ import {
 } from './db'
 import { estimateSupplementRecommendations } from './gemini'
 import { computeDailyTargets, getBodyProfile, GOAL_LABELS } from './bodyProfile'
-import { computeMicronutrientOverview } from './micronutrients'
+import { computeMicronutrientOverview, type MicronutrientOverview } from './micronutrients'
 import { getApiKey } from './settings'
 
 /** Window the intake analysis looks back over. */
@@ -199,6 +200,41 @@ async function pruneOldRuns(): Promise<void> {
 }
 
 /**
+ * Which active routine entries are pulling a micronutrient they contribute
+ * to into the "Überschuss" band (lib/bodyProfile.ts's bandForIntake), i.e.
+ * diet plus this supplement together now sit at double the reference intake
+ * or beyond. This is the raw signal handed to Gemini (see
+ * SupplementRecommendationInput.excessSupplements) — the model still
+ * decides per entry whether that actually warrants a kind="no_longer_needed"
+ * suggestion, this only surfaces the candidates.
+ *
+ * A supplement without its own contribution estimate yet (MySupplement.
+ * contribution undefined — no API key, or the estimate simply hasn't run)
+ * can never appear here: with nothing known about what it contributes,
+ * there's nothing to blame it for.
+ */
+async function findExcessSupplements(
+  microOverview: MicronutrientOverview | null,
+): Promise<{ name: string; nutrients: string[] }[]> {
+  const surplusKeys = new Set(
+    (microOverview?.statuses ?? []).filter((s) => s.band === 'surplus').map((s) => s.key),
+  )
+  if (surplusKeys.size === 0) return []
+
+  const [mySupplements, catalog] = await Promise.all([db.mySupplements.toArray(), db.supplements.toArray()])
+  const nameById = new Map(catalog.map((s) => [s.id, s.name]))
+
+  const result: { name: string; nutrients: string[] }[] = []
+  for (const my of mySupplements) {
+    if (!my.contribution) continue
+    const nutrients = MICRONUTRIENT_ORDER.filter((key) => surplusKeys.has(key) && (my.contribution![key] ?? 0) > 0)
+    if (nutrients.length === 0) continue
+    result.push({ name: nameById.get(my.supplementId) ?? 'Unbekanntes Supplement', nutrients: nutrients.map((k) => MICRONUTRIENT_LABELS[k]) })
+  }
+  return result
+}
+
+/**
  * Produces today's suggestions and stores them.
  *
  * The previous run is handed to the model together with a description of what
@@ -226,6 +262,7 @@ export async function generateAdvisorRun(): Promise<SupplementAdvisorRun> {
   const lowMicronutrients = (microOverview?.statuses ?? [])
     .filter((s) => s.band === 'low')
     .map((s) => MICRONUTRIENT_LABELS[s.key])
+  const excessSupplements = await findExcessSupplements(microOverview)
 
   const context: SupplementAdvisorContext = {
     goalLabel: bodyProfile ? GOAL_LABELS[bodyProfile.goal] : 'Kein Ziel hinterlegt',
@@ -234,6 +271,7 @@ export async function generateAdvisorRun(): Promise<SupplementAdvisorRun> {
     periodDays: intake.periodDays,
     established: established.map((a) => a.name),
     lowMicronutrients,
+    excessSupplements,
   }
 
   const previousRun = await getLatestAdvisorRun()
@@ -247,6 +285,7 @@ export async function generateAdvisorRun(): Promise<SupplementAdvisorRun> {
     established: context.established,
     irregular: irregular.map((a) => ({ name: a.name, daysTaken: a.daysTaken, daysTracked: a.daysTracked })),
     lowMicronutrients: context.lowMicronutrients,
+    excessSupplements: context.excessSupplements,
     previous: previousRun ? previousRun.suggestions.map((s) => ({ supplementName: s.supplementName, reasoning: s.reasoning })) : null,
     nutritionChange,
   })

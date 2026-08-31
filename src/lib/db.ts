@@ -310,9 +310,13 @@ export interface SupplementRecommendation {
   /**
    * `new` = not on the list yet. `consistency` = already on the list but taken
    * too irregularly to do anything, so the suggestion is to actually stick
-   * with it rather than to add something else.
+   * with it rather than to add something else. `no_longer_needed` = already
+   * on the list, but its own contribution (see MySupplement.contribution)
+   * has pushed a micronutrient it addresses into the "Überschuss" band
+   * (lib/bodyProfile.ts) — `reasoning` explains why, and whether that means
+   * stopping it entirely or just lowering the dose.
    */
-  kind: 'new' | 'consistency'
+  kind: 'new' | 'consistency' | 'no_longer_needed'
 }
 
 /**
@@ -330,6 +334,8 @@ export interface SupplementAdvisorContext {
   established: string[]
   /** Micronutrients whose recency-weighted average sits in the "unterrepräsentiert" band (see lib/micronutrients.ts) — German labels, empty when there's no body profile or no such gap. */
   lowMicronutrients: string[]
+  /** Active routine entries whose own contribution touches a micronutrient now in the "Überschuss" band — the raw signal behind a possible `kind: 'no_longer_needed'` suggestion. Empty when nothing is excessive (the normal case). */
+  excessSupplements: { name: string; nutrients: string[] }[]
 }
 
 /**
