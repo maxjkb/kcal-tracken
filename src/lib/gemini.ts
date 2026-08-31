@@ -172,13 +172,6 @@ const FOOD_EXTRACTION_SYSTEM_PROMPT = `Extrahiere aus der folgenden Beschreibung
  * call. Best-effort throughout — a failure anywhere here (extraction call,
  * network, no matches) just means no grounding context is added, and the
  * main estimate proceeds exactly as it did before this existed.
- *
- * `thinkingBudget: 0` on the extraction call: picking out a handful of food
- * names from a short description is closer to classification than
- * reasoning, and this call sits directly in the wait before the main
- * estimate can even start (it needs the result here as input) — nothing
- * about it benefits from deliberation, so there's nothing to trade away by
- * skipping it.
  */
 async function buildGroundingContext(description: string): Promise<string | null> {
   if (!description.trim()) return null
@@ -189,7 +182,6 @@ async function buildGroundingContext(description: string): Promise<string | null
       systemPrompt: FOOD_EXTRACTION_SYSTEM_PROMPT,
       parts: [{ text: description }],
       responseSchema: FOOD_EXTRACTION_SCHEMA,
-      thinkingBudget: 0,
     })
     const foods = Array.isArray(parsed.foods) ? parsed.foods : []
     names = foods.map((f) => String(f)).filter(Boolean).slice(0, 6)
@@ -294,12 +286,28 @@ function isDailyQuotaError(err: GeminiError): boolean {
 }
 
 /**
+ * Whether a failed response is the API rejecting the *key* rather than the
+ * request. 401/403 are unambiguous; a 400 is only a key problem when Google
+ * actually says so, because 400 is equally its answer to a malformed body
+ * (see callGeminiText's error mapping for what that ambiguity once cost).
+ *
+ * One helper, used both to phrase the error and to decide whether to bother
+ * with the other models — the two were separate before and disagreed: an
+ * invalid key answers 400 (not 401), so it was phrased as a key problem but
+ * still spent a round trip on all three models first to learn what the very
+ * first response already said.
+ */
+function isKeyRejection(status: number | undefined, detail: string): boolean {
+  return status === 401 || status === 403 || (status === 400 && /api[_ ]?key/i.test(detail))
+}
+
+/**
  * A failure that would answer identically no matter which model it's sent
  * to — trying the other two would just spend two more round trips to learn
  * the same thing, so this is the one case worth failing on immediately.
  */
 function isKeyError(err: unknown): boolean {
-  return err instanceof GeminiError && (err.status === 401 || err.status === 403)
+  return err instanceof GeminiError && isKeyRejection(err.status, err.detail ?? '')
 }
 
 /**
@@ -359,8 +367,6 @@ async function callGemini(params: {
   systemPrompt: string
   parts: GeminiPart[]
   responseSchema: object
-  /** See callGeminiText's own doc comment. */
-  thinkingBudget?: number
 }): Promise<Record<string, unknown>> {
   return runWithModelFallback((model) => callGeminiRaw(model, params))
 }
@@ -375,16 +381,17 @@ async function callGemini(params: {
  * plain conversational reply that was never meant to be parsed as JSON —
  * present it (as every non-chat caller does) to force structured JSON back.
  *
- * `thinkingBudget` is left unset by default, which keeps every existing
- * caller (recipe estimation, supplement chat/advisor, tips) on whatever the
- * model's own default thinking behaviour is — unchanged from before this
- * existed. `0` disables thinking outright; only callers whose task is closer
- * to structured lookup/classification than open-ended reasoning pass it (see
- * estimateNutrition and buildGroundingContext's own extraction call), where
- * skipping deliberation trades nothing meaningful away for a real cut in
- * latency. Assumes the target model supports disabling it — true for every
- * model in GEMINI_MODELS' current Flash/Flash-Lite roster; a future Pro-tier
- * addition that requires a nonzero minimum would need this reconsidered.
+ * Deliberately sends no thinking/reasoning knob at all. An earlier version
+ * passed `thinkingConfig.thinkingBudget: 0` on the two meal-estimate calls
+ * to shave latency — but GEMINI_MODELS is an all-Gemini-3.x roster, and that
+ * generation replaced `thinkingBudget` with `thinkingLevel`. The unknown
+ * field made the API reject every meal estimate with HTTP 400, which the
+ * error mapping below then mislabelled as an invalid API key ("API-Key
+ * ungültig oder nicht berechtigt"), sending people to the settings screen
+ * over a request the app itself had malformed. Latency is not worth
+ * re-introducing a model-generation-specific field for; if it is ever
+ * wanted again, it has to be `thinkingLevel` and it has to be gated per
+ * model id.
  */
 async function callGeminiText(
   model: string,
@@ -392,7 +399,6 @@ async function callGeminiText(
     systemPrompt: string
     contents: { role: 'user' | 'model'; parts: GeminiPart[] }[]
     responseSchema?: object
-    thinkingBudget?: number
   },
 ): Promise<string> {
   const apiKey = getApiKey()
@@ -406,9 +412,6 @@ async function callGeminiText(
   if (params.responseSchema) {
     generationConfig.responseMimeType = 'application/json'
     generationConfig.responseSchema = params.responseSchema
-  }
-  if (params.thinkingBudget !== undefined) {
-    generationConfig.thinkingConfig = { thinkingBudget: params.thinkingBudget }
   }
 
   let response: Response
@@ -441,8 +444,22 @@ async function callGeminiText(
     } catch {
       // ignore parse failure, keep generic message
     }
-    if (response.status === 400 || response.status === 401 || response.status === 403) {
+    // 401/403 are unambiguously auth. A 400 is NOT: it is Google's catch-all
+    // for "bad request", which covers both a genuinely invalid key
+    // (API_KEY_INVALID) and a request body this app got wrong — an unknown
+    // field, a malformed schema. Blanket-labelling every 400 an API-key
+    // problem is what hid a real bug for a whole release: meal estimates
+    // failed on a request-body field (see callGeminiText's doc comment) and
+    // every user was told their key was invalid instead. So a 400 only
+    // claims the key when Google actually names it, and otherwise passes
+    // Google's own message through — a body error stays diagnosable rather
+    // than sending people to the settings screen for nothing.
+    if (isKeyRejection(response.status, detail)) {
       message = 'API-Key ungültig oder nicht berechtigt. Bitte in den Einstellungen prüfen.'
+    } else if (response.status === 400) {
+      message = detail
+        ? `Die Anfrage wurde von der Gemini-API abgelehnt: ${detail}`
+        : 'Die Anfrage wurde von der Gemini-API abgelehnt (400). Bitte erneut versuchen.'
     } else if (response.status === 429) {
       // Now that the two cases are told apart, say which one it is instead of
       // offering both possibilities and leaving the user to guess.
@@ -468,13 +485,12 @@ async function callGeminiText(
 
 async function callGeminiRaw(
   model: string,
-  params: { systemPrompt: string; parts: GeminiPart[]; responseSchema: object; thinkingBudget?: number },
+  params: { systemPrompt: string; parts: GeminiPart[]; responseSchema: object },
 ): Promise<Record<string, unknown>> {
   const text = await callGeminiText(model, {
     systemPrompt: params.systemPrompt,
     contents: [{ role: 'user', parts: params.parts }],
     responseSchema: params.responseSchema,
-    thinkingBudget: params.thinkingBudget,
   })
   try {
     return JSON.parse(text)
@@ -534,12 +550,6 @@ export async function estimateNutrition(params: {
     systemPrompt: SYSTEM_PROMPT,
     parts,
     responseSchema: NUTRITION_RESPONSE_SCHEMA,
-    // A schema-constrained ingredient-by-ingredient nutrition lookup is
-    // recall/estimation, not the kind of open-ended problem thinking helps
-    // with — disabling it is most of the actual latency win here, the main
-    // call is the expensive one (larger output than the grounding step's
-    // short name list).
-    thinkingBudget: 0,
   })
 
   const rawIngredients = Array.isArray(parsed.ingredients) ? parsed.ingredients : []
