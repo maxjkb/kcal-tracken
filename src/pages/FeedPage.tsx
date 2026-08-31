@@ -5,7 +5,6 @@ import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, toLocalDateKey, type Meal, type Meal
 import { MealCard } from '../components/MealCard'
 import { MealEditor } from '../components/MealEditor'
 import { MealDetail } from '../components/MealDetail'
-import { ChevronIcon } from '../components/ChevronIcon'
 import { MiniNutrientRings, NutrientRings } from '../components/NutrientRings'
 import { DayPickerModal } from '../components/DatePickerModal'
 import { Collapse } from '../components/Collapse'
@@ -96,43 +95,24 @@ export function FeedPage() {
     <div className="mx-auto max-w-lg px-4 pb-28">
       <PageHeader title="Feed" actions={isToday && <TipsButton />} onTitleClick={() => setPickerOpen(true)} />
 
-      {/* The date bar sits below the title rather than beside it: every other
-          main page opens with a bare title on its own line, and Feed matching
-          that is the whole point of giving it one. Full .glass (not
-          .glass-subtle) per explicit request — a date/period selector reads
-          as navigation, the same functional role as BottomNav, so it gets
-          the same material. */}
-      <GlassSurface rim={22} className="glass mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
-        <button
-          onClick={() => setDateKey((k) => addDays(k, -1))}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white"
-          aria-label="Vorheriger Tag"
-        >
-          <ChevronIcon direction="left" />
-        </button>
-        <div className="text-center">
-          {/* No longer a button: opening the calendar sheet is now the page
-              title's job (PageHeader's onTitleClick above) — StatsPage.tsx
-              has the sibling change, moving the same trigger onto a second
-              tap of the already-active period pill instead. */}
-          <span className="block px-3 py-3 text-lg font-semibold text-ink">{formatDateHeading(dateKey)}</span>
-          {!isToday && (
-            <button
-              onClick={() => setDateKey(toLocalDateKey(new Date()))}
-              className="text-xs font-medium text-accent hover:underline"
-            >
-              Zu heute springen
-            </button>
-          )}
-        </div>
-        <button
-          onClick={() => setDateKey((k) => addDays(k, 1))}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white"
-          aria-label="Nächster Tag"
-        >
-          <ChevronIcon direction="right" />
-        </button>
-      </GlassSurface>
+      {/* The prev/next arrow tile is gone — the calendar sheet (a tap on the
+          page title above) is now the only way to change the shown day, so
+          there was nothing left for a dedicated navigator bar to do besides
+          report which day is currently shown. This plain, uncarded line
+          still does that (plus the "zu heute springen" shortcut, worth
+          keeping even without the tile it used to live in), just without
+          the card or the arrows either side of it. */}
+      <div className="mb-4 text-center">
+        <span className="block text-lg font-semibold text-ink">{formatDateHeading(dateKey)}</span>
+        {!isToday && (
+          <button
+            onClick={() => setDateKey(toLocalDateKey(new Date()))}
+            className="text-xs font-medium text-accent hover:underline"
+          >
+            Zu heute springen
+          </button>
+        )}
+      </div>
 
       <GlassSurface rim={26} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-5 shadow-sm shadow-black/5">
         <NutrientRings kcal={totals.kcal} protein={totals.protein} carbs={totals.carbs} fat={totals.fat} targets={targets} />

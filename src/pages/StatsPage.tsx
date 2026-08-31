@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMealSummariesInRange } from '../hooks/useMeals'
 import { MEAL_TYPE_LABELS, toLocalDateKey, type Nutrition } from '../lib/db'
-import { ChevronIcon } from '../components/ChevronIcon'
 import { ConcentricRings, NutrientRings } from '../components/NutrientRings'
 import { DayPickerModal, MonthPickerModal, YearPickerModal } from '../components/DatePickerModal'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
@@ -24,7 +23,6 @@ import {
   formatPeriodLabel,
   getPeriodRange,
   monthHeadingLabel,
-  shiftAnchor,
   type Period,
 } from '../lib/stats'
 
@@ -188,29 +186,13 @@ export function StatsPage() {
         ))}
       </GlassSurface>
 
-      {/* Same reasoning as the segmented control above — a period navigator
-          is navigation, gets full .glass. */}
-      <GlassSurface rim={22} className="glass mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
-        <button
-          onClick={() => setAnchorKey((k) => shiftAnchor(period, k, -1))}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white"
-          aria-label="Vorheriger Zeitraum"
-        >
-          <ChevronIcon direction="left" />
-        </button>
-        {/* Plain text, not a button: opening the calendar sheet moved to a
-            second tap on the active period pill above (see the segmented
-            control's onClick) — this tile only reports where the arrows
-            either side of it currently point. */}
-        <span className="px-3 py-3 text-sm font-medium text-ink">{formatPeriodLabel(period, anchorKey)}</span>
-        <button
-          onClick={() => setAnchorKey((k) => shiftAnchor(period, k, 1))}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white"
-          aria-label="Nächster Zeitraum"
-        >
-          <ChevronIcon direction="right" />
-        </button>
-      </GlassSurface>
+      {/* The prev/next arrow tile is gone — the calendar sheet (a second tap
+          on the active pill above) is now the only way to change the shown
+          period, so there was nothing left for a dedicated navigator bar to
+          do besides report where those arrows used to point. This plain
+          line still does that reporting job, just without a card or a
+          control either side of it. */}
+      <p className="mb-4 text-center text-sm font-medium text-ink-soft">{formatPeriodLabel(period, anchorKey)}</p>
 
       <div className="mb-6 grid grid-cols-3 gap-2">
         {/* Tag keeps the plain daily total. Woche/Monat/Jahr swap it for a
