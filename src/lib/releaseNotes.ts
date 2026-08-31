@@ -17,6 +17,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.18.1',
+    date: '2026-08-31',
+    highlights: [
+      'Einstellungen sind jetzt ein Sheet statt einer eigenen Seite — öffnet sich direkt über dem Zahnrad-Symbol, egal auf welcher Hauptseite man gerade ist, und schließt sich automatisch beim Antippen einer Kategorie.',
+      'Jede Kategorie im Einstellungen-Menü hat jetzt eine eigene Farbe statt des einheitlichen Blau — leichter zu unterscheiden, mehr Farbe im Menü.',
+    ],
+  },
+  {
     version: '1.18.0',
     date: '2026-08-31',
     highlights: [
