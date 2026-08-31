@@ -25,6 +25,9 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Bugfix: Beim Zurückkehren in die App liefen zwei Supp-Vorschlagsläufe gleichzeitig los — doppelte KI-Anfragen auf dein Kontingent.',
       'Statistik öffnet spürbar flüssiger: die Tageswerte werden nur noch einmal statt bei jedem Neuzeichnen berechnet, und das Diagramm zeichnet sich nicht mehr Bild für Bild ein, während die Seite noch hereinkommt.',
       'Der Sprung in eine Rezept-Kategorie wartet nicht mehr mitten in der Animation auf nachladenden Code.',
+      'Sheets gleiten jetzt nach unten weg, egal wie man sie schließt — über den Griff, den Hintergrund, die Zurück-Geste oder einen Speichern-Button. Bisher rutschte nur das weggewischte Sheet heraus, alle anderen blendeten an Ort und Stelle aus. Die Einstellungen verschwanden sogar von einem Bild aufs nächste.',
+      'Bugfix: Nach dem Schließen und erneuten Öffnen eines Sheets tat der erste Zurück-Druck nichts — erst der zweite schloss es. Das wurde mit jedem Schließen um einen Druck schlimmer.',
+      'Bugfix: Beim Schließen des Mahlzeiten-Editors landete man auf der Heute-Seite statt zurück auf der Mahlzeit, aus der man ihn geöffnet hatte.',
     ],
   },
   {

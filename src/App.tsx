@@ -100,6 +100,14 @@ export default function App() {
   // page on top, and back returns to the sheet exactly as it was. Sheets that
   // never open a page keep their own marker entry instead (see Sheet.tsx).
   const settingsOpen = new URLSearchParams(location.search).get('sheet') === 'settings'
+  // Latched on by the route, cleared by the sheet once it has finished
+  // sliding out — so the sheet outlives the search param by exactly its own
+  // exit animation. Set during render rather than from an effect (React's
+  // "adjusting state when a prop changes"): an effect would commit the
+  // param change first and only then mount the sheet, costing a frame on
+  // every open.
+  const [settingsMounted, setSettingsMounted] = useState(false)
+  if (settingsOpen && !settingsMounted) setSettingsMounted(true)
   const section = sectionForPath(location.pathname)
   // A static stand-in, not useLightSource(): that hook runs its own
   // pointer/device-orientation tracking loop purely to feed GlassStage's
@@ -248,7 +256,22 @@ export default function App() {
             onClose={() => setAddingMeal(false)}
           />
         )}
-        {settingsOpen && <SettingsSheet onClose={() => navigate(-1)} />}
+        {/* Kept mounted across the search param going away, so the sheet
+            gets to slide out before it leaves the tree; `dismiss` starts that
+            slide and the unmount happens on the sheet's own onClose. The
+            branch inside it separates the two ways out: the route already
+            changed (back gesture — nothing left to pop), or the sheet
+            dismissed itself (grip, backdrop), in which case its history entry
+            still has to come off. */}
+        {settingsMounted && (
+          <SettingsSheet
+            dismiss={!settingsOpen}
+            onClose={() => {
+              setSettingsMounted(false)
+              if (settingsOpen) navigate(-1)
+            }}
+          />
+        )}
       </div>
       </SwipeProgressProvider>
     </SettingsSheetContext.Provider>
