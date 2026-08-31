@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.15.8',
+    date: '2026-08-31',
+    highlights: [
+      'Die neue Bedarfs-Kachel in Woche/Monat/Jahr zeigt jetzt zusätzlich das Kalorienziel im Kleingedruckten unter dem Über-/Unterschuss.',
+    ],
+  },
+  {
     version: '1.15.7',
     date: '2026-08-31',
     highlights: [

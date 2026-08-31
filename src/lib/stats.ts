@@ -185,13 +185,21 @@ export function computeDailyAverage(startKey: string, endKey: string, totalKcal:
   return totalKcal / Math.max(1, days)
 }
 
+/** `diff`: average per-bucket surplus (positive) or deficit (negative) against target. `target`: the average target itself, over the same buckets — the fine-print figure the surplus/deficit is measured against. */
+export interface AverageComparison {
+  diff: number
+  target: number
+}
+
 /**
- * Average per-bucket surplus/deficit against target — the day's own
- * kcal-vs-need comparison, one level up: Woche compares day-by-day, Monat
+ * Average per-bucket actual-vs-target comparison — the day's own kcal-vs-
+ * need comparison, one level up: Woche compares day-by-day, Monat
  * week-by-week, Jahr month-by-month. `buckets` and `targetByKey` are the
  * already-bucketed actual/target arrays for whichever granularity the
  * caller is in (bucketByDay/Week/Month + targetKcalByBucketKey), so this
- * only has to line them up and average the difference.
+ * only has to line them up and average both the difference and the target
+ * itself (the tile shows both: the surplus/deficit as the headline number,
+ * the averaged target as its fine print).
  *
  * Only counts buckets that have already started (`key <= todayBucketKey`,
  * comparable as plain strings since every bucket key is either an ISO date
@@ -201,21 +209,23 @@ export function computeDailyAverage(startKey: string, endKey: string, totalKcal:
  * deficit. Returns null when there's nothing elapsed yet to average (a
  * future-anchored period) or no target data at all.
  */
-export function computeAverageDeficit(
+export function computeAverageComparison(
   buckets: StatBucket[],
   targetByKey: Map<string, number>,
   todayBucketKey: string,
-): number | null {
+): AverageComparison | null {
   let diffSum = 0
+  let targetSum = 0
   let count = 0
   for (const b of buckets) {
     if (b.key > todayBucketKey) continue
     const target = targetByKey.get(b.key)
     if (target === undefined) continue
     diffSum += b.kcal - target
+    targetSum += target
     count++
   }
-  return count > 0 ? diffSum / count : null
+  return count > 0 ? { diff: diffSum / count, target: targetSum / count } : null
 }
 
 export interface MacroTotals {
