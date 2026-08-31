@@ -18,9 +18,14 @@ import { GlassSurface } from '../glass/GlassSurface'
  * One supplement's row of time-of-day slots for a given day. Only the
  * slot(s) actually configured for this supplement render at all — a
  * once-daily supplement shows exactly one, not four mostly-irrelevant ones.
- * Whichever slot's window is live right now renders large and inviting;
- * the rest collapse to a small dot/check/✕ trail, so the one thing you'd
- * actually act on right now is what draws the eye.
+ *
+ * Every slot renders the same small dot/✕/check, regardless of whether its
+ * window is live right now — the large accent-filled circle a "current"
+ * slot used to pop up into is gone, per explicit request. The underlying
+ * `computeSlotState` still distinguishes 'current' from 'pending' (a
+ * meaningful fact — one is due now, the other isn't yet), but that
+ * distinction no longer has its own visual treatment here: a plain dot
+ * covers both, exactly the same as it already did for a slot later today.
  */
 export function SupplementChecklistRow({
   mySupplement,
@@ -86,7 +91,6 @@ function SlotButton({
   now: Date
 }) {
   const state = computeSlotState({ date, timeOfDay, checked, todayKey, now })
-  const isCurrent = state === 'current'
   const prefersReducedMotion = useReducedMotion()
   const layoutTransition = prefersReducedMotion ? REDUCED_MOTION_TRANSITION : SPRING_DEFAULT
   const glyphTransition = prefersReducedMotion ? REDUCED_MOTION_TRANSITION : SPRING_SNAPPY
@@ -97,22 +101,15 @@ function SlotButton({
       layout
       transition={layoutTransition}
       onClick={() => toggleSupplementCheck(mySupplementId, date, timeOfDay)}
-      // The written label used to sit next to the current slot on screen — it
-      // no longer does (explicit request: dots/circles only, no spelled-out
-      // "Morgens"/"Mittags"/…), so the accessible name is now the only place
-      // that information survives, same as it already did for the small dots.
+      // The written label never sat next to the dot on screen — it's the
+      // only place this information exists at all, dots/✕/check being the
+      // only visible motif per explicit request.
       aria-label={`${SUPPLEMENT_TIME_LABELS[timeOfDay]}${checked ? ' — genommen, antippen zum Rückgängigmachen' : ' — als genommen markieren'}`}
-      className={
-        isCurrent
-          ? `flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
-              checked ? 'glass-accent' : 'bg-accent/12 text-accent'
-            }`
-          : 'flex h-8 w-8 items-center justify-center rounded-full'
-      }
+      className="flex h-8 w-8 items-center justify-center rounded-full"
     >
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.span
-          key={isCurrent ? `current-${state}` : state}
+          key={state}
           layout
           initial={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.6 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -120,9 +117,7 @@ function SlotButton({
           transition={glyphTransition}
           className="flex items-center justify-center"
         >
-          {isCurrent ? (
-            checked ? <CheckGlyph className="h-4 w-4" /> : <RingGlyph className="h-4 w-4" />
-          ) : state === 'checked' ? (
+          {state === 'checked' ? (
             <CheckGlyph className="h-3 w-3 text-accent" />
           ) : state === 'missed' ? (
             <XGlyph className="h-2.5 w-2.5 text-ink-faint" />
@@ -139,14 +134,6 @@ function CheckGlyph({ className }: { className: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className={className}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-    </svg>
-  )
-}
-
-function RingGlyph({ className }: { className: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className={className}>
-      <circle cx="12" cy="12" r="9" />
     </svg>
   )
 }

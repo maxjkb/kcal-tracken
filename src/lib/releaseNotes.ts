@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.9',
+    date: '2026-08-31',
+    highlights: [
+      'Supplements → Heute: die großen Kreise, die zur aktuellen Einnahmezeit aufploppten, sind weg — jedes Zeitfenster zeigt jetzt durchgehend denselben kleinen Punkt (offen), das Kreuz (verpasst) oder den blauen Haken (genommen), unabhängig davon, ob es gerade dran ist.',
+    ],
+  },
+  {
     version: '1.19.8',
     date: '2026-08-31',
     highlights: [
