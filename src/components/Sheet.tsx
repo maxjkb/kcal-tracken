@@ -13,6 +13,8 @@ const VERTICAL_BIAS = 1.2
 const DISMISS_DISTANCE = 100
 /** Movement under this, from a pointer that never really moved, is a tap on the handle. */
 const TAP_SLOP = 8
+/** Below this the touch is still a tap, and its default action (focusing a field) must survive. */
+const TOUCH_INTENT_SLOP = 3
 
 /** Apple's scroll-deceleration projection — where a flick would come to rest. */
 function project(velocity: number, decelerationRate = 0.995): number {
@@ -104,6 +106,8 @@ export function Sheet({
   closeOnBackdropClick = true,
   closeOnDrag = true,
   detents = [1],
+  peekHeight,
+  expandedHeight,
   manageHistory = true,
 }: {
   onClose: () => void
@@ -117,6 +121,23 @@ export function Sheet({
   /** Resting heights as fractions of the sheet's full height, smallest first. Opens at the smallest. */
   detents?: number[]
   /**
+   * Opens the sheet showing only this many pixels of itself, draggable up to
+   * its full height. Unlike `detents`, which translate the sheet down and so
+   * reveal its *top* strip, this changes the sheet's own height — which is
+   * what a compose sheet needs, because the thing that has to stay on screen
+   * (the text field) sits at its BOTTOM. Dragging up grows the sheet with the
+   * finger and the content above the field comes into view; dragging back
+   * down returns to the peek before a further pull dismisses.
+   */
+  peekHeight?: number
+  /**
+   * How tall the sheet should become when pulled open, if its own
+   * `scrollHeight` would overstate it. MealEditor's steps sit side by side in
+   * a carousel, so the sheet measures the tallest of them and would otherwise
+   * open to a screen of empty space below a one-line field.
+   */
+  expandedHeight?: number
+  /**
    * Whether this sheet manages its own history entry (see `openSheets`).
    * Only a sheet whose open state already lives in the URL sets this false —
    * SettingsSheet does, because it opens full pages from inside itself and so
@@ -126,6 +147,10 @@ export function Sheet({
   manageHistory?: boolean
 }) {
   const [closing, setClosing] = useState(false)
+  /** Only meaningful with `peekHeight`: whether the sheet has been pulled open. */
+  const [expanded, setExpanded] = useState(false)
+  const height = useMotionValue<number | 'auto'>(peekHeight ?? 'auto')
+  const expandedRef = useRef(false)
   const prefersReducedMotion = useReducedMotion()
   const requestClose = useCallback(() => setClosing(true), [])
 
@@ -268,6 +293,21 @@ export function Sheet({
     return () => observer.disconnect()
   }, [measure, y])
 
+  // Follow a changed height from the caller — in BOTH states. Collapsed, the
+  // peek has to grow when the description field wraps, or the sheet keeps its
+  // one-line height and cuts the taller row (and the send button with it) off
+  // at the bottom. Open, the same applies to the content height.
+  useEffect(() => {
+    if (peekHeight == null) return
+    const wanted = expandedRef.current ? expandedHeight : peekHeight
+    if (wanted == null) return
+    const target = Math.min(wanted, window.innerHeight * 0.92)
+    const current = height.get()
+    if (typeof current === 'number' && Math.abs(current - target) < 1) return
+    settling.current?.stop()
+    settling.current = animate(height, target, SPRING_DEFAULT)
+  }, [expandedHeight, peekHeight, height])
+
   // The page behind must not scroll. Tied to mount rather than to `closing`
   // so it stays frozen through the exit animation.
   useEffect(() => {
@@ -352,14 +392,24 @@ export function Sheet({
       const touch = event.touches[0]
       if (!touch) return
       const dy = touch.clientY - g.startY
-      const expanding = dy < 0 && y.get() > 0
+      // Never prevent the default before the finger has actually moved. A tap
+      // always carries a pixel or two of jitter, and over the text field
+      // `canPullDown` is deliberately true — so the old unconditional
+      // preventDefault() on any downward pixel also cancelled the tap's own
+      // default action, which on iOS is what focuses the field and raises the
+      // keyboard. That is the "field only reacts after a delay" bug: the first
+      // tap was being swallowed. A few pixels of slack is still far below what
+      // Safari needs to claim the touch for its rubber-band, so the gesture it
+      // was added for keeps working.
+      if (Math.abs(dy) <= TOUCH_INTENT_SLOP && g.phase !== 'dragging') return
+      const expanding = dy < 0 && (y.get() > 0 || (peekHeight != null && !expandedRef.current))
       if ((dy > 0 && g.canPullDown) || expanding || g.phase === 'dragging') {
         if (event.cancelable) event.preventDefault()
       }
     }
     node.addEventListener('touchmove', onTouchMove, { passive: false })
     return () => node.removeEventListener('touchmove', onTouchMove)
-  }, [dragEnabled, y])
+  }, [dragEnabled, y, peekHeight])
 
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
     if (!dragEnabled || event.pointerType === 'mouse') return
@@ -391,9 +441,9 @@ export function Sheet({
         return
       }
       if (Math.abs(dy) < DRAG_INTENT_PX) return
-      // Down closes (needs the content at its top); up expands, which is only
-      // possible while the sheet isn't already at its largest detent.
-      const wantsExpand = dy < 0 && g.startOffset > 0
+      // Down closes (needs the content at its top); up expands — either into
+      // a larger detent, or (with `peekHeight`) by growing the sheet itself.
+      const wantsExpand = dy < 0 && (g.startOffset > 0 || (peekHeight != null && !expandedRef.current))
       if (!(dy > 0 ? g.canPullDown : wantsExpand)) {
         g.phase = 'abandoned'
         return
@@ -407,13 +457,62 @@ export function Sheet({
     g.lastY = event.clientY
     g.lastTime = event.timeStamp
 
+    // With a peek height, an upward pull grows the sheet under the finger
+    // instead of sliding it — the text field has to stay put at the bottom
+    // while the content above it comes into view (apple-design §2: touch and
+    // content move together).
+    if (peekHeight != null && !expandedRef.current && dy < 0) {
+      const grown = Math.min(peekHeight - dy, maxSheetHeight())
+      height.set(grown)
+      return
+    }
     // 1:1 within range, progressive resistance past the largest detent.
     const next = g.startOffset + dy
     y.set(next >= 0 ? next : rubberband(next, window.innerHeight * 0.06))
   }
 
+  /** The tallest this sheet may become — its own content, capped by the caller's max-height. */
+  function maxSheetHeight(): number {
+    const node = sheetRef.current
+    const natural = expandedHeight ?? node?.scrollHeight ?? window.innerHeight * 0.92
+    return Math.min(natural, window.innerHeight * 0.92)
+  }
+
+  /**
+   * Release of a peek-height drag: project where the throw was heading
+   * (apple-design §6) and settle to whichever end it was actually aimed at,
+   * rather than to whichever is nearer at the instant the finger left.
+   */
+  function settlePeek(velocity: number) {
+    const current = typeof height.get() === 'number' ? (height.get() as number) : (peekHeight ?? 0)
+    const full = maxSheetHeight()
+    const projected = current - project(velocity)
+    const open = projected > (peekHeight ?? 0) + (full - (peekHeight ?? 0)) * 0.35
+    expandedRef.current = open
+    setExpanded(open)
+    settling.current = animate(height, open ? full : (peekHeight ?? 0), {
+      ...SPRING_MOMENTUM,
+      velocity: -velocity,
+      onComplete: () => {
+        settling.current = null
+        // Back to `auto` once open, so the sheet keeps following its own
+        // content (a photo preview arriving, the field wrapping) instead of
+        // being frozen at whatever it measured mid-gesture — but only when
+        // the caller hasn't told us what "open" means. With `expandedHeight`
+        // set, `auto` is exactly the overstated measurement that prop exists
+        // to correct, and falling back to it undid the cap the moment the
+        // spring finished.
+        if (open && expandedHeight == null) height.set('auto')
+      },
+    })
+  }
+
   /** Snap to the nearest detent, or dismiss if thrown past the smallest one. */
   function settle(velocity: number) {
+    if (peekHeight != null && !expandedRef.current) {
+      settlePeek(velocity)
+      return
+    }
     const current = y.get()
     const projected = current + project(velocity)
     const smallest = offsets.current[offsets.current.length - 1]
@@ -479,7 +578,10 @@ export function Sheet({
           <motion.div
             ref={sheetRef}
             className={`relative ${sheetClassName}`}
-            style={{ y }}
+            // `height` only participates when the caller asked for a peek —
+            // otherwise it stays 'auto' and the sheet sizes itself exactly as
+            // it always did.
+            style={peekHeight != null ? { y, height, overflow: expanded ? undefined : 'hidden' } : { y }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={endGesture}

@@ -109,8 +109,13 @@ export function SwipeNavigator({ children }: { children: ReactNode }) {
   // gesture, which is exactly when there is no time for it.
   useEffect(() => {
     if (!inSection) return
-    const neighbours = [index - 1, index + 1].filter((i) => i >= 0 && i < SECTION_TABS.length)
-    const warm = () => neighbours.forEach((i) => preloadSection(SECTION_TABS[i].to))
+    // All of them, not just the neighbours. There are four, they are small,
+    // and a chunk that arrives mid-swipe replaces the page being dragged into
+    // view with a "Lädt…" fallback — the transition visibly breaking apart is
+    // exactly the "wird durch Nachladen unterbrochen" complaint. Fetching the
+    // far ones too costs one extra idle request and removes the interruption
+    // for every direction, including a tap straight to the far tab.
+    const warm = () => SECTION_TABS.forEach((tab) => preloadSection(tab.to))
     // Schedule and cancel have to come from the SAME mechanism. They didn't:
     // the scheduler fell back to setTimeout where requestIdleCallback is
     // missing, but the cleanup only ever called cancelIdleCallback — which is
