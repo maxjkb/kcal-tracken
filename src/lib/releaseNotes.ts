@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.19.4',
+    date: '2026-08-31',
+    highlights: [
+      'Einstellungen → Aktualisierung: der Such-/Update-Vorgang zeigt jetzt "Suchen und installieren…" mit einem sich füllenden Ladebalken, statt nur den Reload-Zähler im Button.',
+    ],
+  },
+  {
     version: '1.19.3',
     date: '2026-08-31',
     highlights: [

@@ -11,6 +11,14 @@ const RELOAD_STEPS = 3
 /** Gives a just-activated service worker a moment to actually take control before the next step asks it anything — reloading immediately after update() resolves can otherwise still hit the outgoing worker. */
 const STEP_DELAY_MS = 700
 
+/**
+ * Where the simulated download bar caps out before the final (non-
+ * reloading) verify step — that last step gets the remaining distance to
+ * 100%, so the bar only ever completes once there's an actual verdict, not
+ * partway through a reload cycle that might still turn out stale.
+ */
+const DOWNLOAD_BAR_CAP = 90
+
 function readStep(): number {
   try {
     return Number(sessionStorage.getItem(STORAGE_KEY)) || 0
@@ -65,6 +73,35 @@ export function UpdateSettingsPage() {
   const [registrationReady, setRegistrationReady] = useState(false)
   const resumed = useRef(false)
 
+  // Simulated download bar. Initialized from the PREVIOUS step's own target
+  // (not 0): a reload mid-cycle re-mounts this component from scratch, and
+  // starting fresh at 0 every time would make the bar visibly restart at
+  // every one of the three reloads instead of reading as one continuous
+  // download. The effect below then eases from there toward this mount's
+  // own step target over roughly the same window the actual reg.update()
+  // + delay takes, so the fill and the real work finish together.
+  const [downloadPercent, setDownloadPercent] = useState(() => {
+    const s = readStep()
+    return s > 0 ? Math.min(DOWNLOAD_BAR_CAP, ((s - 1) / RELOAD_STEPS) * DOWNLOAD_BAR_CAP) : 0
+  })
+  const downloadTimer = useRef<ReturnType<typeof setInterval> | null>(null)
+  useEffect(() => {
+    if (state !== 'checking') {
+      if (downloadTimer.current) {
+        clearInterval(downloadTimer.current)
+        downloadTimer.current = null
+      }
+      return
+    }
+    const target = Math.min(DOWNLOAD_BAR_CAP, (step / RELOAD_STEPS) * DOWNLOAD_BAR_CAP)
+    downloadTimer.current = setInterval(() => {
+      setDownloadPercent((p) => Math.min(target, p + (target - p) * 0.12))
+    }, 100)
+    return () => {
+      if (downloadTimer.current) clearInterval(downloadTimer.current)
+    }
+  }, [step, state])
+
   useRegisterSW({
     onRegisteredSW(_url, r) {
       setRegistration(r ?? null)
@@ -114,6 +151,10 @@ export function UpdateSettingsPage() {
     }
     await new Promise((resolve) => setTimeout(resolve, STEP_DELAY_MS))
     if (n >= RELOAD_STEPS) {
+      // The final step doesn't reload again, so nothing else will push the
+      // bar past DOWNLOAD_BAR_CAP — closing the last stretch here, timed to
+      // the verify fetch that's about to run, is what actually completes it.
+      setDownloadPercent(100)
       await verifyAgainstServer()
     } else {
       writeStep(n + 1)
@@ -145,6 +186,7 @@ export function UpdateSettingsPage() {
       return
     }
     setServerVersion(null)
+    setDownloadPercent(0)
     writeStep(1)
     void runStep(1, registration)
   }
@@ -173,6 +215,23 @@ export function UpdateSettingsPage() {
         >
           {state === 'checking' ? `Suche nach Updates… (${step}/${RELOAD_STEPS})` : 'Auf Updates prüfen'}
         </button>
+
+        {/* Simulated download progress — see downloadPercent's own comment
+            above for why this isn't a measured value: reg.update() only
+            ever answers "found / not found", never how far along an install
+            actually is, so this is a timer eased toward each step's own
+            milestone rather than a real byte count. */}
+        {state === 'checking' && (
+          <div className="mt-3">
+            <p className="mb-1.5 text-xs font-medium text-ink-soft">Suchen und installieren…</p>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-line">
+              <div
+                className="h-full rounded-full bg-accent transition-[width] duration-200 ease-out"
+                style={{ width: `${downloadPercent}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {state === 'uptodate' && (
           <p className="mt-3 text-xs font-medium text-ink-soft">
