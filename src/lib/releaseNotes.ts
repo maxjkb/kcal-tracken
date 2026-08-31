@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.15.5',
+    date: '2026-08-31',
+    highlights: [
+      '„Auf Updates prüfen" in den Einstellungen sucht jetzt wirklich: die Seite lädt dabei mehrfach neu, damit eine gefundene Aktualisierung auch tatsächlich übernommen wird, bevor geprüft und angezeigt wird, ob wirklich die neueste Version läuft.',
+    ],
+  },
+  {
     version: '1.15.4',
     date: '2026-08-31',
     highlights: [
