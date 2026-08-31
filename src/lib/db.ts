@@ -265,6 +265,18 @@ export interface MySupplement {
   /** Personal dosage note, prefilled from the catalog's typicalDosage but freely editable. */
   dosage: string
   createdAt: number
+  /**
+   * Grobe KI-Schätzung, wie viel EINE VOLLE TAGESDOSIS (bei `dosage`, nicht
+   * der Herstellerangabe) von jedem der zehn erfassten Mikronährstoffe
+   * liefert — see lib/gemini.ts's estimateSupplementContribution. Nur für
+   * Nährstoffe ungleich 0, die dieses Präparat tatsächlich beisteuert (ein
+   * Kreatin-Eintrag liefert z.B. für alle zehn 0). Undefined für Einträge,
+   * bei denen die Schätzung noch nicht gelaufen ist (kein API-Key, Backfill
+   * noch nicht durch) oder für ganz alte, vor diesem Feld angelegte
+   * Einträge — beides bedeutet einfach "trägt derzeit noch nicht zur
+   * Mikronährstoff-Bilanz bei", kein Fehlerzustand.
+   */
+  contribution?: Micronutrients
 }
 
 /**

@@ -63,22 +63,33 @@ function daysBetween(earlierKey: string, laterKey: string): number {
 
 /**
  * The continuously-updated micronutrient picture as of `endDateKey`, from
- * meals that carry an AI estimate — meals without one (manual entries, or
- * logged before this feature existed) are excluded from the average rather
- * than counted as zero, same reasoning as Meal.micronutrients in db.ts.
+ * meals that carry an AI estimate PLUS routine supplements actually taken —
+ * meals without an estimate (manual entries, or logged before this feature
+ * existed) are excluded from the average rather than counted as zero, same
+ * reasoning as Meal.micronutrients in db.ts, and a supplement without its
+ * own contribution estimate simply adds nothing (see MySupplement.contribution).
+ *
+ * This is the one place diet and supplementation actually meet: taking, say,
+ * Magnesium moves the Magnesium picture here exactly like eating more of it
+ * would, which is also what lets lib/supplementAdvisor.ts notice when a
+ * supplement has pushed a nutrient high enough that it's no longer needed.
  *
  * Each day with an estimate contributes its own total, weighted by how
  * recently it happened (see MICRONUTRIENT_HALF_LIFE_DAYS) — a weighted
  * average, not a plain mean over a fixed window, so the picture keeps
  * growing and adjusting with every new day logged instead of jumping
  * whenever a day ages out of a 7-day cutoff. A day counts toward
- * `daysWithEstimate` once it has any such meal, mirroring how
+ * `daysWithEstimate` once it has any such contribution, mirroring how
  * lib/supplementAdvisor.ts already counts "days that actually carried data"
  * for the macro average, rather than a separate denominator per nutrient.
  */
 export async function computeMicronutrientOverview(endDateKey: string, sex: Sex): Promise<MicronutrientOverview> {
   const startKey = addDays(endDateKey, -(MICRONUTRIENT_LOOKBACK_DAYS - 1))
-  const meals = await db.meals.where('date').between(startKey, endDateKey, true, true).toArray()
+  const [meals, supplementLog, mySupplements] = await Promise.all([
+    db.meals.where('date').between(startKey, endDateKey, true, true).toArray(),
+    db.supplementLog.where('date').between(startKey, endDateKey, true, true).toArray(),
+    db.mySupplements.toArray(),
+  ])
 
   const targets = computeMicronutrientTargets(sex)
   const zero = () => Object.fromEntries(MICRONUTRIENT_ORDER.map((key) => [key, 0])) as Micronutrients
@@ -89,6 +100,30 @@ export async function computeMicronutrientOverview(endDateKey: string, sex: Sex)
     const day = dayTotals.get(meal.date) ?? zero()
     for (const key of MICRONUTRIENT_ORDER) day[key] += meal.micronutrients[key] ?? 0
     dayTotals.set(meal.date, day)
+  }
+
+  // A taken supplement counts too, not just food — same principle as
+  // Meal.micronutrients above: only supplements with an estimated
+  // contribution (see MySupplement.contribution) add anything, and only on
+  // days actually checked off. Deduped to one contribution per (supplement,
+  // day) regardless of how many time-of-day slots were checked — the
+  // personal dosage is the whole day's regimen, not a per-slot amount, so
+  // counting it twice for a twice-daily entry would silently inflate it.
+  const contributionById = new Map(mySupplements.map((s) => [s.id, s.contribution]))
+  const checkedByDay = new Map<string, Set<string>>()
+  for (const entry of supplementLog) {
+    const set = checkedByDay.get(entry.date) ?? new Set<string>()
+    set.add(entry.mySupplementId)
+    checkedByDay.set(entry.date, set)
+  }
+  for (const [date, mySupplementIds] of checkedByDay) {
+    for (const id of mySupplementIds) {
+      const contribution = contributionById.get(id)
+      if (!contribution) continue
+      const day = dayTotals.get(date) ?? zero()
+      for (const key of MICRONUTRIENT_ORDER) day[key] += contribution[key] ?? 0
+      dayTotals.set(date, day)
+    }
   }
 
   const weightedSums = zero()
