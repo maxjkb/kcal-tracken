@@ -17,6 +17,13 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.17.2',
+    date: '2026-08-31',
+    highlights: [
+      'Unter Heute öffnet ein Tippen auf ein aktives Supplement jetzt eine Kurzbeschreibung mit einer live aktualisierten Einschätzung deines aktuellen Bedarfs — Bearbeiten (Dosierung/Zeiten) ist von dort aus weiterhin einen Tap entfernt.',
+    ],
+  },
+  {
     version: '1.17.1',
     date: '2026-08-31',
     highlights: [

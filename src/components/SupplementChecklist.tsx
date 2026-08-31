@@ -27,14 +27,14 @@ export function SupplementChecklistRow({
   supplement,
   date,
   logEntries,
-  onEdit,
+  onOpen,
 }: {
   mySupplement: MySupplement
   supplement: Supplement | undefined
   date: string
   logEntries: SupplementLogEntry[]
-  /** Opens the edit sheet — lives only on the name/dosage text, never wrapping the slot buttons (a <button> can't legally nest another <button>, and doing so anyway made the browser's click handling between the two unpredictable). */
-  onEdit: () => void
+  /** Opens the detail sheet (description + current need) — lives only on the name/dosage text, never wrapping the slot buttons (a <button> can't legally nest another <button>, and doing so anyway made the browser's click handling between the two unpredictable). */
+  onOpen: () => void
 }) {
   const now = useNow()
   const todayKey = toLocalDateKey(new Date())
@@ -49,7 +49,7 @@ export function SupplementChecklistRow({
 
   return (
     <GlassSurface rim={18} className="glass-subtle glass-subtle-themed flex items-center justify-between gap-3 rounded-2xl px-4 py-3">
-      <button type="button" onClick={onEdit} className="min-w-0 flex-1 text-left">
+      <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
         <p className="truncate text-sm font-medium text-ink">{supplement?.name ?? 'Supplement'}</p>
         {mySupplement.dosage && <p className="truncate text-xs text-ink-soft">{mySupplement.dosage}</p>}
       </button>

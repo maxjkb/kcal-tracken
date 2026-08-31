@@ -26,6 +26,7 @@ import { getApiKey } from '../lib/settings'
 import { SupplementChecklistRow } from '../components/SupplementChecklist'
 import { SupplementFormSheet } from '../components/SupplementFormSheet'
 import { SupplementChatSheet } from '../components/SupplementChatSheet'
+import { SupplementDetailSheet } from '../components/SupplementDetailSheet'
 import { SPRING_SNAPPY } from '../lib/motionTokens'
 import { GlassSurface } from '../glass/GlassSurface'
 
@@ -88,6 +89,12 @@ function TodayTab() {
   const mySupplements = useMySupplements()
   const supplements = useAllSupplements()
   const logEntries = useSupplementLogForDate(todayKey)
+  // Tapping a row now opens the detail sheet (description + current need)
+  // first, not the edit form directly — `editing` is reached from a button
+  // inside that sheet (see SupplementDetailSheet's onEdit), the same
+  // view→edit handoff MealDetail/MealEditor already use, one state swap
+  // rather than two sheets stacked on top of each other.
+  const [viewing, setViewing] = useState<MySupplement | null>(null)
   const [editing, setEditing] = useState<MySupplement | null>(null)
 
   const supplementById = new Map((supplements ?? []).map((s) => [s.id, s]))
@@ -111,9 +118,21 @@ function TodayTab() {
             supplement={supplementById.get(my.supplementId)}
             date={todayKey}
             logEntries={logEntries}
-            onEdit={() => setEditing(my)}
+            onOpen={() => setViewing(my)}
           />
         ))
+      )}
+
+      {viewing && (
+        <SupplementDetailSheet
+          mySupplement={viewing}
+          supplement={supplementById.get(viewing.supplementId)}
+          onClose={() => setViewing(null)}
+          onEdit={() => {
+            setEditing(viewing)
+            setViewing(null)
+          }}
+        />
       )}
 
       {editing && (
