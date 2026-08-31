@@ -106,8 +106,7 @@ export function Sheet({
   closeOnBackdropClick = true,
   closeOnDrag = true,
   detents = [1],
-  peekHeight,
-  expandedHeight,
+  collapsible = false,
   manageHistory = true,
 }: {
   onClose: () => void
@@ -121,22 +120,19 @@ export function Sheet({
   /** Resting heights as fractions of the sheet's full height, smallest first. Opens at the smallest. */
   detents?: number[]
   /**
-   * Opens the sheet showing only this many pixels of itself, draggable up to
-   * its full height. Unlike `detents`, which translate the sheet down and so
-   * reveal its *top* strip, this changes the sheet's own height — which is
-   * what a compose sheet needs, because the thing that has to stay on screen
-   * (the text field) sits at its BOTTOM. Dragging up grows the sheet with the
-   * finger and the content above the field comes into view; dragging back
-   * down returns to the peek before a further pull dismisses.
+   * Opens the sheet with the child marked `data-sheet-collapse` hidden —
+   * everything else (its grip, a header, a docked input row marked
+   * `data-sheet-peek`) stays visible — and lets it be dragged up to full
+   * height.
+   *
+   * Unlike `detents`, which translate the sheet down and so reveal its *top*
+   * strip, this changes the sheet's own height — which is what a compose
+   * sheet needs, because the thing that has to stay on screen (the text
+   * field) sits at its BOTTOM. Dragging up grows the sheet with the finger
+   * and the content above the field comes into view; dragging back down
+   * returns to the peek before a further pull dismisses.
    */
-  peekHeight?: number
-  /**
-   * How tall the sheet should become when pulled open, if its own
-   * `scrollHeight` would overstate it. MealEditor's steps sit side by side in
-   * a carousel, so the sheet measures the tallest of them and would otherwise
-   * open to a screen of empty space below a one-line field.
-   */
-  expandedHeight?: number
+  collapsible?: boolean
   /**
    * Whether this sheet manages its own history entry (see `openSheets`).
    * Only a sheet whose open state already lives in the URL sets this false —
@@ -149,8 +145,27 @@ export function Sheet({
   const [closing, setClosing] = useState(false)
   /** Only meaningful with `peekHeight`: whether the sheet has been pulled open. */
   const [expanded, setExpanded] = useState(false)
-  const height = useMotionValue<number | 'auto'>(peekHeight ?? 'auto')
+  const height = useMotionValue<number | 'auto'>('auto')
   const expandedRef = useRef(false)
+  const handleRef = useRef<HTMLButtonElement>(null)
+  /**
+   * How tall the sheet is while collapsed, measured rather than summed.
+   *
+   * Summing the parts (grip + header + docked row) was tried and kept coming
+   * out short — each settles at a different moment, and one stale reading
+   * silently truncated the peek until the text field was clipped away with
+   * only the buttons under it showing. Measuring down TO the docked row is
+   * no good either: it is the last child, so its bottom is the sheet's
+   * bottom and the answer is always the full height.
+   *
+   * What actually defines the collapsed height is everything that is NOT the
+   * scrolling middle. So the caller marks that middle `data-sheet-collapse`,
+   * and this is the sheet's natural height minus it — measured once on
+   * mount while nothing is clipped yet, then kept current by tracking the
+   * docked part's own growth (a wrapping field grows the peek by as much as
+   * it grew itself).
+   */
+  const peekPx = useRef<number | null>(null)
   const prefersReducedMotion = useReducedMotion()
   const requestClose = useCallback(() => setClosing(true), [])
 
@@ -293,20 +308,42 @@ export function Sheet({
     return () => observer.disconnect()
   }, [measure, y])
 
-  // Follow a changed height from the caller — in BOTH states. Collapsed, the
-  // peek has to grow when the description field wraps, or the sheet keeps its
-  // one-line height and cuts the taller row (and the send button with it) off
-  // at the bottom. Open, the same applies to the content height.
+  // Measure the collapsed height once, before the first paint, while the
+  // sheet still has its natural height — then collapse to it.
+  useLayoutEffect(() => {
+    if (!collapsible) return
+    const sheet = sheetRef.current
+    const collapsing = sheet?.querySelector('[data-sheet-collapse]')
+    if (!sheet || !collapsing) return
+    const peek = sheet.getBoundingClientRect().height - collapsing.getBoundingClientRect().height
+    peekPx.current = peek
+    height.set(peek)
+    // Mount only — the observer below keeps it current from here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Keep the collapsed height in step with the marked element: when the
+  // description field wraps, the peek has to grow by the same amount or the
+  // taller row (and the send button with it) is cut off at the bottom.
   useEffect(() => {
-    if (peekHeight == null) return
-    const wanted = expandedRef.current ? expandedHeight : peekHeight
-    if (wanted == null) return
-    const target = Math.min(wanted, window.innerHeight * 0.92)
-    const current = height.get()
-    if (typeof current === 'number' && Math.abs(current - target) < 1) return
-    settling.current?.stop()
-    settling.current = animate(height, target, SPRING_DEFAULT)
-  }, [expandedHeight, peekHeight, height])
+    if (!collapsible) return
+    const sheet = sheetRef.current
+    const marker = sheet?.querySelector('[data-sheet-peek]')
+    if (!sheet || !marker || typeof ResizeObserver === 'undefined') return
+    let previous = marker.getBoundingClientRect().height
+    const observer = new ResizeObserver(() => {
+      const next = marker.getBoundingClientRect().height
+      const delta = next - previous
+      previous = next
+      if (Math.abs(delta) < 1 || peekPx.current == null) return
+      peekPx.current += delta
+      if (expandedRef.current) return
+      settling.current?.stop()
+      settling.current = animate(height, peekPx.current, SPRING_DEFAULT)
+    })
+    observer.observe(marker)
+    return () => observer.disconnect()
+  }, [collapsible, height])
 
   // The page behind must not scroll. Tied to mount rather than to `closing`
   // so it stays frozen through the exit animation.
@@ -402,14 +439,14 @@ export function Sheet({
       // Safari needs to claim the touch for its rubber-band, so the gesture it
       // was added for keeps working.
       if (Math.abs(dy) <= TOUCH_INTENT_SLOP && g.phase !== 'dragging') return
-      const expanding = dy < 0 && (y.get() > 0 || (peekHeight != null && !expandedRef.current))
+      const expanding = dy < 0 && (y.get() > 0 || (collapsible && !expandedRef.current))
       if ((dy > 0 && g.canPullDown) || expanding || g.phase === 'dragging') {
         if (event.cancelable) event.preventDefault()
       }
     }
     node.addEventListener('touchmove', onTouchMove, { passive: false })
     return () => node.removeEventListener('touchmove', onTouchMove)
-  }, [dragEnabled, y, peekHeight])
+  }, [dragEnabled, y, collapsible])
 
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
     if (!dragEnabled || event.pointerType === 'mouse') return
@@ -442,8 +479,8 @@ export function Sheet({
       }
       if (Math.abs(dy) < DRAG_INTENT_PX) return
       // Down closes (needs the content at its top); up expands — either into
-      // a larger detent, or (with `peekHeight`) by growing the sheet itself.
-      const wantsExpand = dy < 0 && (g.startOffset > 0 || (peekHeight != null && !expandedRef.current))
+      // a larger detent, or (when collapsible) by growing the sheet itself.
+      const wantsExpand = dy < 0 && (g.startOffset > 0 || (collapsible && !expandedRef.current))
       if (!(dy > 0 ? g.canPullDown : wantsExpand)) {
         g.phase = 'abandoned'
         return
@@ -461,8 +498,8 @@ export function Sheet({
     // instead of sliding it — the text field has to stay put at the bottom
     // while the content above it comes into view (apple-design §2: touch and
     // content move together).
-    if (peekHeight != null && !expandedRef.current && dy < 0) {
-      const grown = Math.min(peekHeight - dy, maxSheetHeight())
+    if (collapsible && !expandedRef.current && dy < 0) {
+      const grown = Math.min((peekPx.current ?? 0) - dy, maxSheetHeight())
       height.set(grown)
       return
     }
@@ -472,10 +509,22 @@ export function Sheet({
   }
 
   /** The tallest this sheet may become — its own content, capped by the caller's max-height. */
+  /**
+   * How tall "open" is: the collapsed height plus everything the scrolling
+   * middle actually wants. Computed here rather than taken from the caller,
+   * because a caller-supplied content height left the docked row out and the
+   * sheet shrank on release until only the header showed. `scrollHeight` is
+   * the middle's own content, unaffected by however far it is squeezed right
+   * now, so this stays correct mid-gesture.
+   */
   function maxSheetHeight(): number {
     const node = sheetRef.current
-    const natural = expandedHeight ?? node?.scrollHeight ?? window.innerHeight * 0.92
-    return Math.min(natural, window.innerHeight * 0.92)
+    if (!collapsible || peekPx.current == null) {
+      return Math.min(node?.scrollHeight ?? window.innerHeight * 0.92, window.innerHeight * 0.92)
+    }
+    const collapsing = node?.querySelector('[data-sheet-collapse]')
+    const wanted = peekPx.current + (collapsing?.scrollHeight ?? 0)
+    return Math.min(wanted, window.innerHeight * 0.92)
   }
 
   /**
@@ -484,32 +533,29 @@ export function Sheet({
    * rather than to whichever is nearer at the instant the finger left.
    */
   function settlePeek(velocity: number) {
-    const current = typeof height.get() === 'number' ? (height.get() as number) : (peekHeight ?? 0)
+    const peek = peekPx.current ?? 0
+    const current = typeof height.get() === 'number' ? (height.get() as number) : peek
     const full = maxSheetHeight()
     const projected = current - project(velocity)
-    const open = projected > (peekHeight ?? 0) + (full - (peekHeight ?? 0)) * 0.35
+    const open = projected > peek + (full - peek) * 0.35
     expandedRef.current = open
     setExpanded(open)
-    settling.current = animate(height, open ? full : (peekHeight ?? 0), {
+    settling.current = animate(height, open ? full : peek, {
       ...SPRING_MOMENTUM,
       velocity: -velocity,
       onComplete: () => {
         settling.current = null
-        // Back to `auto` once open, so the sheet keeps following its own
-        // content (a photo preview arriving, the field wrapping) instead of
-        // being frozen at whatever it measured mid-gesture — but only when
-        // the caller hasn't told us what "open" means. With `expandedHeight`
-        // set, `auto` is exactly the overstated measurement that prop exists
-        // to correct, and falling back to it undid the cap the moment the
-        // spring finished.
-        if (open && expandedHeight == null) height.set('auto')
+        // Deliberately NOT back to `auto`: this sheet's own scrollHeight
+        // measures the tallest step of the carousel, not the one on screen,
+        // so `auto` opens to a screen of empty space below a one-line field.
+        // maxSheetHeight() above is the honest figure and it stays.
       },
     })
   }
 
   /** Snap to the nearest detent, or dismiss if thrown past the smallest one. */
   function settle(velocity: number) {
-    if (peekHeight != null && !expandedRef.current) {
+    if (collapsible && !expandedRef.current) {
       settlePeek(velocity)
       return
     }
@@ -577,11 +623,12 @@ export function Sheet({
           />
           <motion.div
             ref={sheetRef}
+            data-sheet-surface=""
             className={`relative ${sheetClassName}`}
             // `height` only participates when the caller asked for a peek —
             // otherwise it stays 'auto' and the sheet sizes itself exactly as
             // it always did.
-            style={peekHeight != null ? { y, height, overflow: expanded ? undefined : 'hidden' } : { y }}
+            style={collapsible ? { y, height, overflow: expanded ? undefined : 'hidden' } : { y }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={endGesture}
@@ -605,6 +652,7 @@ export function Sheet({
                   separate elements so the target can grow without the grip
                   becoming a slab. */}
               <button
+                ref={handleRef}
                 type="button"
                 onPointerDown={(e) => {
                   handleDownAt.current = { x: e.clientX, y: e.clientY }

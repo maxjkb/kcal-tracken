@@ -17,6 +17,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.20.2',
+    date: '2026-08-31',
+    highlights: [
+      'Rezept, Kamera, Foto und Barcode stehen jetzt dauerhaft direkt unter dem Textfeld — Aufziehen zeigt nur noch die Vorschläge.',
+      'Bugfix: Ein gespeicherter Eintrag ohne Titel oder Beschreibung ließ den Mahlzeiten-Editor komplett leer aufgehen. Solche Datensätze werden jetzt sauber übersprungen statt abzustürzen.',
+    ],
+  },
+  {
     version: '1.20.1',
     date: '2026-08-31',
     highlights: [

@@ -49,18 +49,6 @@ type BarcodeScannerType = typeof import('./BarcodeScanner').BarcodeScanner
 
 type Step = 'input' | 'review'
 
-/**
- * Fallback for step 1's collapsed height, used for the very first paint
- * before the input row has been measured — one line plus its padding.
- * After that the real, measured height takes over (see `inputRowRef`),
- * because the row grows as the field wraps and a fixed height would clip
- * the field's own top off once it did.
- */
-const INPUT_ROW_FALLBACK_HEIGHT = 92
-
-/** The grip strip Sheet draws above its content — part of what the peek has to show. */
-const SHEET_HANDLE_HEIGHT = 32
-
 function round1(value: number): number {
   return Math.round(value * 10) / 10
 }
@@ -114,11 +102,6 @@ export function MealEditor({
   defaultMealType?: MealType
   onClose: () => void
 }) {
-  // Measured by the content (the input row lives there), held here because the
-  // Sheet is the thing that has to open at that height. Sized to show the
-  // handle plus the row and nothing else.
-  const [inputRowHeight, setInputRowHeight] = useState(INPUT_ROW_FALLBACK_HEIGHT)
-  const [stepContentHeight, setStepContentHeight] = useState<number | undefined>(undefined)
 
   return (
     <Sheet
@@ -131,15 +114,12 @@ export function MealEditor({
       // change rather than one of Sheet's translate detents on purpose: a
       // detent reveals the sheet's TOP strip, and the thing that has to stay
       // on screen here sits at its bottom.
-      peekHeight={SHEET_HANDLE_HEIGHT + inputRowHeight}
-      expandedHeight={stepContentHeight === undefined ? undefined : SHEET_HANDLE_HEIGHT + stepContentHeight}
+      collapsible
     >
       <MealEditorContent
         date={date}
         initial={initial}
         defaultMealType={defaultMealType}
-        onInputRowHeight={setInputRowHeight}
-        onStepContentHeight={setStepContentHeight}
       />
     </Sheet>
   )
@@ -153,16 +133,10 @@ function MealEditorContent({
   date,
   initial,
   defaultMealType,
-  onInputRowHeight,
-  onStepContentHeight,
 }: {
   date: string
   initial?: Meal
   defaultMealType?: MealType
-  /** Reports the docked input row's measured height, so the Sheet can open at exactly that. */
-  onInputRowHeight: (height: number) => void
-  /** Reports how tall the currently shown step's own content is, so pulling the sheet open stops there rather than at the tallest step's height. */
-  onStepContentHeight: (height: number) => void
 }) {
   const requestClose = useSheetClose()
 
@@ -329,25 +303,6 @@ function MealEditorContent({
     observer.observe(contentNode)
     return () => observer.disconnect()
   }, [])
-  useLayoutEffect(() => {
-    const node = inputRowRef.current
-    if (!node) return
-    const content = step1ContentRef.current
-    const sync = () => {
-      const chrome =
-        (headerRef.current?.getBoundingClientRect().height ?? 0) +
-        (bannerRef.current?.getBoundingClientRect().height ?? 0)
-      onInputRowHeight(chrome + node.getBoundingClientRect().height)
-      if (content) onStepContentHeight(chrome + content.getBoundingClientRect().height)
-    }
-    sync()
-    const observer = new ResizeObserver(sync)
-    observer.observe(node)
-    if (content) observer.observe(content)
-    if (headerRef.current) observer.observe(headerRef.current)
-    if (bannerRef.current) observer.observe(bannerRef.current)
-    return () => observer.disconnect()
-  }, [step, pickingRecipe, onInputRowHeight, onStepContentHeight])
 
   function handleStep1Scroll(event: React.UIEvent<HTMLDivElement>) {
     const node = event.currentTarget
@@ -697,10 +652,12 @@ function MealEditorContent({
           style={{ transform: `translateX(-${step === 'review' ? 100 : 0}%)` }}
         >
           {/* Step 1: input */}
+          <div className="flex w-full shrink-0 flex-col overflow-hidden">
           <div
             ref={pickingRecipe ? undefined : step1ScrollRef}
             onScroll={pickingRecipe ? undefined : handleStep1Scroll}
-            className="w-full shrink-0 overflow-y-auto overflow-x-hidden px-5 pb-5"
+            data-sheet-collapse
+            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-5"
           >
             {pickingRecipe ? (
               <div className="flex flex-col gap-4">
@@ -746,24 +703,11 @@ function MealEditorContent({
               </div>
             ) : (
               <div ref={step1ContentRef} className="flex flex-col gap-4">
-                {/* Everything here starts scrolled out of view above the
-                    description field below — this pane opens already
-                    scrolled to its own bottom (step1ScrollRef's effect
-                    above), so only the field is on screen at first.
-                    Scrolling up within the sheet reveals it, iOS-compose-
-                    style, while the field stays docked via `sticky` further
-                    down. */}
-                <div className="flex items-center gap-3">
-                  <ActionButton label="Rezept auswählen" onClick={() => setPickingRecipe(true)}>
-                    <RecipeIcon />
-                  </ActionButton>
-                  <PhotoActionButton photo={photo} onChange={setPhoto} source="camera" />
-                  <PhotoActionButton photo={photo} onChange={setPhoto} source="library" />
-                  <ActionButton label="Barcode scannen" onClick={openBarcodeScanner}>
-                    <BarcodeIcon />
-                  </ActionButton>
-                </div>
-
+                {/* Only what pulling the sheet open reveals lives in this
+                    scrolling area. The field and the four input-source
+                    buttons are docked below it, outside the scroll — that is
+                    what keeps both reachable without opening the sheet, and
+                    it is also why neither needs `sticky` any more. */}
                 {photo && <PhotoPreview photo={photo} onChange={setPhoto} />}
 
                 {!hasApiKey && (
@@ -781,22 +725,17 @@ function MealEditorContent({
                 {error && <p className="text-sm font-medium text-danger">{error}</p>}
 
                 <MealSuggestions mealType={mealType} onPick={handleSelectSuggestion} onEdit={handleEditSuggestion} />
+              </div>
+            )}
+          </div>
 
-                {/* The docked field itself — `sticky bottom-0` within this
-                    pane's own scroll container (not `position: fixed`,
-                    which a transformed ancestor like the sheet's own drag
-                    `y` would resolve against the wrong containing block,
-                    same trap Sheet.tsx's own doc comment already explains).
-                    A near-opaque background masks whatever's mid-scroll
-                    behind it, matching the scroll-edge-fade every other
-                    docked field in the app already uses. */}
-                {/* No backdrop-blur here: the sheet behind this row is
-                    opaque (bg-surface), so the filter blurs a flat color and
-                    changes nothing — screenshots of the row with and without
-                    it are pixel-identical. What it did cost was a separate
-                    compositing layer, re-blurred on every frame while the
-                    sheet animates its height. */}
-                <div ref={inputRowRef} className="sticky bottom-0 -mx-5 bg-bg px-5 pb-1 pt-2">
+          {/* Docked: outside the scroll area, so its height is the sheet's
+              collapsed height and nothing above can bleed into it. No
+              backdrop-blur — the sheet behind is opaque, so the filter blurred
+              a flat color (screenshots with and without were pixel-identical)
+              while still costing a compositing layer per animation frame. */}
+          {!pickingRecipe && (
+            <div ref={inputRowRef} data-sheet-peek className="shrink-0 bg-bg px-5 pb-4 pt-2">
                   <div className="flex items-start gap-2">
                     {/* `relative` so the dictation button can sit inside the
                         field's own right edge while it is still one line. */}
@@ -860,9 +799,23 @@ function MealEditorContent({
                       <p className="mt-1 text-xs text-ink-soft">Nährwerte werden geschätzt… {Math.round(estimateProgress)}%</p>
                     </div>
                   )}
-                </div>
-              </div>
-            )}
+
+                  {/* The other four ways to describe a meal, right under the
+                      field: they are alternatives to typing, so they belong
+                      beside the thing they replace and have to be reachable
+                      without opening the sheet. */}
+                  <div className="mt-2 flex items-center gap-3">
+                    <ActionButton label="Rezept auswählen" onClick={() => setPickingRecipe(true)}>
+                      <RecipeIcon />
+                    </ActionButton>
+                    <PhotoActionButton photo={photo} onChange={setPhoto} source="camera" />
+                    <PhotoActionButton photo={photo} onChange={setPhoto} source="library" />
+                    <ActionButton label="Barcode scannen" onClick={openBarcodeScanner}>
+                      <BarcodeIcon />
+                    </ActionButton>
+                  </div>
+            </div>
+          )}
           </div>
 
           {/* Step 2: review */}
