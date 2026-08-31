@@ -7,6 +7,7 @@ import { getApiKey } from '../lib/settings'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { isStoragePersisted } from '../lib/persistence'
 import { onAuthChange } from '../lib/firebase'
+import { GlassSurface } from '../glass/GlassSurface'
 
 /**
  * The Einstellungen root — a category menu (icon, title, current-status
@@ -39,7 +40,7 @@ export function SettingsPage() {
     <div className="mx-auto max-w-lg px-4 pb-28">
       <PageHeader title="Einstellungen" showSettings={false} />
 
-      <div className="glass-subtle divide-y divide-line/60 overflow-hidden rounded-3xl shadow-sm shadow-black/5">
+      <GlassSurface rim={22} className="glass-subtle divide-y divide-line/60 overflow-hidden rounded-3xl shadow-sm shadow-black/5">
         <SettingsRow
           to="/settings/koerperwerte"
           iconBg="bg-accent"
@@ -82,12 +83,12 @@ export function SettingsPage() {
           title="Kontingent"
           subtitle="Anfragen an Gemini & Firebase heute"
         />
-      </div>
+      </GlassSurface>
 
       {/* Its own group: these two are about the app itself rather than about
           your data or your account, and the separation is what makes a menu
           scannable rather than a list to read through. */}
-      <div className="glass-subtle mt-6 divide-y divide-line/60 overflow-hidden rounded-3xl shadow-sm shadow-black/5">
+      <GlassSurface rim={22} className="glass-subtle mt-6 divide-y divide-line/60 overflow-hidden rounded-3xl shadow-sm shadow-black/5">
         <SettingsRow
           to="/settings/aktualisierung"
           iconBg="bg-accent"
@@ -102,7 +103,7 @@ export function SettingsPage() {
           title="Version & Neues"
           subtitle={`Version ${CURRENT_VERSION}`}
         />
-      </div>
+      </GlassSurface>
     </div>
   )
 }

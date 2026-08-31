@@ -231,9 +231,6 @@ export async function generateAdvisorRun(): Promise<SupplementAdvisorRun> {
   })
 
   const today = toLocalDateKey(new Date())
-  const existingToday = await db.supplementAdvisorRuns.where('date').equals(today).primaryKeys()
-  if (existingToday.length > 0) await db.supplementAdvisorRuns.bulkDelete(existingToday)
-
   const run: SupplementAdvisorRun = {
     id: newSupplementAdvisorRunId(),
     date: today,
@@ -241,7 +238,19 @@ export async function generateAdvisorRun(): Promise<SupplementAdvisorRun> {
     suggestions,
     context,
   }
-  await db.supplementAdvisorRuns.add(run)
+
+  // In a transaction, same reasoning as toggleSupplementCheck in
+  // useSupplements.ts: the background refresh (main.tsx, on app start) and a
+  // manual "Jetzt neu erstellen" click can land close enough together that a
+  // read-then-write outside one lets both see "nothing for today yet" and
+  // both insert — leaving two competing runs for the same day and breaking
+  // the "exactly one run per day" invariant the rest of this module (and the
+  // once-a-day retry gate) depends on. The transaction serialises the pair.
+  await db.transaction('rw', db.supplementAdvisorRuns, async () => {
+    const existingToday = await db.supplementAdvisorRuns.where('date').equals(today).primaryKeys()
+    if (existingToday.length > 0) await db.supplementAdvisorRuns.bulkDelete(existingToday)
+    await db.supplementAdvisorRuns.add(run)
+  })
   await pruneOldRuns()
   return run
 }
@@ -264,4 +273,29 @@ export async function refreshAdvisorIfStale(): Promise<void> {
   } catch {
     // Intentionally silent — see above.
   }
+}
+
+/**
+ * Re-runs the once-a-day staleness check whenever the app is actually looked
+ * at again, not just at boot.
+ *
+ * `refreshAdvisorIfStale()` on its own only ever fires once — at module
+ * load, from main.tsx. That's fine for a page that gets a full reload every
+ * day, but this app is a PWA that's typically added to a home screen and
+ * suspended/resumed rather than reloaded: a tab or standalone instance left
+ * open from yesterday can sit there indefinitely, past midnight, without any
+ * code ever re-checking whether a new day has started. From the user's side
+ * that reads as "the background refresh doesn't reliably run" — it isn't
+ * unreliable, it just never gets a second chance to fire once the app has
+ * been open across a day boundary. Re-checking on visibility/focus is what
+ * actually delivers "once per day" in that situation, at no real cost:
+ * isRunStale() makes every one of these a no-op except the first check on
+ * any given day, so returning to an already-fresh app just re-reads one
+ * Dexie row and stops.
+ */
+export function watchForNewDay(): void {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') void refreshAdvisorIfStale()
+  })
+  window.addEventListener('focus', () => void refreshAdvisorIfStale())
 }

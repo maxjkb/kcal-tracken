@@ -16,9 +16,8 @@ const EDGE_FADE_PX = 28
  * sit top-right on the title's own baseline, matching where iOS puts a
  * navigation bar's trailing items.
  *
- * `actions` lets a page prepend its own page-specific round button (Statistik's
- * PDF export) into the same cluster, so a page never grows a second, competing
- * row of controls.
+ * `actions` lets a page prepend its own page-specific round button into the
+ * same cluster, so a page never grows a second, competing row of controls.
  *
  * ## Sticky, with a scroll edge effect
  *

@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
-import { GLASS_FRAG, GLASS_VERT } from './glassShader'
-import type { GlassParams } from './glassPhysics'
+import { GLASS_FRAG, GLASS_VERT } from '../glass/glassShader'
+import type { GlassParams } from '../glass/glassPhysics'
 import { SCENE_MODE_INDEX, type GlassShape, type SceneMode } from './labScene'
-import type { LightState } from './useLightSource'
+import type { LightState } from '../glass/useLightSource'
 
 /**
  * Stufe 3 — WebGL, ein Fragment-Shader pro Pixel.

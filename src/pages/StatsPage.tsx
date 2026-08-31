@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMealSummariesInRange, type MealSummary } from '../hooks/useMeals'
+import { useMealSummariesInRange } from '../hooks/useMeals'
 import { MEAL_TYPE_LABELS, toLocalDateKey, type Nutrition } from '../lib/db'
 import { ChevronIcon } from '../components/ChevronIcon'
 import { ConcentricRings, NutrientRings } from '../components/NutrientRings'
@@ -9,10 +9,11 @@ import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { SupplementScoreCard } from '../components/SupplementScoreCard'
 import { MicronutrientBars } from '../components/MicronutrientBars'
 import { useMicronutrientOverview } from '../hooks/useMicronutrients'
-import { KcalTrendChart } from '../components/KcalTrendChart'
+import { KcalTrendChart, type ChartBucket } from '../components/KcalTrendChart'
 import type { StatBucket } from '../lib/stats'
-import { PageHeader, HeaderButton } from '../components/PageHeader'
-import { BouncingDots } from '../components/BouncingDots'
+import { targetKcalAsNutritionMap, targetKcalByBucketKey, useDailyTargetKcalMap } from '../lib/targetHistory'
+import { PageHeader } from '../components/PageHeader'
+import { GlassSurface } from '../glass/GlassSurface'
 import {
   bucketByDay,
   bucketByMonth,
@@ -48,32 +49,6 @@ export function StatsPage() {
   const [view, setView] = useState<'trend' | 'nutrients'>('trend')
   const { startKey, endKey } = getPeriodRange(period, anchorKey)
   const meals = useMealSummariesInRange(startKey, endKey)
-  const [exporting, setExporting] = useState(false)
-  const [exportError, setExportError] = useState<string | null>(null)
-
-  async function handleExportPdf(meals: MealSummary[]) {
-    setExporting(true)
-    setExportError(null)
-    try {
-      // A plain dynamic import, not lazyRetry. lazyRetry exists for React.lazy
-      // route chunks, where a stale cached index.html makes a full reload the
-      // right recovery — but doing that here would throw away whatever the
-      // user has open (an unsaved meal in a sheet, for instance) to recover a
-      // PDF export they can simply retry. And the call site floated the
-      // promise, so any other failure was an unhandled rejection: the button
-      // just stopped spinning, with no PDF and no explanation.
-      const { exportDiaryPdf } = await import('../lib/pdf')
-      exportDiaryPdf({ period, anchorKey, meals, startKey, endKey })
-    } catch (err) {
-      setExportError(
-        err instanceof Error && /import|fetch|network/i.test(err.message)
-          ? 'PDF-Modul konnte nicht geladen werden. Internetverbindung prüfen und erneut versuchen.'
-          : 'PDF konnte nicht erstellt werden.',
-      )
-    } finally {
-      setExporting(false)
-    }
-  }
 
   // Per-day totals across all four macros, not just kcal: the chart's points
   // are tappable and open the full nutrient rings for that day or week.
@@ -120,6 +95,22 @@ export function StatsPage() {
   const weekData = period === 'month' ? bucketByWeek(startKey, endKey, nutritionByDate) : []
   const monthData = period === 'year' ? bucketByMonth(Number(anchorKey.slice(0, 4)), nutritionByDate) : []
   const barData = period === 'week' ? dayData : period === 'month' ? weekData : []
+
+  // The target-kcal line on the trend chart, bucketed the exact same way as
+  // the actual-intake data above (same functions, same keys) so the two line
+  // up point for point. null/undefined (no body profile yet) hides the line
+  // entirely rather than drawing it at 0.
+  const targetKcalByDate = useDailyTargetKcalMap(startKey, endKey)
+  const targetNutritionByDate = targetKcalByDate ? targetKcalAsNutritionMap(targetKcalByDate) : new Map<string, Nutrition>()
+  const targetDayData = period === 'week' ? bucketByDay(startKey, endKey, targetNutritionByDate) : []
+  const targetWeekData = period === 'month' ? bucketByWeek(startKey, endKey, targetNutritionByDate) : []
+  const targetMonthData = period === 'year' ? bucketByMonth(Number(anchorKey.slice(0, 4)), targetNutritionByDate) : []
+  const targetKcalByKey = targetKcalByDate
+    ? targetKcalByBucketKey([...targetDayData, ...targetWeekData, ...targetMonthData])
+    : null
+  function withTarget(buckets: StatBucket[]): ChartBucket[] {
+    return buckets.map((b) => ({ ...b, targetKcal: targetKcalByKey?.get(b.key) ?? null }))
+  }
   const perMealData =
     period === 'day'
       ? [...(meals ?? [])]
@@ -152,24 +143,7 @@ export function StatsPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-28">
-      {/* PDF export folds into the header's round-button cluster rather than
-          keeping its own labelled pill — three round buttons plus the title
-          still fit a 375px screen, two of them plus a wide pill would not.
-          The label survives as the accessible name and the tooltip. */}
-      <PageHeader
-        title="Statistik"
-        actions={
-          <HeaderButton
-            onClick={() => meals && handleExportPdf(meals)}
-            disabled={!meals || meals.length === 0 || exporting}
-            label={exporting ? 'Erstelle PDF…' : 'Als PDF exportieren'}
-          >
-            {exporting ? <BouncingDots /> : <PdfIcon />}
-          </HeaderButton>
-        }
-      />
-
-      {exportError && <p className="mb-4 text-sm font-medium text-danger">{exportError}</p>}
+      <PageHeader title="Statistik" />
 
       {/* One shared pill slides between the segments (Motion `layoutId`)
           instead of each segment fading its own background in and out — the
@@ -177,7 +151,7 @@ export function StatsPage() {
           single object moving to the tapped option. */}
       {/* Full .glass, not .glass-subtle — a segmented control is navigation
           the same way BottomNav is, so it gets the same material. */}
-      <div className="glass mb-4 flex gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5">
+      <GlassSurface rim={22} className="glass mb-4 flex gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5">
         {PERIODS.map(({ key, label }) => (
           <button
             key={key}
@@ -196,11 +170,11 @@ export function StatsPage() {
             <span className="relative z-10">{label}</span>
           </button>
         ))}
-      </div>
+      </GlassSurface>
 
       {/* Same reasoning as the segmented control above — a period navigator
           is navigation, gets full .glass. */}
-      <div className="glass mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
+      <GlassSurface rim={22} className="glass mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
         <button
           onClick={() => setAnchorKey((k) => shiftAnchor(period, k, -1))}
           className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white"
@@ -218,7 +192,7 @@ export function StatsPage() {
         >
           <ChevronIcon direction="right" />
         </button>
-      </div>
+      </GlassSurface>
 
       <div className="mb-6 grid grid-cols-3 gap-2">
         <StatTile value={Math.round(totals.kcal).toLocaleString('de-DE')} label="kcal gesamt" />
@@ -247,7 +221,7 @@ export function StatsPage() {
               still the number people check first on a given day, with the
               micronutrient picture as the deeper, second-glance layer below
               it rather than the very first thing on the page. */}
-          <div className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
+          <GlassSurface rim={24} className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Makronährstoffe</h3>
             {meals === undefined ? (
               <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
@@ -263,11 +237,11 @@ export function StatsPage() {
                 perMeal={perMealAverages}
               />
             )}
-          </div>
-          <div className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
+          </GlassSurface>
+          <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Mikronährstoffe</h3>
             <MicronutrientBars overview={microOverview} />
-          </div>
+          </GlassSurface>
         </>
       ) : view === 'nutrients' ? (
         <>
@@ -275,7 +249,7 @@ export function StatsPage() {
               same rings, same colours, same percent-of-target readout, so the
               number in the tile above and the detail below are visibly the
               same thing at two levels of zoom. */}
-          <div className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
+          <GlassSurface rim={24} className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Makronährstoffe</h3>
             {meals === undefined ? (
               <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
@@ -288,11 +262,11 @@ export function StatsPage() {
                 targets={dailyTargets}
               />
             )}
-          </div>
-          <div className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
+          </GlassSurface>
+          <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Mikronährstoffe</h3>
             <MicronutrientBars overview={microOverview} />
-          </div>
+          </GlassSurface>
         </>
       ) : (
         <div className="rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
@@ -307,7 +281,7 @@ export function StatsPage() {
               <p className="flex h-56 items-center justify-center text-sm text-ink-soft">Lädt…</p>
             ) : (
               <KcalTrendChart
-                data={period === 'year' ? monthData : barData}
+                data={withTarget(period === 'year' ? monthData : barData)}
                 unitLabel={period === 'year' ? 'Monat' : period === 'month' ? 'Woche' : 'Tag'}
                 targets={dailyTargets}
                 emptyLabel="Keine Einträge in diesem Zeitraum."
@@ -394,15 +368,28 @@ function StatTile({
       <div className="text-[10px] text-ink-soft">{label}</div>
     </>
   )
-  const shell = `glass-subtle glass-subtle-themed flex h-24 w-full flex-col items-center justify-center rounded-3xl p-3 text-center shadow-sm shadow-black/5 transition ${
+  const shell = `flex h-24 w-full flex-col items-center justify-center rounded-3xl p-3 text-center shadow-sm shadow-black/5 transition ${
     selected ? 'ring-2 ring-inset ring-accent' : ''
   }`
 
-  if (!onSelect) return <div className={shell}>{body}</div>
+  if (!onSelect) {
+    return (
+      <GlassSurface rim={24} className={`glass-subtle glass-subtle-themed ${shell}`}>
+        {body}
+      </GlassSurface>
+    )
+  }
   return (
-    <button type="button" onClick={onSelect} aria-pressed={selected} className={shell}>
+    <GlassSurface
+      as="button"
+      rim={24}
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={`glass-subtle glass-subtle-themed ${shell}`}
+    >
       {body}
-    </button>
+    </GlassSurface>
   )
 }
 
@@ -432,24 +419,27 @@ function RingTile({
       <div className="text-[10px] leading-tight text-ink-soft">{caption}</div>
     </>
   )
-  const shell = `glass-subtle glass-subtle-themed flex h-24 w-full flex-col items-center justify-center gap-1 rounded-3xl p-2 text-center shadow-sm shadow-black/5 transition ${
+  const shell = `flex h-24 w-full flex-col items-center justify-center gap-1 rounded-3xl p-2 text-center shadow-sm shadow-black/5 transition ${
     selected ? 'ring-2 ring-inset ring-accent' : ''
   }`
 
-  if (!onSelect) return <div className={shell}>{body}</div>
+  if (!onSelect) {
+    return (
+      <GlassSurface rim={24} className={`glass-subtle glass-subtle-themed ${shell}`}>
+        {body}
+      </GlassSurface>
+    )
+  }
   return (
-    <button type="button" onClick={onSelect} aria-pressed={selected} className={shell}>
+    <GlassSurface
+      as="button"
+      rim={24}
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={`glass-subtle glass-subtle-themed ${shell}`}
+    >
       {body}
-    </button>
-  )
-}
-
-function PdfIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
-      <path d="M14 2v6h6" />
-      <path d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" />
-      <path strokeLinecap="round" d="M8 17v-5m3 5v-5m0 0c1.5 0 2.5.7 2.5 2s-1 2-2.5 2" />
-    </svg>
+    </GlassSurface>
   )
 }

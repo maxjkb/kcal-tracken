@@ -379,6 +379,57 @@ export interface TipsRun {
   context: TipsContext
 }
 
+/**
+ * What the daily kcal target actually was on one specific day, frozen at the
+ * moment that day was first seen as "today".
+ *
+ * Without this, the Statistik target line would have to use today's target
+ * for every day ever shown — so changing your goal would silently rewrite
+ * how every past day is judged, making last month look like it missed a
+ * target it never actually had. One row per date, written once (see
+ * recordTodaysTargetSnapshot in lib/targetHistory.ts) and never touched
+ * again: a day without a row here (before this feature existed, or simply
+ * never visited as "today") falls back to today's live target instead —
+ * see useDailyTargetKcalMap, which is the only place that distinction
+ * actually matters.
+ */
+export interface DailyTargetSnapshot {
+  /** Local date key (YYYY-MM-DD), unique — exactly one frozen value per day. */
+  date: string
+  kcal: number
+}
+
+/**
+ * A scaled-for-quantity version of a recipe, generated for Meal Prep — kept
+ * entirely separate from the recipe it was generated from rather than
+ * overwriting it (explicit product decision): the recipe is the reusable
+ * template for a normal portion, this is one specific batch someone actually
+ * cooked once. A recipe can have several of these (a 4-portion one from last
+ * month, an 8-portion one for this week) side by side.
+ *
+ * Everything here is total-for-the-whole-batch, not per portion — matching
+ * how the ingredients themselves are scaled — and generated fresh each time
+ * rather than derived by simple arithmetic from the recipe: see
+ * estimateMealprep in lib/gemini.ts for why (seasoning/salt/liquid don't
+ * scale linearly, and equipment capacity can force a completely different
+ * procedure, not just bigger numbers on the same steps).
+ */
+export interface MealprepVersion {
+  id: string
+  recipeId: string
+  /** What was actually asked for, in the user's own words — "6 Portionen", "doppelte Menge", "für die ganze Woche" — kept verbatim since it's shown as this version's own label. */
+  targetDescription: string
+  ingredients: Ingredient[]
+  steps: RecipeStep[]
+  /** Totals for the WHOLE batch at this quantity, not per portion. */
+  nutrition: Nutrition
+  /** How cook/bake/simmer time changes at this quantity — equipment capacity limits (e.g. a Thermomix-style mixing bowl's fixed max fill), longer heat-through time for a bigger volume, note if steps must run in multiple batches. */
+  cookTimeNote: string
+  /** Storage/shelf-life guidance for the finished batch: fridge (how many days), freezer (freezable at all, how long), reheating notes. */
+  storageNote: string
+  createdAt: number
+}
+
 class KcalDatabase extends Dexie {
   meals!: EntityTable<Meal, 'id'>
   recipes!: EntityTable<Recipe, 'id'>
@@ -387,6 +438,8 @@ class KcalDatabase extends Dexie {
   supplementLog!: EntityTable<SupplementLogEntry, 'id'>
   supplementAdvisorRuns!: EntityTable<SupplementAdvisorRun, 'id'>
   tipRuns!: EntityTable<TipsRun, 'id'>
+  dailyTargetSnapshots!: EntityTable<DailyTargetSnapshot, 'date'>
+  mealprepVersions!: EntityTable<MealprepVersion, 'id'>
 
   constructor() {
     super('kcal-tracker')
@@ -421,6 +474,27 @@ class KcalDatabase extends Dexie {
       supplementAdvisorRuns: 'id, date, generatedAt',
       tipRuns: 'id, date, generatedAt, [date+slot]',
     })
+    this.version(6).stores({
+      meals: 'id, date, mealType, createdAt',
+      recipes: 'id, category, createdAt',
+      supplements: 'id, name, category, createdAt',
+      mySupplements: 'id, supplementId, createdAt',
+      supplementLog: 'id, mySupplementId, date, [mySupplementId+date+timeOfDay]',
+      supplementAdvisorRuns: 'id, date, generatedAt',
+      tipRuns: 'id, date, generatedAt, [date+slot]',
+      dailyTargetSnapshots: 'date',
+    })
+    this.version(7).stores({
+      meals: 'id, date, mealType, createdAt',
+      recipes: 'id, category, createdAt',
+      supplements: 'id, name, category, createdAt',
+      mySupplements: 'id, supplementId, createdAt',
+      supplementLog: 'id, mySupplementId, date, [mySupplementId+date+timeOfDay]',
+      supplementAdvisorRuns: 'id, date, generatedAt',
+      tipRuns: 'id, date, generatedAt, [date+slot]',
+      dailyTargetSnapshots: 'date',
+      mealprepVersions: 'id, recipeId, createdAt',
+    })
   }
 }
 
@@ -451,6 +525,10 @@ export function newSupplementAdvisorRunId(): string {
 }
 
 export function newTipsRunId(): string {
+  return crypto.randomUUID()
+}
+
+export function newMealprepVersionId(): string {
   return crypto.randomUUID()
 }
 

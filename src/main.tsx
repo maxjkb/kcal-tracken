@@ -6,9 +6,10 @@ import App from './App.tsx'
 import { requestPersistentStorage } from './lib/persistence.ts'
 import { initSyncIfSignedIn } from './lib/sync.ts'
 import { syncSupplementCatalog } from './lib/supplementSeed.ts'
-import { refreshAdvisorIfStale } from './lib/supplementAdvisor.ts'
+import { refreshAdvisorIfStale, watchForNewDay } from './lib/supplementAdvisor.ts'
 import { refreshTipsIfStale } from './lib/tips.ts'
 import { backfillMissingMicronutrients } from './lib/micronutrients.ts'
+import { recordTodaysTargetSnapshot } from './lib/targetHistory.ts'
 
 // Fire-and-forget: ask the browser to exempt this origin's storage (API key,
 // meals) from automatic eviction. Safe to call on every load.
@@ -22,8 +23,11 @@ void syncSupplementCatalog()
 // Fire-and-forget: refreshes the supplement suggestions once per calendar day,
 // on the first launch of that day, so they're already waiting rather than
 // needing a button press. Deliberately not awaited and never throws — see
-// refreshAdvisorIfStale.
+// refreshAdvisorIfStale. watchForNewDay() re-runs this same check whenever
+// the app is brought back to the foreground, so a PWA instance that's
+// suspended/resumed instead of reloaded still picks up a new day.
 void refreshAdvisorIfStale()
+watchForNewDay()
 
 // Fire-and-forget: refreshes the "was jetzt essen"-tips once per meal-time
 // slot (breakfast/lunch/snack/dinner), on the first launch inside that slot,
@@ -35,6 +39,12 @@ void refreshTipsIfStale()
 // backfillMissingMicronutrients. Runs every launch; becomes a cheap no-op
 // once nothing is left to fill in.
 void backfillMissingMicronutrients()
+
+// Fire-and-forget: freezes today's kcal target the first time today is ever
+// seen, so the Statistik target line can never rewrite a past day's target
+// after the fact. A no-op once today already has a snapshot, or if there's
+// no body profile yet at all — see recordTodaysTargetSnapshot.
+void recordTodaysTargetSnapshot()
 
 // A no-op touchstart listener is the standard trick to make iOS Safari
 // actually apply the :active pseudo-class on tap — without it, iOS treats

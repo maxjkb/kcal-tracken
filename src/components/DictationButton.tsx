@@ -9,6 +9,7 @@ export function DictationButton({
   disabled?: boolean
 }) {
   const [listening, setListening] = useState(false)
+  const [interim, setInterim] = useState('')
   const [error, setError] = useState<string | null>(null)
   const sessionRef = useRef<DictationSession | null>(null)
   const supported = isSpeechRecognitionSupported()
@@ -23,17 +24,21 @@ export function DictationButton({
       return
     }
     setError(null)
+    setInterim('')
     const session = startDictation({
       onDone: (text) => {
         setListening(false)
+        setInterim('')
         sessionRef.current = null
         if (text) onRecordingDone(text)
       },
       onError: (message) => {
         setError(message)
         setListening(false)
+        setInterim('')
         sessionRef.current = null
       },
+      onInterim: setInterim,
     })
     if (session) {
       sessionRef.current = session
@@ -44,7 +49,19 @@ export function DictationButton({
   if (!supported) return null
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className="relative flex flex-col items-end gap-1">
+      {/* Live preview of what's being heard right now, before anything is
+          finalized — the actual fix for "fühlt sich langsam an" wasn't
+          making recognition itself faster (it can't be, it's the browser's
+          own engine), it was giving the ~1-2s of silence before the first
+          words land somewhere to look at. Positioned above the button so it
+          never collides with the text field the transcript eventually lands
+          in. */}
+      {listening && interim && (
+        <span className="absolute bottom-full right-0 mb-2 max-w-[16rem] rounded-2xl bg-ink px-3 py-2 text-xs text-white shadow-lg">
+          {interim}
+        </span>
+      )}
       <button
         type="button"
         onClick={toggle}

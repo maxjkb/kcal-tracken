@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef } from 'react'
 import {
   refractionOffset, sdRoundBox, surfaceNormalFromEdge, heightFromEdge, type GlassParams,
-} from './glassPhysics'
+} from '../glass/glassPhysics'
 import { sceneBackground, type GlassShape, type SceneMode } from './labScene'
-import type { LightState } from './useLightSource'
+import type { LightState } from '../glass/useLightSource'
 
 /**
  * Stufe 2 — SVG-Filter mit ECHTER Brechung.

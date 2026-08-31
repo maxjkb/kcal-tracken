@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { fresnelSchlick, shininessFromRoughness, type GlassParams } from './glassPhysics'
+import { fresnelSchlick, shininessFromRoughness, type GlassParams } from '../glass/glassPhysics'
 import type { GlassShape } from './labScene'
 
 /**

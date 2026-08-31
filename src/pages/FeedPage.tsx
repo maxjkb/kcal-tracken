@@ -13,6 +13,7 @@ import { MealTypeBadge } from '../components/MealTypeBadge'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { PageHeader } from '../components/PageHeader'
 import { TipsButton } from '../components/TipsSheet'
+import { GlassSurface } from '../glass/GlassSurface'
 
 function sumNutrition(meals: Meal[]) {
   return meals.reduce(
@@ -96,7 +97,7 @@ export function FeedPage() {
           .glass-subtle) per explicit request — a date/period selector reads
           as navigation, the same functional role as BottomNav, so it gets
           the same material. */}
-      <div className="glass mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
+      <GlassSurface rim={22} className="glass mb-4 flex items-center justify-between rounded-2xl px-2 py-2 shadow-sm shadow-black/5">
         <button
           onClick={() => setDateKey((k) => addDays(k, -1))}
           className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white"
@@ -124,11 +125,11 @@ export function FeedPage() {
         >
           <ChevronIcon direction="right" />
         </button>
-      </div>
+      </GlassSurface>
 
-      <div className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-5 shadow-sm shadow-black/5">
+      <GlassSurface rim={26} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-5 shadow-sm shadow-black/5">
         <NutrientRings kcal={totals.kcal} protein={totals.protein} carbs={totals.carbs} fat={totals.fat} targets={targets} />
-      </div>
+      </GlassSurface>
 
       {meals === undefined ? (
         <p className="text-center text-sm text-ink-soft">Lädt…</p>

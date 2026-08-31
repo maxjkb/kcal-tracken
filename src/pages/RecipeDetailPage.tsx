@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useRegisterBackSwipe } from '../lib/backSwipe'
-import { formatIngredientAmount } from '../lib/db'
+import { formatIngredientAmount, type MealprepVersion } from '../lib/db'
 import { useRecipe } from '../hooks/useRecipes'
+import { useMealprepVersions, deleteMealprepVersion } from '../hooks/useMealprep'
 import { RecipeEditor } from '../components/RecipeEditor'
+import { MealprepSheet } from '../components/MealprepSheet'
 import { ChevronIcon } from '../components/ChevronIcon'
 import { MacroBadge, MacroRingBadge } from '../components/MacroBadge'
 import { SlideInPage } from '../components/SlideInPage'
@@ -31,9 +33,12 @@ export function RecipeDetailPage() {
   // than handled locally so it shares the app's one gesture recogniser.
   useRegisterBackSwipe(() => navigate(`/recipes/${category}`))
   const recipe = useRecipe(id)
+  const mealprepVersions = useMealprepVersions(id ?? '')
   const [ingredientsOpen, setIngredientsOpen] = useState(true)
   const [stepsOpen, setStepsOpen] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [creatingMealprep, setCreatingMealprep] = useState(false)
+  const [openMealprepId, setOpenMealprepId] = useState<string | null>(null)
 
   // `undefined` is Dexie still resolving; `null` is a genuine miss. Treating
   // both as "loading" left a deleted or mistyped recipe id showing "Lädt…"
@@ -132,12 +137,117 @@ export function RecipeDetailPage() {
           </div>
         )}
 
+        <div className="mb-5">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Mealprep</span>
+            <button
+              type="button"
+              onClick={() => setCreatingMealprep(true)}
+              className="text-xs font-semibold text-accent hover:underline"
+            >
+              + Neue Version
+            </button>
+          </div>
+          {!mealprepVersions || mealprepVersions.length === 0 ? (
+            <p className="text-xs text-ink-soft">
+              Noch keine Mealprep-Version. Erstelle eine, um dieses Rezept auf eine andere Menge skaliert zu
+              zubereiten — mit angepasster Garzeit und Lagerungshinweis.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {mealprepVersions.map((version) => (
+                <MealprepVersionCard
+                  key={version.id}
+                  version={version}
+                  open={openMealprepId === version.id}
+                  onToggle={() => setOpenMealprepId((cur) => (cur === version.id ? null : version.id))}
+                  onDelete={() => deleteMealprepVersion(version.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
         <button onClick={() => setEditing(true)} className="glass-accent rounded-2xl px-4 py-3 text-sm font-semibold transition">
           Bearbeiten
         </button>
       </div>
 
       {editing && <RecipeEditor category={recipe.category} initial={recipe} onClose={() => setEditing(false)} />}
+      {creatingMealprep && <MealprepSheet recipe={recipe} onClose={() => setCreatingMealprep(false)} />}
     </SlideInPage>
+  )
+}
+
+/** One saved Mealprep version, collapsed to its target description (e.g. "6 Portionen") until tapped open. */
+function MealprepVersionCard({
+  version,
+  open,
+  onToggle,
+  onDelete,
+}: {
+  version: MealprepVersion
+  open: boolean
+  onToggle: () => void
+  onDelete: () => void
+}) {
+  return (
+    <div className="rounded-2xl bg-surface p-3 shadow-sm shadow-black/5">
+      <button type="button" onClick={onToggle} className="flex w-full items-center justify-between gap-2 text-left">
+        <span className="text-sm font-medium text-ink">{version.targetDescription}</span>
+        <span className="flex shrink-0 items-center gap-2">
+          <span className="text-xs text-ink-soft">{Math.round(version.nutrition.kcal)} kcal gesamt</span>
+          <ChevronDown open={open} />
+        </span>
+      </button>
+      <Collapse open={open}>
+        <div className="mt-3 flex flex-col gap-3">
+          <div>
+            <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft">Zutaten</span>
+            <div className="flex flex-col gap-1.5">
+              {version.ingredients.map((ing, i) => (
+                <div key={i} className="flex items-start justify-between gap-2 text-sm">
+                  <div className="min-w-0">
+                    <span className="text-ink">{ing.name}</span>
+                    {ing.note && <p className="text-xs italic text-ink-soft">{ing.note}</p>}
+                  </div>
+                  <span className="shrink-0 text-xs text-ink-soft">{formatIngredientAmount(ing)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft">Zubereitung</span>
+            <ol className="flex flex-col gap-1.5">
+              {version.steps.map((s, i) => (
+                <li key={i} className="flex gap-2 text-sm text-ink">
+                  <span className="shrink-0 font-semibold text-ink-faint">{i + 1}.</span>
+                  <span>{s.text}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {version.cookTimeNote && (
+            <div>
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-ink-soft">Garzeit</span>
+              <p className="text-sm text-ink-soft">{version.cookTimeNote}</p>
+            </div>
+          )}
+
+          {version.storageNote && (
+            <div>
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-ink-soft">Lagerung</span>
+              <p className="text-sm text-ink-soft">{version.storageNote}</p>
+            </div>
+          )}
+
+          <button type="button" onClick={onDelete} className="self-start text-xs font-medium text-danger hover:underline">
+            Version löschen
+          </button>
+        </div>
+      </Collapse>
+    </div>
   )
 }

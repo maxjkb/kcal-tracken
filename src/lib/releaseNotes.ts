@@ -17,6 +17,75 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.15.2',
+    date: '2026-08-30',
+    highlights: [
+      'Rezept-Vorschläge intelligenter: berücksichtigen jetzt die aktuelle Tageszeit, deine noch offenen Tagesziele und häufig verwendete Zutaten aus deiner Historie — und mischen bewusst mindestens eine ganz neue Idee zum Ausprobieren mit ein ("Neu für dich").',
+    ],
+  },
+  {
+    version: '1.15.1',
+    date: '2026-08-30',
+    highlights: [
+      'Neu bei Rezepten: Mealprep. Skaliert ein Rezept auf eine gewünschte Menge (z.B. „6 Portionen") — mit kulinarischem Sachverstand statt reinem Dreisatz, angepasster Garzeit und Lagerungshinweis. Als eigene Version gespeichert, das Original-Rezept bleibt unverändert.',
+    ],
+  },
+  {
+    version: '1.15.0',
+    date: '2026-08-30',
+    highlights: [
+      'Neu beim Anlegen einer Mahlzeit: Barcode scannen. Ein erkanntes Produkt wird direkt bei Open Food Facts nachgeschlagen und füllt Beschreibung sowie Nährwerte (pro 100g) automatisch aus.',
+    ],
+  },
+  {
+    version: '1.14.8',
+    date: '2026-08-30',
+    highlights: [
+      'Neu: erwähnst du beim Speichern einer Mahlzeit ein Supplement aus dem Katalog (z.B. „...dazu noch Kreatin genommen"), schlägt die App vor, es für heute als eingenommen zu markieren — auf Wunsch mit einem Tap, nichts wird automatisch hinzugefügt oder abgehakt.',
+    ],
+  },
+  {
+    version: '1.14.7',
+    date: '2026-08-30',
+    highlights: [
+      'Neu im Statistik-Diagramm: eine Ziel-Kalorien-Linie. Änderst du dein Tagesziel, gilt der neue Wert nur für neue Tage — bereits vergangene Tage behalten ihren damaligen Wert dauerhaft (Erklärung über das „i" neben der Linie).',
+    ],
+  },
+  {
+    version: '1.14.6',
+    date: '2026-08-30',
+    highlights: [
+      'Nährwertringe rund 30% dicker.',
+      'Farbverlauf-Fehler behoben: bei niedrigem Füllstand zeigte der Ring zwei sichtbar unterschiedlich gefärbte, überlappende Segmente statt eines glatten Verlaufs.',
+    ],
+  },
+  {
+    version: '1.14.5',
+    date: '2026-08-30',
+    highlights: [
+      'PDF-Export umgezogen: nicht mehr auf der Statistik-Seite, sondern unter Einstellungen → Daten — dort jetzt mit eigener Zeitraum-Auswahl (Tag/Woche/Monat/Jahr).',
+      'Der Supplementscore auf der Statistik-Seite führt jetzt direkt zu den Supplements (Heute-Ansicht), statt nur eine Zahl anzuzeigen.',
+    ],
+  },
+  {
+    version: '1.14.4',
+    date: '2026-08-30',
+    highlights: [
+      'Diktieren: keine abgeschnittenen Sätze mehr bei kurzen Sprechpausen, Live-Vorschau während des Sprechens, spürbar schneller durch weniger Neustarts.',
+      'Supplement-Empfehlungen: der automatische Hintergrund-Refresh und der manuelle „Jetzt neu erstellen"-Button schlugen fehl, sobald das zuletzt gewählte Modell nicht mehr verfügbar war — beide wechseln jetzt zuverlässig auf ein funktionierendes Modell.',
+      'Der Hintergrund-Refresh prüft jetzt auch beim Zurückkehren zur App auf einen neuen Tag, nicht nur beim Start — wichtig, wenn die App als installiertes PWA über Mitternacht hinweg offen bleibt.',
+    ],
+  },
+  {
+    version: '1.14.3',
+    date: '2026-08-30',
+    highlights: [
+      'Liquid Glass ist jetzt echtes 3-D-Glas statt gemalter Verläufe: Datumsleisten, Kacheln und Karten auf Feed, Statistik, Supplements, Rezepte und Einstellungen brechen den Hintergrund wirklich, mit Lichtreflex und Farbsaum.',
+      'Fällt automatisch auf das bisherige Material zurück, wenn das Gerät kein WebGL kann oder „Transparenz reduzieren" aktiv ist — unverändert erkennbar als dieselbe Optik.',
+      'Bedienleiste und alle Formulare/Sheets bleiben bewusst unverändert.',
+    ],
+  },
+  {
     version: '1.14.2',
     date: '2026-08-27',
     highlights: [

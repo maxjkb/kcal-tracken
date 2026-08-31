@@ -97,6 +97,15 @@ function RingVisual({
   const sweep = (Math.min(percent, MAX_PERCENT) / 100) * 360
   const overlapping = sweep > 360
 
+  // The tip is redrawn as one short arc so its shadow is a clean crescent
+  // rather than the sum of a dozen overlapping per-segment shadows.
+  const tipSpan = Math.min(16, sweep)
+  // Only the part of the sweep the tip does NOT already paint over needs its
+  // own gradient segments underneath — drawing them for the full sweep and
+  // then covering the last tipSpan degrees was pure waste, and at a low
+  // percent it was actively wrong (see the segments comment below).
+  const preTipSweep = sweep - tipSpan
+
   // The round caps are what blend the steps together, so the segment size
   // that still looks smooth depends on how far a cap reaches around this
   // particular ring — much further on the tiny inner rings of the compact
@@ -104,19 +113,34 @@ function RingVisual({
   // smooth without emitting hundreds of needless paths on the small ones.
   const degreesPerCap = (strokeWidth / 2 / r) * (180 / Math.PI)
   const step = Math.max(3, Math.min(24, degreesPerCap * 0.85))
-  const count = Math.max(2, Math.min(150, Math.ceil(sweep / step)))
-  const segments = Array.from({ length: count }, (_, i) => {
-    const t = i / (count - 1)
-    return {
-      from: (i * sweep) / count,
-      to: ((i + 1) * sweep) / count,
-      stroke: shade(color, GRADIENT_START + (GRADIENT_END - GRADIENT_START) * t),
-    }
-  })
-
-  // The tip is redrawn as one short arc so its shadow is a clean crescent
-  // rather than the sum of a dozen overlapping per-segment shadows.
-  const tipSpan = Math.min(16, sweep)
+  // Parameterized 0..1 across preTipSweep, not the full sweep: the gradient
+  // must always *reach* GRADIENT_END exactly where the tip begins, whatever
+  // the total fill. Spreading it across the full sweep instead meant that on
+  // a short arc the tip ate most of the sweep, so the background gradient
+  // never got past its own dark early values before the tip cut it off — a
+  // dark, round-capped segment sitting directly against the tip's separate,
+  // much brighter round-capped arc. Two different colors, each with its own
+  // bulging cap, right next to each other read as two overlapping blobs
+  // rather than one smooth highlight — worst at low fill, where the tip
+  // (a fixed ~16°) is a large share of a short sweep, invisible at high
+  // fill, where the background gradient had room to approach GRADIENT_END
+  // on its own well before reaching the tip. Ending the gradient exactly on
+  // the tip's own color turns that boundary into a same-color overlap —
+  // invisible — at every fill level instead of only the generously long ones.
+  const segments =
+    preTipSweep > 0
+      ? (() => {
+          const count = Math.max(2, Math.min(150, Math.ceil(preTipSweep / step)))
+          return Array.from({ length: count }, (_, i) => {
+            const t = i / (count - 1)
+            return {
+              from: (i * preTipSweep) / count,
+              to: ((i + 1) * preTipSweep) / count,
+              stroke: shade(color, GRADIENT_START + (GRADIENT_END - GRADIENT_START) * t),
+            }
+          })
+        })()
+      : []
 
   return (
     <>
@@ -134,7 +158,7 @@ function RingVisual({
         />
       ))}
       <path
-        d={describeArc(cx, cy, r, sweep - tipSpan, sweep)}
+        d={describeArc(cx, cy, r, preTipSweep, sweep)}
         fill="none"
         stroke={shade(color, GRADIENT_END)}
         strokeWidth={strokeWidth}
@@ -174,7 +198,10 @@ function Ring({
   const r = 34
   const cx = size / 2
   const cy = size / 2
-  const strokeWidth = 10
+  // 10 -> 13 (+30%, per explicit request) — r stays put, there's plenty of
+  // room: the hole this leaves is still ~55px across, several times the
+  // 20px icon sitting in it.
+  const strokeWidth = 13
   const color = RING_COLORS[type]
   const closed = perMealValue !== undefined
   const displayValue = perMealValue ?? value
@@ -271,7 +298,20 @@ export function ConcentricRings({
   targets: { kcal: number; protein: number; carbs: number; fat: number } | null
   size?: 'default' | 'compact'
 }) {
-  const dims = size === 'compact' ? { box: 60, strokeWidth: 6, gap: 1.5 } : { box: 128, strokeWidth: 13, gap: 3 }
+  // "compact" thickened too (6 -> 7), but not the full +30% the single
+  // rings got: four rings nest inside one fixed 60px box here, so the
+  // innermost (fat) ring's radius is already down to a few px before any
+  // change — outerR - 3 * (strokeWidth + gap). Going further shrinks that
+  // straight through zero and the ring vanishes or, past that, `r` goes
+  // negative and React throws rendering the <circle>. 7/1.2 is the most
+  // this box has room for while keeping all four rings visibly open circles.
+  // "default" is deliberately untouched: it's only ever used by
+  // BackgroundRings' decorative, blurred app-icon-style backdrop, and its
+  // exact radii (r = 57.5/41.5/25.5/9.5 at strokeWidth 13) are hand-copied
+  // into appGlassShader.ts's scene() to keep the WebGL glass layer's
+  // refraction in sync — changing them here without updating that shader
+  // would desync what the glass bends from what's actually behind it.
+  const dims = size === 'compact' ? { box: 60, strokeWidth: 7, gap: 1.2 } : { box: 128, strokeWidth: 13, gap: 3 }
   const cx = dims.box / 2
   const cy = dims.box / 2
   const outerR = dims.box / 2 - dims.strokeWidth / 2
@@ -326,7 +366,7 @@ export function MiniNutrientRings({
   const r = 22
   const cx = size / 2
   const cy = size / 2
-  const strokeWidth = 6
+  const strokeWidth = 8 // 6 -> 8 (+30%), same reasoning as the main Ring above
 
   return (
     <div className="flex flex-wrap gap-2">

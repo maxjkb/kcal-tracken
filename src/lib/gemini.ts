@@ -215,7 +215,16 @@ const DICTATION_CLEANUP_SCHEMA = {
   required: ['cleanedText'],
 }
 
-const DICTATION_CLEANUP_SYSTEM_PROMPT = `Der Nutzer hat per Spracherkennung eine Mahlzeit beschrieben. Das Rohtranskript kann Wiederholungen, Versprecher, Füllwörter oder Erkennungsfehler enthalten. Formuliere daraus einen klaren, kurzen, gut lesbaren Beschreibungstext auf Deutsch, der weiterhin exakt dieselben Zutaten und Mengenangaben enthält wie das Original. Erfinde nichts hinzu, entferne nichts Inhaltliches, korrigiere nur Sprache/Wiederholungen. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema.`
+const DICTATION_CLEANUP_SYSTEM_PROMPT = `Der Nutzer hat per Spracherkennung eine Mahlzeit beschrieben. Das Rohtranskript kann Wiederholungen, Versprecher, Füllwörter, abgebrochene Sätze (durch Sprechpausen bedingt) und vor allem Erkennungsfehler der Spracherkennung enthalten — Lebensmittel- und Mengenwörter werden von Spracherkennungs-Engines besonders häufig falsch verstanden (z. B. "Hafer Flocken" statt "Haferflocken", "200 g Reis" als "200 Kreis" erkannt, "Kichererbsen" als "Kirchererbsen", "Skyr" als "Schneier" oder "Sky Er").
+
+Formuliere daraus einen klaren, kurzen, gut lesbaren Beschreibungstext auf Deutsch:
+1. Korrigiere erkennbare Erkennungsfehler bei Lebensmitteln, Mengen und Einheiten aktiv, wenn aus dem Kontext eindeutig hervorgeht, was gemeint war — hier darfst und sollst du eingreifen, das ist der Hauptzweck dieser Bereinigung.
+2. Füge KEINE Zutaten, Mengen oder Angaben hinzu, die im Transkript nicht in irgendeiner (auch fehlerhaften) Form vorkommen — korrigieren ja, erfinden nein.
+3. Entferne Wiederholungen und Füllwörter ("äh", "also", "quasi").
+4. Ist ein Satzteil erkennbar abgebrochen und ergibt für sich keinen Sinn (z. B. eine unvollständige Mengenangabe ohne zugehörige Zutat), lass ihn lieber weg als ihn zu erraten.
+5. Bei tatsächlicher Unsicherheit (nicht bei offensichtlichen Erkennungsfehlern) im Zweifel näher am Original bleiben.
+
+Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema.`
 
 interface GeminiPart {
   text?: string
@@ -263,6 +272,15 @@ function isDailyQuotaError(err: GeminiError): boolean {
   return /per ?day|daily|\/d\b/.test(detail)
 }
 
+/**
+ * A failure that would answer identically no matter which model it's sent
+ * to — trying the other two would just spend two more round trips to learn
+ * the same thing, so this is the one case worth failing on immediately.
+ */
+function isKeyError(err: unknown): boolean {
+  return err instanceof GeminiError && (err.status === 401 || err.status === 403)
+}
+
 async function callGemini(params: {
   systemPrompt: string
   parts: GeminiPart[]
@@ -270,7 +288,7 @@ async function callGemini(params: {
 }): Promise<Record<string, unknown>> {
   const preferred = getModel()
   const order = modelOrder(preferred)
-  let firstRateLimitError: unknown = null
+  let firstError: unknown = null
 
   for (const model of order) {
     try {
@@ -278,24 +296,39 @@ async function callGemini(params: {
       recordUsage(`gemini:${model}`)
       return result
     } catch (err) {
-      const isRateLimited = err instanceof GeminiError && err.status === 429
-      if (!isRateLimited) throw err
-      // The request still reached the API and still counted against the day.
-      recordUsage(`gemini:${model}`)
-      // Only a *daily* exhaustion retires a model. A 429 is also how a
-      // per-minute burst limit answers — a few estimates in quick succession —
-      // and treating that as a spent day demoted the user's chosen model until
-      // midnight Pacific over a limit that cleared in seconds, with no way to
-      // undo it. The other models are still tried either way; only the
-      // remembering is conditional.
-      if (isDailyQuotaError(err)) markExhausted(model)
-      firstRateLimitError ??= err
+      firstError ??= err
+      // A bad/unauthorized key fails the same way for every model — nothing
+      // to gain from trying the rest.
+      if (isKeyError(err)) throw err
+
+      // Everything else falls through to the next model instead of failing
+      // the whole request outright. This used to only happen for a 429 —
+      // but a model that's since been renamed or retired answers 404, a
+      // transient outage answers 5xx, and a dropped connection throws with
+      // no status at all, and none of those say anything about whether the
+      // *other* two models would work. A preferred model stored in
+      // localStorage from before an app update, in particular, can 404
+      // forever otherwise: previously that single stale id took the whole
+      // feature down every single time, both for the manual retry button
+      // and for the silent background refresh, even though the two
+      // fallback models were perfectly healthy the whole time.
+      if (err instanceof GeminiError && err.status === 429) {
+        // The request still reached the API and still counted against the day.
+        recordUsage(`gemini:${model}`)
+        // Only a *daily* exhaustion retires a model. A 429 is also how a
+        // per-minute burst limit answers — a few estimates in quick succession —
+        // and treating that as a spent day demoted the user's chosen model until
+        // midnight Pacific over a limit that cleared in seconds, with no way to
+        // undo it. The other models are still tried either way; only the
+        // remembering is conditional.
+        if (isDailyQuotaError(err)) markExhausted(model)
+      }
     }
   }
 
-  // Every model is spent. The first error is the most relevant one: it names
-  // the model the user actually chose.
-  throw firstRateLimitError
+  // Every model failed. The first error is the most relevant one: it names
+  // what happened with the model the user actually chose.
+  throw firstError
 }
 
 async function callGeminiRaw(
@@ -535,6 +568,112 @@ export async function estimateRecipe(description: string): Promise<RecipeEstimat
     ...totals,
     micronutrients: parseMicronutrients(parsed.micronutrients),
     note: parsed.note ? String(parsed.note) : undefined,
+  }
+}
+
+// --- Mealprep — ein Rezept auf eine andere Menge skalieren ------------
+
+export interface MealprepEstimate {
+  ingredients: IngredientEstimate[]
+  steps: string[]
+  kcal: number
+  protein: number
+  carbs: number
+  fat: number
+  cookTimeNote: string
+  storageNote: string
+}
+
+const MEALPREP_RESPONSE_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    ingredients: NUTRITION_RESPONSE_SCHEMA.properties.ingredients,
+    steps: {
+      type: 'ARRAY',
+      description:
+        'Zubereitungsschritte für die NEUE Menge, in sinnvoller chronologischer Reihenfolge — nicht einfach dieselben Schritte des Original-Rezepts, sondern neu formuliert für die tatsächliche Menge und ggf. nötige Anpassungen (z.B. mehrere Durchgänge, größeres Gefäß, angepasste Reihenfolge beim Portionieren zum Aufbewahren). Jeder Schritt ein eigener, kurzer, klarer Satz auf Deutsch.',
+      items: { type: 'STRING' },
+    },
+    cookTimeNote: {
+      type: 'STRING',
+      description:
+        'Wie sich Koch-/Back-/Gardauer durch die neue Menge verändert, konkret in Worten (z.B. "Statt 15 Minuten eher 22–25 Minuten, da die größere Menge länger durcherhitzt." oder "Garzeit bleibt gleich, nur die Anbratzeit verlängert sich leicht."). Bei Verwendung eines Multikochers mit festem Fassungsvermögen (z.B. Thermomix, ca. 2,2 l/kg Maximalfüllung): weise ausdrücklich darauf hin, wenn die neue Menge das übersteigt und in mehreren Chargen zubereitet werden muss.',
+    },
+    storageNote: {
+      type: 'STRING',
+      description:
+        'Konkrete Lagerungsempfehlung für die fertige Menge: wie viele Tage im Kühlschrank, ob und wie lange einfrierbar, kurzer Hinweis zum Aufwärmen. Auf Deutsch, 1-3 Sätze.',
+    },
+  },
+  required: ['ingredients', 'steps', 'cookTimeNote', 'storageNote'],
+}
+
+const MEALPREP_SYSTEM_PROMPT = `Du bist ein erfahrener Koch, der Rezepte für Meal Prep (Vorkochen auf Vorrat) auf eine andere Menge skaliert. Du bekommst ein gespeichertes Original-Rezept (Zutaten mit Mengen und Nährwerten, Zubereitungsschritte) sowie eine Beschreibung der gewünschten neuen Menge (z.B. "6 Portionen", "doppelte Menge", "für die ganze Woche").
+
+WICHTIGSTE REGEL — kein reiner Dreisatz: Skaliere NICHT jede Zutat stur mit demselben Faktor. Nutze kulinarischen Sachverstand:
+- Gewürze, Salz, Kräuter und intensive Aromen (Chili, Knoblauch, Ingwer) wachsen unterproportional — bei doppelter Hauptmenge meist nur das 1,3- bis 1,6-fache, nicht das Doppelte. Weise in der jeweiligen Zutat-"note" auf "nach Geschmack nachjustieren" hin, wo das relevant ist.
+- Öl/Fett zum Anbraten richtet sich eher nach der Pfannen-/Topffläche als nach der Menge und wächst daher meist unterproportional.
+- Flüssigkeitsmengen bei Suppen, Saucen und Schmorgerichten an die tatsächlich benötigte Konsistenz anpassen, nicht stur linear hochrechnen.
+- Backpulver, Hefe und andere Triebmittel bei starker Skalierung mit besonderer Vorsicht behandeln — hier kann reine Vervielfachung das Ergebnis verändern.
+- Zutaten, die sich nicht sinnvoll teilweise verwenden lassen (z.B. 1 Ei, 1 Dose), auf eine praktikable ganze Menge runden und das in der "note" der Zutat erklären.
+
+Passe die Zubereitungsschritte an die neue Menge an, nicht nur die Zahlen im selben Text: ein größeres Gefäß, eine andere Reihenfolge, oder — besonders bei einem Multikocher mit festem Kapazitätslimit — ausdrücklich mehrere Zubereitungsdurchgänge, wenn die neue Menge das Fassungsvermögen übersteigt.
+
+Berechne für JEDE Zutat die Nährwerte für die NEUE Menge (nicht für die Original-Menge). "amount" ist die neue, tatsächlich benötigte Menge als reine Zahl. Gib in "cookTimeNote" konkret an, wie sich die Zeiten verändern, und in "storageNote" eine klare Lagerungsempfehlung für die fertige Menge. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema, auf Deutsch.`
+
+export async function estimateMealprep(input: {
+  recipeTitle: string
+  originalIngredients: { name: string; amount: number; unit: string; kcal: number; protein: number; carbs: number; fat: number }[]
+  originalSteps: string[]
+  targetDescription: string
+}): Promise<MealprepEstimate> {
+  const lines = [
+    `Original-Rezept: ${input.recipeTitle}`,
+    'Original-Zutaten (Menge für die Original-Portion):',
+    ...input.originalIngredients.map((i) => `- ${i.name}: ${i.amount} ${i.unit} (${Math.round(i.kcal)} kcal, ${Math.round(i.protein)}g Protein, ${Math.round(i.carbs)}g Carbs, ${Math.round(i.fat)}g Fett)`),
+    'Original-Zubereitung:',
+    ...input.originalSteps.map((s, i) => `${i + 1}. ${s}`),
+    '',
+    `Gewünschte neue Menge: ${input.targetDescription.trim()}`,
+  ]
+
+  const parsed = await callGemini({
+    systemPrompt: MEALPREP_SYSTEM_PROMPT,
+    parts: [{ text: lines.join('\n') }],
+    responseSchema: MEALPREP_RESPONSE_SCHEMA,
+  })
+
+  const rawIngredients = Array.isArray(parsed.ingredients) ? parsed.ingredients : []
+  const ingredients: IngredientEstimate[] = rawIngredients.map((i) => ({
+    name: String(i.name ?? 'Zutat'),
+    amount: round1(Number(i.amount) || 0),
+    unit: String(i.unit ?? ''),
+    kcal: round1(Number(i.kcal) || 0),
+    protein: round1(Number(i.protein) || 0),
+    carbs: round1(Number(i.carbs) || 0),
+    fat: round1(Number(i.fat) || 0),
+    note: i.note ? String(i.note) : undefined,
+  }))
+
+  const totals = ingredients.reduce(
+    (acc, i) => ({
+      kcal: round1(acc.kcal + i.kcal),
+      protein: round1(acc.protein + i.protein),
+      carbs: round1(acc.carbs + i.carbs),
+      fat: round1(acc.fat + i.fat),
+    }),
+    { kcal: 0, protein: 0, carbs: 0, fat: 0 },
+  )
+
+  const rawSteps = Array.isArray(parsed.steps) ? parsed.steps : []
+  const steps = rawSteps.map((s) => String(s)).filter((s) => s.trim().length > 0)
+
+  return {
+    ingredients,
+    steps,
+    ...totals,
+    cookTimeNote: String(parsed.cookTimeNote ?? ''),
+    storageNote: String(parsed.storageNote ?? ''),
   }
 }
 
@@ -809,14 +948,18 @@ export interface RecipeSuggestion {
   /** Short, concrete ingredients/preparation text — usable as-is as the recipe editor's input, ready for "Rezept schätzen". */
   description: string
   reasoning: string
+  /** 'familiar' builds on ingredients/style the user already eats often; 'new' is a deliberately unfamiliar idea to try — see the system prompt's mixing instruction. */
+  novelty: 'familiar' | 'new'
 }
+
+const NOVELTY_ENUM = ['familiar', 'new'] as const
 
 const RECIPE_SUGGESTION_SCHEMA = {
   type: 'OBJECT',
   properties: {
     suggestions: {
       type: 'ARRAY',
-      description: '2 bis 4 konkrete, unterschiedliche Rezept-Ideen, die zu den bisherigen Essgewohnheiten des Nutzers passen.',
+      description: '2 bis 4 konkrete, unterschiedliche Rezept-Ideen — siehe Systemanweisung für die geforderte Mischung aus vertraut und neu.',
       items: {
         type: 'OBJECT',
         properties: {
@@ -833,33 +976,70 @@ const RECIPE_SUGGESTION_SCHEMA = {
           },
           reasoning: {
             type: 'STRING',
-            description: 'Kurze Begründung auf Deutsch (1-2 Sätze), warum dieses Rezept zu den bisherigen Essgewohnheiten des Nutzers passt.',
+            description:
+              'Kurze Begründung auf Deutsch (1-2 Sätze) — bei novelty="familiar" der Bezug zu den gewohnten Zutaten/Essgewohnheiten, bei novelty="new" was daran bewusst neu/anders ist und warum es trotzdem passt (z.B. zu den offenen Tageszielen).',
+          },
+          novelty: {
+            type: 'STRING',
+            enum: NOVELTY_ENUM,
+            description: '"familiar" = baut auf oft gegessenen Zutaten/dem gewohnten Küchenstil auf. "new" = bewusst eine unvertraute Idee, die NICHT am bisherigen Muster festhält.',
           },
         },
-        required: ['title', 'category', 'description', 'reasoning'],
+        required: ['title', 'category', 'description', 'reasoning', 'novelty'],
       },
     },
   },
   required: ['suggestions'],
 }
 
-const RECIPE_SUGGESTION_SYSTEM_PROMPT = `Du bist ein Ernährungsassistent, der Rezept-Ideen vorschlägt. Du bekommst eine Liste der zuletzt vom Nutzer geloggten Mahlzeiten (Kategorie/Titel) sowie die Titel bereits gespeicherter Rezepte. Schlage 2 bis 4 konkrete Rezept-Ideen vor, die zu den erkennbaren Essgewohnheiten des Nutzers passen (wiederkehrende Zutaten, Küchenstil, übliche Mahlzeitengröße) — keine bloße Wiederholung einer bereits geloggten Mahlzeit, sondern sinnvolle, leicht abgewandelte oder ergänzende Ideen im selben Stil. Schlage keine Rezepte vor, deren Titel bereits gespeicherten Rezepten sehr ähnlich sind. Die "description" muss eine kurze, konkrete Zutaten-/Zubereitungsbeschreibung sein, die sich direkt automatisch schätzen lässt, ähnlich wie ein Nutzer sie selbst eintippen würde — keine vage Umschreibung. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema, auf Deutsch.`
+const RECIPE_SUGGESTION_SYSTEM_PROMPT = `Du bist ein Ernährungsassistent, der Rezept-Ideen vorschlägt. Du bekommst: die aktuelle Tageszeit-Kategorie, die noch offenen Tagesziele (Rest-Kalorien/-Makros bis zum Tagesziel, falls Körperwerte hinterlegt sind), eine Liste häufig verwendeter Zutaten aus der Koch-/Ess-Historie, die zuletzt geloggten Mahlzeiten sowie die Titel bereits gespeicherter Rezepte.
+
+Tageszeit: die meisten Vorschläge sollen zur genannten Kategorie passen (z.B. abends keine Frühstücksideen), da der Nutzer JETZT zu dieser Tageszeit ein Rezept sucht.
+
+Offene Tagesziele: sind sie angegeben, richte die Rezepte darauf aus, was NOCH gebraucht wird — ist z.B. der Proteinbedarf für heute noch weit offen, aber Kohlenhydrate schon fast ausgeschöpft, bevorzuge proteinreiche, kohlenhydratärmere Ideen. Ist kein Tagesziel angegeben, ignoriere diesen Punkt.
+
+WICHTIGSTE REGEL — bewusste Mischung: Von den vorgeschlagenen Rezepten muss MINDESTENS EINES novelty="new" sein — eine Idee, die bewusst NICHT einfach die häufigen Zutaten oder den gewohnten Küchenstil wiederholt, sondern etwas, das der Nutzer erkennbar noch nicht ausprobiert hat, aber dennoch zu den offenen Tageszielen bzw. zur Tageszeit passt. Die übrigen sind novelty="familiar": sie dürfen auf den häufigen Zutaten und dem gewohnten Stil aufbauen — keine bloße Wiederholung einer bereits geloggten Mahlzeit, sondern eine sinnvolle, leicht abgewandelte oder ergänzende Idee im selben Stil.
+
+Schlage keine Rezepte vor, deren Titel bereits gespeicherten Rezepten sehr ähnlich sind. Die "description" muss eine kurze, konkrete Zutaten-/Zubereitungsbeschreibung sein, die sich direkt automatisch schätzen lässt, ähnlich wie ein Nutzer sie selbst eintippen würde — keine vage Umschreibung. Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema, auf Deutsch.`
 
 /**
- * Generates 2–4 recipe ideas grounded in the user's recently logged meals,
- * refreshed only on explicit user request (same reasoning as the supplement
- * suggestions above: respects the free API quota, and a list that reshuffles
- * itself on its own would read as noise, not a considered recommendation).
- * Each suggestion's `description` is meant to be dropped straight into the
- * recipe editor's input step so the user's existing, trusted "Rezept
- * schätzen" flow produces the structured ingredients/steps — this call only
- * proposes the idea, it never invents nutrition numbers itself.
+ * Generates 2–4 recipe ideas, refreshed only on explicit user request (same
+ * reasoning as the supplement suggestions above: respects the free API
+ * quota, and a list that reshuffles itself on its own would read as noise,
+ * not a considered recommendation). Each suggestion's `description` is
+ * meant to be dropped straight into the recipe editor's input step so the
+ * user's existing, trusted "Rezept schätzen" flow produces the structured
+ * ingredients/steps — this call only proposes the idea, it never invents
+ * nutrition numbers itself.
+ *
+ * Grounded in three signals beyond the recent-meals/existing-recipes list
+ * this already had: the current meal-type/time-of-day slot (same cadence
+ * guessMealType() drives elsewhere — a suggestion pass run at 8pm should
+ * offer dinner ideas, not breakfast ones), today's still-open macro targets
+ * (so a suggestion can actually close today's gap instead of ignoring it),
+ * and ingredients that show up often across the user's own cooking history
+ * (see rankFrequentIngredients) — deliberately mixed with at least one
+ * suggestion that's NOT just more of the same, per the system prompt's
+ * explicit novelty requirement.
  */
 export async function estimateRecipeSuggestions(input: {
   recentMealSummaries: string[]
   existingRecipeTitles: string[]
+  currentSlotLabel: string
+  /** Computed daily targets, or null if no body profile is set yet. */
+  dailyTargets: { kcal: number; protein: number; carbs: number; fat: number } | null
+  /** What's already been eaten today, to reason about what's still open. */
+  consumedToday: { kcal: number; protein: number; carbs: number; fat: number }
+  frequentIngredients: string[]
 }): Promise<RecipeSuggestion[]> {
   const lines = [
+    `Aktuelle Tageszeit-Kategorie: ${input.currentSlotLabel}`,
+    input.dailyTargets
+      ? `Tagesziel: ${Math.round(input.dailyTargets.kcal)} kcal, ${Math.round(input.dailyTargets.protein)}g Protein, ${Math.round(input.dailyTargets.carbs)}g Carbs, ${Math.round(input.dailyTargets.fat)}g Fett. Bisher heute gegessen: ${Math.round(input.consumedToday.kcal)} kcal, ${Math.round(input.consumedToday.protein)}g Protein, ${Math.round(input.consumedToday.carbs)}g Carbs, ${Math.round(input.consumedToday.fat)}g Fett.`
+      : 'Kein Tagesziel hinterlegt (keine Körperwerte eingerichtet) — Tagesziele bei den Vorschlägen ignorieren.',
+    input.frequentIngredients.length > 0
+      ? `Häufig verwendete Zutaten aus der Historie: ${input.frequentIngredients.join(', ')}`
+      : 'Noch keine ausreichende Zutaten-Historie vorhanden.',
     input.recentMealSummaries.length > 0
       ? `Zuletzt geloggte Mahlzeiten:\n${input.recentMealSummaries.map((s) => `- ${s}`).join('\n')}`
       : 'Der Nutzer hat noch keine Mahlzeiten geloggt.',
@@ -880,6 +1060,7 @@ export async function estimateRecipeSuggestions(input: {
     category: MEAL_TYPE_ENUM.includes(s.category) ? s.category : 'lunch',
     description: String(s.description ?? ''),
     reasoning: String(s.reasoning ?? ''),
+    novelty: NOVELTY_ENUM.includes(s.novelty) ? s.novelty : 'familiar',
   }))
 }
 

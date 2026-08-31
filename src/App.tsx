@@ -21,6 +21,9 @@ import { MealEditor } from './components/MealEditor'
 import { lazyRetry } from './lib/lazyRetry'
 import { toLocalDateKey } from './lib/db'
 import { guessMealType } from './lib/mealTypeGuess'
+import { GlassStage } from './glass/GlassStage'
+import { useLightSource } from './glass/useLightSource'
+import { wakeGlass } from './glass/glassSurfaces'
 
 const RecipeCategoryPage = lazy(
   lazyRetry(() => import('./pages/RecipeCategoryPage').then((m) => ({ default: m.RecipeCategoryPage }))),
@@ -30,13 +33,13 @@ const RecipeDetailPage = lazy(
 )
 
 /**
- * Der Glas-Baukasten (src/lab/). Bewusst lazy und ohne Eintrag in der
- * Navigation: die Seite ist ein Labor zum Ausprobieren, kein Teil der App.
- * So landet weder ihr Code noch der WebGL-Shader im Haupt-Bundle.
+ * Der Glas-Baukasten (src/lab/) — der reine Material-Vergleich (CSS/SVG/
+ * WebGL nebeneinander), nicht die App selbst. Bewusst lazy und ohne Eintrag
+ * in der Navigation: eine Seite zum Ausprobieren, kein Teil der App. Die
+ * Bausteine, die die App tatsächlich verwendet (src/glass/), sind davon
+ * unabhängig und liegen NICHT unter src/lab/.
  */
 const GlassLab = lazy(lazyRetry(() => import('./lab/GlassLab').then((m) => ({ default: m.GlassLab }))))
-
-const AppGlassLab = lazy(lazyRetry(() => import('./lab/AppGlassLab').then((m) => ({ default: m.AppGlassLab }))))
 
 const recipesFallback = <p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>
 
@@ -77,6 +80,7 @@ export default function App() {
   const [addingMeal, setAddingMeal] = useState(false)
   const location = useLocation()
   const section = sectionForPath(location.pathname)
+  const { lightRef } = useLightSource()
 
   // Set on <body> rather than a wrapping element: Sheets (MealEditor, RecipeEditor, the date
   // pickers, …) portal straight to document.body, outside this component's own DOM subtree, so a
@@ -93,6 +97,21 @@ export default function App() {
     }
   }, [section])
 
+  // Wakes the WebGL glass layer on every route change, not just a change of
+  // section. Two separate page-transition components move glass surfaces via
+  // a Motion transform without any pointer event GlassStage's own wake
+  // sources (pointermove/scroll/resize) would hear: SwipeNavigator settles
+  // the whole page on a tab tap (a section change, but also a plain link, the
+  // back button…), and SlideInPage slides a Rezepte drill-down in from the
+  // right on mount — which doesn't change section (Kategorie → Rezept stays
+  // "recipes" throughout) but still carries every RecipeCard on the page
+  // along with it. Keying on location.pathname rather than section catches
+  // both, and any future page-transition component along with them, without
+  // this needing to know which component is doing the animating.
+  useLayoutEffect(() => {
+    wakeGlass()
+  }, [location.pathname])
+
   return (
     <AddMealContext.Provider value={() => setAddingMeal(true)}>
       <SwipeProgressProvider>
@@ -105,6 +124,16 @@ export default function App() {
           problem, it's always the bottom-most layer. */}
       <BackgroundRings />
       {section && <TopGradient />}
+      {/* The WebGL glass layer for every flow-positioned card/tile/segmented
+          control across the app (marked with the `gl-surface` class — see
+          each page). Rendered once, app-wide, rather than per-page: one
+          canvas is cheaper than several, and a single shared light source
+          keeps every surface's highlight consistent while navigating.
+          `enabled` is unconditionally true — GlassStage itself decides
+          whether WebGL actually renders (falling back to the untouched CSS
+          material on missing WebGL2, context loss, or "reduce
+          transparency"), so nothing here needs its own fallback logic. */}
+      <GlassStage lightRef={lightRef} enabled />
       <div className="min-h-screen">
         <SwipeNavigator>
           <Routes>
@@ -122,14 +151,6 @@ export default function App() {
               element={
                 <Suspense fallback={<p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>}>
                   <GlassLab />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/lab/app"
-              element={
-                <Suspense fallback={<p className="pt-10 text-center text-sm text-ink-soft">Lädt…</p>}>
-                  <AppGlassLab />
                 </Suspense>
               }
             />

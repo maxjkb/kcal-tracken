@@ -12,6 +12,7 @@ import { toggleSupplementCheck } from '../hooks/useSupplements'
 import { computeSlotState } from '../lib/supplementTiming'
 import { useNow } from '../hooks/useNow'
 import { REDUCED_MOTION_TRANSITION, SPRING_DEFAULT, SPRING_SNAPPY } from '../lib/motionTokens'
+import { GlassSurface } from '../glass/GlassSurface'
 
 /**
  * One supplement's row of time-of-day slots for a given day. Only the
@@ -47,7 +48,7 @@ export function SupplementChecklistRow({
   const orderedTimes = SUPPLEMENT_TIME_ORDER.filter((t) => mySupplement.timesOfDay.includes(t))
 
   return (
-    <div className="glass-subtle glass-subtle-themed flex items-center justify-between gap-3 rounded-2xl px-4 py-3">
+    <GlassSurface rim={18} className="glass-subtle glass-subtle-themed flex items-center justify-between gap-3 rounded-2xl px-4 py-3">
       <button type="button" onClick={onEdit} className="min-w-0 flex-1 text-left">
         <p className="truncate text-sm font-medium text-ink">{supplement?.name ?? 'Supplement'}</p>
         {mySupplement.dosage && <p className="truncate text-xs text-ink-soft">{mySupplement.dosage}</p>}
@@ -65,7 +66,7 @@ export function SupplementChecklistRow({
           />
         ))}
       </div>
-    </div>
+    </GlassSurface>
   )
 }
 

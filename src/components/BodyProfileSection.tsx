@@ -14,6 +14,7 @@ import {
   type Goal,
   type Sex,
 } from '../lib/bodyProfile'
+import { recordTodaysTargetSnapshot } from '../lib/targetHistory'
 
 const ACTIVITY_LEVELS: ActivityLevel[] = ['sedentary', 'light', 'moderate', 'active', 'very_active']
 const GOALS: Goal[] = ['lose', 'maintain', 'gain', 'build_muscle']
@@ -53,6 +54,11 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
 
   function handleSave() {
     setBodyProfile(profile)
+    // Only actually writes anything the first time today has no frozen
+    // target yet (a brand-new profile, or the first save of a fresh day) —
+    // see recordTodaysTargetSnapshot. A same-day edit after that leaves
+    // today's already-frozen value alone, same as any other day.
+    void recordTodaysTargetSnapshot()
     setEnabled(true)
     onSaved()
   }

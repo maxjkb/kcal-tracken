@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { GLASS_VERT } from '../glassShader'
+import { GLASS_VERT } from './glassShader'
 import { APP_GLASS_FRAG } from './appGlassShader'
-import { GLASS_PRESETS } from '../glassPhysics'
+import { GLASS_PRESETS } from './glassPhysics'
 import { readSurfaces, setWakeHandler } from './glassSurfaces'
-import type { LightState } from '../useLightSource'
+import type { LightState } from './useLightSource'
 
 /**
  * Die WebGL-Glasebene für die App.
