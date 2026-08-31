@@ -6,6 +6,7 @@ import {
   type MySupplement,
   type Supplement,
   type SupplementCategory,
+  type SupplementRecommendation,
   type SupplementTimeOfDay,
 } from '../lib/db'
 import { SUPPLEMENT_CATEGORY_ORDER } from '../lib/supplementSeed'
@@ -25,6 +26,7 @@ import { useDraftAutosave, useRestoredDraft } from '../hooks/useFormDraft'
 import { draftKey } from '../lib/drafts'
 import { DraftRestoredBanner } from './DraftRestoredBanner'
 import { BouncingDots } from './BouncingDots'
+import { SupplementChatSheet } from './SupplementChatSheet'
 
 /**
  * One form, three uses:
@@ -119,6 +121,27 @@ function SupplementFormContent({
   const [suggestingTime, setSuggestingTime] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
+
+  // Only when opened from the catalog (a real Supplement, not yet on the
+  // list, not the custom-entry form either) — "nur 'KI Chat'-Button ...
+  // ergänzen, Rest unangetastet" was specifically about that one flow, not
+  // the edit-existing-entry or add-custom ones. There's no personalized
+  // reasoning to seed the chat with here (that only exists for an AI-
+  // generated recommendation) — the catalog's own general description
+  // plays that role instead, same "what/why" job the opening message
+  // otherwise does.
+  const catalogChatSuggestion: SupplementRecommendation | null =
+    supplement && !editing
+      ? {
+          supplementName: supplement.name,
+          category: supplement.category,
+          suggestedDosage: supplement.typicalDosage,
+          suggestedTimesOfDay: baseline.timesOfDay,
+          reasoning: supplement.description,
+          kind: 'new',
+        }
+      : null
 
   const snapshot: SupplementDraft = { name, category, dosage, timesOfDay }
   const draft = useDraftAutosave(draftId, snapshot, !isSameSupplementDraft(snapshot, baseline))
@@ -208,10 +231,20 @@ function SupplementFormContent({
 
   return (
     <>
-      <div className="mb-4">
+      <div className="mb-4 flex items-start justify-between gap-3">
         <h2 className="text-lg font-semibold text-ink">
           {editing ? 'Supplement bearbeiten' : isCustomEntry ? 'Eigenes Supplement' : 'Zur Liste hinzufügen'}
         </h2>
+        {catalogChatSuggestion && (
+          <button
+            type="button"
+            onClick={() => setChatOpen(true)}
+            className="flex shrink-0 items-center gap-1 rounded-full bg-accent/12 px-3 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent/20"
+          >
+            <ChatIcon />
+            KI Chat
+          </button>
+        )}
       </div>
 
       {restoredNotice && <DraftRestoredBanner onDiscard={discardDraft} />}
@@ -316,6 +349,18 @@ function SupplementFormContent({
           </button>
         )}
       </div>
+
+      {chatOpen && catalogChatSuggestion && (
+        <SupplementChatSheet suggestion={catalogChatSuggestion} onClose={() => setChatOpen(false)} />
+      )}
     </>
+  )
+}
+
+function ChatIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+      <path d="M4 5h16v11H8l-4 4V5Z" />
+    </svg>
   )
 }
