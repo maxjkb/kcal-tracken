@@ -1,4 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { REDUCED_MOTION_TRANSITION, SPRING_SNAPPY } from '../lib/motionTokens'
 import {
   db,
   MEAL_TYPE_LABELS,
@@ -147,6 +149,7 @@ function MealEditorContent({
 }) {
   const requestClose = useSheetClose()
   const expandSheet = useSheetExpand()
+  const prefersReducedMotion = useReducedMotion()
 
   // The form's whole restorable state in one object, so the baseline (what the
   // sheet opened with) and the current values can be compared wholesale to
@@ -200,11 +203,6 @@ function MealEditorContent({
   // the real response actually lands — informative without claiming to
   // measure something that isn't actually observable here.
   const [estimateProgress, setEstimateProgress] = useState(0)
-  // Whether the description field currently needs more than its one starting
-  // line — drives where the dictation button lives (inside the field vs.
-  // under the send button). Measured by the field itself, since wrapping
-  // depends on its rendered width, not on the text alone.
-  const [descriptionWrapped, setDescriptionWrapped] = useState(false)
   // The collapsed pane is exactly as tall as the docked input row, measured
   // rather than hard-coded: the row grows when the description wraps, and a
   // fixed height clipped the top of the field off as soon as it did.
@@ -759,7 +757,15 @@ function MealEditorContent({
             <div ref={inputRowRef} data-sheet-peek className="shrink-0 bg-bg px-5 pb-4 pt-2">
                   <div className="flex items-start gap-2">
                     {/* `relative` so the dictation button can sit inside the
-                        field's own right edge while it is still one line. */}
+                        field's own right edge, however many lines it grows
+                        to — `bottom`-anchored, so it stays pinned to that
+                        corner rather than jumping out to make room once the
+                        field wraps. It used to move out to a second position
+                        under the send button at that point instead; now it
+                        just fades away once there's something to dictate
+                        onto, which is also the moment it would otherwise
+                        have started fighting the wrapped text for the same
+                        corner. */}
                     <div className="relative flex-1">
                       <AutoGrowTextarea
                         value={description}
@@ -771,25 +777,28 @@ function MealEditorContent({
                         // messenger field explains itself and a caption over
                         // a single line just costs a line.
                         minHeight={44}
-                        onWrappedChange={setDescriptionWrapped}
                         placeholder="Was hast du gegessen?"
                         className={`glass-subtle glass-subtle-themed w-full rounded-2xl py-3 pl-3.5 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent/40 ${
-                          // Room for the embedded mic only while it is in
-                          // there — once it moves out, the text may use the
-                          // full width.
-                          descriptionWrapped ? 'pr-3.5' : 'pr-11'
+                          // Room for the embedded mic only while it's shown —
+                          // once text fades it out, the text may use the
+                          // full width, wrapped or not.
+                          description.trim() ? 'pr-3.5' : 'pr-11'
                         } ${cleaningUp ? 'opacity-50' : ''}`}
                       />
-                      {!descriptionWrapped && (
-                        <span className="absolute bottom-[0.4rem] right-2">
-                          <DictationButton onRecordingDone={handleDictationDone} disabled={cleaningUp} variant="inline" />
-                        </span>
-                      )}
+                      <AnimatePresence>
+                        {!description.trim() && (
+                          <motion.span
+                            initial={{ opacity: 0, scale: 0.6 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.6 }}
+                            transition={prefersReducedMotion ? REDUCED_MOTION_TRANSITION : SPRING_SNAPPY}
+                            className="absolute bottom-[0.4rem] right-2"
+                          >
+                            <DictationButton onRecordingDone={handleDictationDone} disabled={cleaningUp} variant="inline" />
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
                     </div>
-                    {/* Send stays pinned top-right for the whole life of the
-                        field, however tall it grows. The dictation button
-                        joins it underneath only once the field has wrapped
-                        and there is no longer room for it inside. */}
                     <div className="flex shrink-0 flex-col gap-2">
                       <ActionButton
                         label="Nährwerte schätzen"
@@ -799,9 +808,6 @@ function MealEditorContent({
                       >
                         {estimating ? <BouncingDots /> : <SendIcon />}
                       </ActionButton>
-                      {descriptionWrapped && (
-                        <DictationButton onRecordingDone={handleDictationDone} disabled={cleaningUp} variant="floating" />
-                      )}
                     </div>
                   </div>
                   {cleaningUp && (
