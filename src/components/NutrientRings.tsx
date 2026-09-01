@@ -306,19 +306,25 @@ export function ConcentricRings({
   size?: 'default' | 'compact'
 }) {
   // "compact" thickened too (6 -> 7), but not the full +30% the single
-  // rings got: four rings nest inside one fixed 60px box here, so the
-  // innermost (fat) ring's radius is already down to a few px before any
-  // change — outerR - 3 * (strokeWidth + gap). Going further shrinks that
-  // straight through zero and the ring vanishes or, past that, `r` goes
-  // negative and React throws rendering the <circle>. 7/1.2 is the most
-  // this box has room for while keeping all four rings visibly open circles.
+  // rings got: four rings nest inside one box here, so the innermost (fat)
+  // ring's radius is already down to a few px before any change —
+  // outerR - 3 * (strokeWidth + gap). Going further shrinks that straight
+  // through zero and the ring vanishes or, past that, `r` goes negative and
+  // React throws rendering the <circle>.
+  // Box grown 60 -> 76 (its one caller, the Statistik stat row's ring tile,
+  // dropped the caption line that used to share the tile with it — see
+  // StatsPage.tsx's RingTile) specifically to fix that: at 60px the
+  // innermost ring's radius came out under 2px, "sehr schwer zu erkennen"
+  // per explicit report — a yellow smudge, not a ring. At 76px it's back
+  // to a legible ~10px radius, clearly open, while strokeWidth/gap (7/1.2)
+  // stay exactly what already looked right on the other three rings.
   // "default" is deliberately untouched: it's only ever used by
   // BackgroundRings' decorative, blurred app-icon-style backdrop, and its
   // exact radii (r = 57.5/41.5/25.5/9.5 at strokeWidth 13) are hand-copied
   // into appGlassShader.ts's scene() to keep the WebGL glass layer's
   // refraction in sync — changing them here without updating that shader
   // would desync what the glass bends from what's actually behind it.
-  const dims = size === 'compact' ? { box: 60, strokeWidth: 7, gap: 1.2 } : { box: 128, strokeWidth: 13, gap: 3 }
+  const dims = size === 'compact' ? { box: 76, strokeWidth: 7, gap: 1.2 } : { box: 128, strokeWidth: 13, gap: 3 }
   const cx = dims.box / 2
   const cy = dims.box / 2
   const outerR = dims.box / 2 - dims.strokeWidth / 2

@@ -479,19 +479,22 @@ function RingTile({
   selected?: boolean
   onSelect?: () => void
 }) {
-  const body = (
-    <>
-      <ConcentricRings kcal={kcal} protein={protein} carbs={carbs} fat={fat} targets={targets} size="compact" />
-      <div className="text-[10px] leading-tight text-ink-soft">{caption}</div>
-    </>
-  )
-  const shell = `flex h-24 w-full flex-col items-center justify-center gap-1 rounded-3xl p-2 text-center shadow-sm shadow-black/5 transition ${
+  // No caption inside the tile any more — per explicit request, the ring
+  // graphic gets the tile's whole area instead of sharing it with a line of
+  // text underneath. `caption` still becomes the tile's accessible name
+  // (aria-label) rather than being dropped outright: this is otherwise an
+  // SVG with no text content at all, and removing its only description
+  // along with the visible words would have silently broken it for a
+  // screen-reader user tapping through the stat row, which the visual
+  // request never asked for.
+  const body = <ConcentricRings kcal={kcal} protein={protein} carbs={carbs} fat={fat} targets={targets} size="compact" />
+  const shell = `flex h-24 w-full items-center justify-center rounded-3xl p-2 shadow-sm shadow-black/5 transition ${
     selected ? 'ring-2 ring-inset ring-accent' : ''
   }`
 
   if (!onSelect) {
     return (
-      <GlassSurface rim={24} className={`glass-subtle glass-subtle-themed ${shell}`}>
+      <GlassSurface rim={24} role="img" aria-label={caption} className={`glass-subtle glass-subtle-themed ${shell}`}>
         {body}
       </GlassSurface>
     )
@@ -503,6 +506,7 @@ function RingTile({
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
+      aria-label={caption}
       className={`glass-subtle glass-subtle-themed ${shell}`}
     >
       {body}
