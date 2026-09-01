@@ -17,6 +17,15 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.20.4',
+    date: '2026-09-01',
+    highlights: [
+      'Das Kalorien-Diagramm zeichnet sich jetzt selbst statt über eine Diagramm-Bibliothek. Der Wechsel auf die Statistik hing dadurch spürbar: der schlimmste Bildaussetzer ist von 317 auf 100 Millisekunden gefallen, und die Statistik-Seite lädt 337 KB weniger Code — bei sieben Punkten in der Wochenansicht hat sich die Bibliothek schlicht nicht gerechnet.',
+      'Die Jahresansicht schnitt die Zahlen an der Y-Achse links ab („0.000" statt „80.000"). Die Achse richtet sich jetzt nach dem breitesten Wert.',
+      'Die Wochenansicht beschriftet wieder alle sieben Tage statt nur jeden zweiten.',
+    ],
+  },
+  {
     version: '1.20.3',
     date: '2026-08-31',
     highlights: [

@@ -1,15 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import {
-  CartesianGrid,
-  Label,
-  Line,
-  LineChart,
-  ReferenceLine,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-} from 'recharts'
+import { monotonePath, niceTicks, visibleLabelIndices } from '../lib/chartGeometry'
 import type { StatBucket } from '../lib/stats'
 import type { DailyTargets } from '../lib/bodyProfile'
 import { NutrientRings } from './NutrientRings'
@@ -112,72 +103,13 @@ export function KcalTrendChart({
           plot and its bare numbers, nothing else competing for the space a
           full-width chart needs. */}
       <div className="h-56 shrink-0" ref={chartRef}>
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart
+        <TrendPlot
           data={data}
-          // right: only needs room for the target line's own end-value text
-          // now that it's a bare few-digit number instead of "X kcal/Woche"
-          // — shrunk from 124 specifically so the plot itself stretches
-          // across the card's full width, per explicit request. 48 is the
-          // Jahr view's own worst case (a six-digit monthly total, e.g.
-          // "85.529") still fitting without clipping.
-          margin={{ top: 12, right: 48, left: -20, bottom: 0 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" vertical={false} />
-          <XAxis dataKey="label" stroke="var(--color-ink-soft)" fontSize={11} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-          <YAxis stroke="var(--color-ink-soft)" fontSize={12} tickLine={false} axisLine={false} />
-          {hasTargetLine && (
-            <Line
-              type="monotone"
-              dataKey="targetKcal"
-              stroke={TARGET_COLOR}
-              strokeWidth={1.25}
-              dot={false}
-              activeDot={false}
-              connectNulls
-              // Off: recharts redraws the whole SVG path on every frame of
-              // its draw-in, for well over a second, starting exactly when the
-              // user has just navigated here — the trace showed it as the bulk
-              // of this page's per-frame work. A chart that is simply *there*
-              // when the page settles costs nothing and reads no worse; the
-              // motion budget is better spent on the navigation itself.
-              isAnimationActive={false}
-              label={(props: TargetLabelProps) => <TargetEndLabel {...props} lastIndex={data.length - 1} />}
-            />
-          )}
-          {average > 0 && (
-            <ReferenceLine y={average} stroke={TREND_COLOR} strokeDasharray="5 4" strokeWidth={1.5}>
-              {/* An explicit <Label> child rather than the `label` prop: in
-                  Recharts 3 the prop form rendered nothing at all here, and a
-                  trend line without its value is just a stray red rule. Bare
-                  number only (no "Ø"/unit word) — see the chart-level
-                  comment above on why. */}
-              <Label
-                value={Math.round(average).toLocaleString('de-DE')}
-                position="insideTopRight"
-                fill={TREND_COLOR}
-                fontSize={11}
-                fontWeight={600}
-              />
-            </ReferenceLine>
-          )}
-          {/* Dots handle their own taps rather than going through the
-              chart-level onClick: that reads `activeLabel`, which Recharts only
-              computes when a <Tooltip> is mounted, so without one no click ever
-              resolved to a point. Owning the dot also lets it carry a hit area
-              far larger than the 3.5px it draws — a 3.5px target is not
-              something anyone can hit with a thumb. */}
-          <Line
-            type="monotone"
-            dataKey="kcal"
-            stroke={LINE_COLOR}
-            strokeWidth={2.5}
-            dot={(props) => <TappableDot {...props} onSelect={toggleSelected} selectedKey={selectedKey} />}
-            activeDot={false}
-            isAnimationActive={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+          average={average}
+          hasTargetLine={hasTargetLine}
+          selectedKey={selectedKey}
+          onSelect={toggleSelected}
+        />
       </div>
 
       {/* Below the chart, not over it. An overlaid panel necessarily covers
@@ -234,65 +166,245 @@ export function KcalTrendChart({
   )
 }
 
-/**
- * One point on the line, with a touch-sized hit area.
- *
- * The visible dot stays small so the line reads as a line, while a
- * transparent circle of TAP_RADIUS around it takes the taps. Without that the
- * only thing to aim at is 3.5px across, which on a phone means missing far
- * more often than hitting.
- */
+/** Touch target around each point. The dot itself is 3.5px; nobody can hit 3.5px with a thumb. */
 const TAP_RADIUS = 20
-
-/** Recharts calls a Line's `label` renderer once per plotted point with this shape (x/y come typed as `string | number` even though they're always numeric in practice) — only the fields TargetEndLabel actually reads. */
-interface TargetLabelProps {
-  x?: string | number
-  y?: string | number
-  index?: number
-  value?: string | number | boolean | null
+/** Room above the plot so the topmost point and the average's label aren't clipped by the frame. */
+const PAD_TOP = 14
+/** Room at the right for the target line's end value. */
+const PAD_RIGHT = 44
+/** Room below for the date labels. */
+const PAD_BOTTOM = 22
+/**
+ * The left gutter is measured from the labels, not fixed.
+ *
+ * A constant was tried and clipped the Jahr view: monthly totals run to six
+ * digits ("80.000"), and a gutter sized for a four-digit day ate the leading
+ * ones — the axis read "0.000" three times over. ~6.8px per character at
+ * 12px in the system sans, plus the 6px gap to the plot and a little slack.
+ */
+function leftPadding(ticks: number[]): number {
+  const widest = Math.max(...ticks.map((t) => t.toLocaleString('de-DE').length))
+  return Math.ceil(widest * 6.8) + 10
+}
+/**
+ * How much room one x-axis label needs, from the widest one actually drawn.
+ *
+ * A single constant could only be right for one view. Sized for the Monat
+ * view's "KW36" it thinned the Woche view's two-digit day numbers to every
+ * other day for no reason; sized for those it would have overlapped the
+ * calendar weeks. ~6.3px per character at 11px, plus a gap so neighbours
+ * don't touch.
+ */
+function xLabelWidth(labels: string[]): number {
+  const widest = Math.max(1, ...labels.map((l) => l.length))
+  return widest * 6.3 + 12
 }
 
 /**
- * The target line's exact value, written once at its own right end instead
- * of living only in the legend Sheet — recharts calls this once per point,
- * so it renders nothing until `index` is the last one actually plotted.
- * `x`/`y` are that last point's own plotted position, not a fixed chart
- * corner, so the label always sits right where the line stops, whatever
- * value it happens to end on. Text starts a few px clear of the point
- * itself (line strokes and text glyphs touching read as a rendering
- * glitch, not a label) — margin.right on the chart leaves real room for it.
- * Bare number only, no "kcal/Woche" unit suffix — see the chart-level
- * comment on why; what it's a number *of* lives in the legend Sheet now.
+ * The plot itself — grid, axes, the two lines and the tappable points.
+ *
+ * Hand-drawn SVG rather than recharts, and the reason is measured, not
+ * aesthetic. Mounting Statistik with the recharts chart produced one 316ms
+ * block of uninterrupted JavaScript on a 4x-throttled CPU with 120 days of
+ * meals; the identical page with the chart swapped for an empty box of the
+ * same height came in at 77ms, and the worst frame fell from 317ms to 100ms.
+ * That block is recharts' own component tree and layout pass, not the
+ * drawing — this chart plots seven points in the Woche view and about five
+ * in Monat, which is far too little data to be worth a general-purpose
+ * charting library's fixed cost. Everything it gave us that we actually use
+ * is either a dozen lines of arithmetic (lib/chartGeometry.ts) or a `<path>`.
+ *
+ * Deferring the mount was tried first and measured as no improvement — the
+ * block already fell after the navigation, so moving it later changed
+ * nothing. Removing the work was the only thing that could help.
  */
-function TargetEndLabel({ x, y, index, value, lastIndex }: TargetLabelProps & { lastIndex: number }) {
-  if (x === undefined || y === undefined || index !== lastIndex || value == null) return <g />
-  return (
-    <text x={Number(x) + 6} y={y} dy={4} fontSize={10} fontWeight={700} fill={TARGET_COLOR}>
-      {Math.round(Number(value)).toLocaleString('de-DE')}
-    </text>
-  )
-}
-
-function TappableDot({
-  cx,
-  cy,
-  payload,
-  onSelect,
+function TrendPlot({
+  data,
+  average,
+  hasTargetLine,
   selectedKey,
+  onSelect,
 }: {
-  cx?: number
-  cy?: number
-  payload?: StatBucket
-  onSelect: (key: string) => void
+  data: ChartBucket[]
+  average: number
+  hasTargetLine: boolean
   selectedKey: string | null
+  onSelect: (key: string) => void
 }) {
-  if (cx === undefined || cy === undefined || !payload) return <g />
-  const isSelected = payload.key === selectedKey
+  const hostRef = useRef<HTMLDivElement>(null)
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null)
+
+  // The one measurement the plot needs. useLayoutEffect so the first painted
+  // frame already has the real width — measuring in useEffect would show a
+  // chart at the fallback width for one frame and then jump.
+  useLayoutEffect(() => {
+    const el = hostRef.current
+    if (!el) return
+    const read = () => {
+      const r = el.getBoundingClientRect()
+      setSize((prev) => (prev && prev.w === r.width && prev.h === r.height ? prev : { w: r.width, h: r.height }))
+    }
+    read()
+    const ro = new ResizeObserver(read)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  const geometry = useMemo(() => {
+    if (!size || size.w < 2 || size.h < 2) return null
+    const { w, h } = size
+    // Right gutter holds the target line's end label; left holds the y-axis
+    // numbers; bottom holds the date labels.
+    // The scale has to cover every drawn thing, not just the points' own
+    // values: a target or an average above the highest logged day would
+    // otherwise be drawn off the top of the chart.
+    const targets = data.map((d) => d.targetKcal ?? 0)
+    const dataMax = Math.max(0, ...data.map((d) => d.kcal), ...targets, average)
+    const { ticks, top } = niceTicks(dataMax)
+
+    // Ticks first, because how wide the numbers are decides the left gutter.
+    const plot = { top: PAD_TOP, right: w - PAD_RIGHT, bottom: h - PAD_BOTTOM, left: leftPadding(ticks) }
+    const plotW = plot.right - plot.left
+    const plotH = plot.bottom - plot.top
+    if (plotW <= 0 || plotH <= 0) return null
+
+    const x = (i: number) => (data.length === 1 ? plot.left + plotW / 2 : plot.left + (plotW * i) / (data.length - 1))
+    const y = (v: number) => plot.bottom - (plotH * v) / (top || 1)
+
+    const kcalPoints = data.map((d, i) => ({ x: x(i), y: y(d.kcal) }))
+    // Points without a target are skipped rather than plotted at zero —
+    // recharts' `connectNulls`, which is what a gap in the target history
+    // (a period predating the body profile) has to mean.
+    const targetPoints = data
+      .map((d, i) => (d.targetKcal == null ? null : { x: x(i), y: y(d.targetKcal), value: d.targetKcal }))
+      .filter((p): p is { x: number; y: number; value: number } => p !== null)
+
+    return {
+      plot,
+      ticks,
+      kcalPath: monotonePath(kcalPoints),
+      kcalPoints,
+      targetPath: monotonePath(targetPoints),
+      targetEnd: targetPoints[targetPoints.length - 1] ?? null,
+      averageY: average > 0 ? y(average) : null,
+      labelIndices: visibleLabelIndices(data.length, plotW, xLabelWidth(data.map((d) => d.label))),
+      x,
+    }
+  }, [size, data, average])
+
   return (
-    <g cursor="pointer" onClick={() => onSelect(payload.key)}>
-      <circle cx={cx} cy={cy} r={TAP_RADIUS} fill="transparent" />
-      <circle cx={cx} cy={cy} r={isSelected ? 6 : 3.5} fill={LINE_COLOR} />
-      {isSelected && <circle cx={cx} cy={cy} r={10} fill={LINE_COLOR} fillOpacity={0.2} />}
-    </g>
+    <div ref={hostRef} className="h-full w-full">
+      {geometry && size && (
+        <svg width={size.w} height={size.h} role="presentation">
+          {/* Horizontal rules only. Vertical ones would fence each point into
+              its own cell, which is how you read a bar chart — this is a line,
+              and the eye should follow it across. */}
+          {geometry.ticks.map((t, i) => {
+            const yy = geometry.plot.bottom - ((geometry.plot.bottom - geometry.plot.top) * t) / (geometry.ticks[geometry.ticks.length - 1] || 1)
+            return (
+              <g key={t}>
+                <line
+                  x1={geometry.plot.left}
+                  x2={geometry.plot.right}
+                  y1={yy}
+                  y2={yy}
+                  stroke="var(--color-line)"
+                  strokeDasharray="3 3"
+                />
+                <text
+                  x={geometry.plot.left - 6}
+                  y={yy}
+                  dy={4}
+                  textAnchor="end"
+                  fontSize={12}
+                  fill="var(--color-ink-soft)"
+                >
+                  {i === 0 ? '0' : t.toLocaleString('de-DE')}
+                </text>
+              </g>
+            )
+          })}
+
+          {geometry.labelIndices.map((i) => (
+            <text
+              key={data[i].key}
+              x={geometry.x(i)}
+              y={geometry.plot.bottom + 16}
+              textAnchor={i === 0 ? 'start' : i === data.length - 1 ? 'end' : 'middle'}
+              fontSize={11}
+              fill="var(--color-ink-soft)"
+            >
+              {data[i].label}
+            </text>
+          ))}
+
+          {hasTargetLine && geometry.targetPath && (
+            <>
+              <path d={geometry.targetPath} fill="none" stroke={TARGET_COLOR} strokeWidth={1.25} />
+              {geometry.targetEnd && (
+                <text
+                  x={geometry.targetEnd.x + 6}
+                  y={geometry.targetEnd.y}
+                  dy={4}
+                  fontSize={10}
+                  fontWeight={700}
+                  fill={TARGET_COLOR}
+                >
+                  {Math.round(geometry.targetEnd.value).toLocaleString('de-DE')}
+                </text>
+              )}
+            </>
+          )}
+
+          {geometry.averageY !== null && (
+            <>
+              <line
+                x1={geometry.plot.left}
+                x2={geometry.plot.right}
+                y1={geometry.averageY}
+                y2={geometry.averageY}
+                stroke={TREND_COLOR}
+                strokeDasharray="5 4"
+                strokeWidth={1.5}
+              />
+              <text
+                x={geometry.plot.right - 2}
+                y={geometry.averageY - 5}
+                textAnchor="end"
+                fontSize={11}
+                fontWeight={600}
+                fill={TREND_COLOR}
+              >
+                {Math.round(average).toLocaleString('de-DE')}
+              </text>
+            </>
+          )}
+
+          <path
+            d={geometry.kcalPath}
+            fill="none"
+            stroke={LINE_COLOR}
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+
+          {/* The visible dot stays small so the line reads as a line, while a
+              transparent circle of TAP_RADIUS around it takes the taps.
+              Without that the only thing to aim at is 3.5px across, which on
+              a phone means missing far more often than hitting. */}
+          {geometry.kcalPoints.map((p, i) => {
+            const isSelected = data[i].key === selectedKey
+            return (
+              <g key={data[i].key} cursor="pointer" onClick={() => onSelect(data[i].key)}>
+                <circle cx={p.x} cy={p.y} r={TAP_RADIUS} fill="transparent" />
+                {isSelected && <circle cx={p.x} cy={p.y} r={10} fill={LINE_COLOR} fillOpacity={0.2} />}
+                <circle cx={p.x} cy={p.y} r={isSelected ? 6 : 3.5} fill={LINE_COLOR} />
+              </g>
+            )
+          })}
+        </svg>
+      )}
+    </div>
   )
 }

@@ -16,6 +16,12 @@ während diese Datei ab 1.14.0 liegen blieb; damit stehen beide wieder auf demse
 Stand. Die Git-Tags aus dem Absatz darüber sind in demselben Zeitraum ebenfalls
 ausgeblieben: der letzte gesetzte ist `v1.2.1`.
 
+## [1.20.4] - 2026-09-01
+
+- Das Kalorien-Diagramm zeichnet sich jetzt selbst statt über eine Diagramm-Bibliothek. Der Wechsel auf die Statistik hing dadurch spürbar: der schlimmste Bildaussetzer ist von 317 auf 100 Millisekunden gefallen, und die Statistik-Seite lädt 337 KB weniger Code — bei sieben Punkten in der Wochenansicht hat sich die Bibliothek schlicht nicht gerechnet.
+- Die Jahresansicht schnitt die Zahlen an der Y-Achse links ab („0.000" statt „80.000"). Die Achse richtet sich jetzt nach dem breitesten Wert.
+- Die Wochenansicht beschriftet wieder alle sieben Tage statt nur jeden zweiten.
+
 ## [1.20.3] - 2026-08-31
 
 - Bugfix: Eine einzige unvollständige Zeile im Supp-Katalog brach den Katalog-Abgleich bei jedem Start ab — unbemerkt, weil er im Hintergrund läuft. Seither kamen keine neuen Katalog-Einträge mehr an.
