@@ -178,8 +178,17 @@ function saveAppliedKeys(keys: Set<string>): void {
   }
 }
 
-function normalizeName(name: string): string {
-  return name.trim().toLowerCase()
+/**
+ * `?? ''` because the argument comes from an IndexedDB row, where the declared
+ * type is a description of what we write, not a guarantee of what we read: a
+ * catalog row without a `name` (an interrupted sync, a half-written AI
+ * suggestion, an older schema) threw here. And because this runs from
+ * main.tsx as fire-and-forget, the throw was invisible — syncSupplementCatalog
+ * simply stopped, at every single launch, so the seed catalog silently never
+ * updated again for anyone holding one bad row.
+ */
+function normalizeName(name: string | undefined): string {
+  return (name ?? '').trim().toLowerCase()
 }
 
 /**

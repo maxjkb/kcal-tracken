@@ -324,7 +324,24 @@ export async function generateAdvisorRun(): Promise<SupplementAdvisorRun> {
  * suggestions simply stay on screen, and the next launch tries again. A real
  * error only ever reaches the UI from an explicit, user-initiated retry.
  */
-export async function refreshAdvisorIfStale(): Promise<void> {
+/**
+ * Guards against two checks overlapping. Returning to the app fires
+ * `visibilitychange` AND `focus` (see watchForNewDay), and the staleness read
+ * below is async — so both callers got past `isRunStale` on the same stale
+ * run and each started its own generateAdvisorRun(): two Gemini requests off
+ * one app switch, two stored runs, double the quota. Sharing the in-flight
+ * promise makes the second caller await the first instead of racing it.
+ */
+let inFlight: Promise<void> | null = null
+
+export function refreshAdvisorIfStale(): Promise<void> {
+  inFlight ??= run().finally(() => {
+    inFlight = null
+  })
+  return inFlight
+}
+
+async function run(): Promise<void> {
   if (!getApiKey()) return
   const latest = await getLatestAdvisorRun()
   if (!isRunStale(latest)) return

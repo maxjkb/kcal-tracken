@@ -91,12 +91,69 @@ const openSheets: { close: () => void }[] = []
  */
 let selfPops = 0
 
+/**
+ * Entries left behind by sheets that closed, waiting to see whether another
+ * sheet takes one over before they are given back to the browser.
+ *
+ * Needed because one sheet can *replace* another in a single commit — the
+ * Mahlzeiten-Editor closing back to the Mahlzeit-Detail it was opened from,
+ * or SupplementFormSheet back to SupplementDetailSheet. There the old sheet's
+ * cleanup and the new sheet's mount run in the same React commit, and the
+ * two used to fight over history: the closing sheet called history.back(),
+ * which the browser performs *asynchronously*, while the opening sheet
+ * pushed its own entry synchronously right after. The traversal then landed
+ * on the entry that had just been pushed, arriving with `selfPops` in
+ * whatever state the previous swap had left it — sometimes absorbed,
+ * sometimes read as a real back press that closed the sheet that had only
+ * just opened. Which is what it looked like from the outside: editing a meal
+ * and closing the editor dropped you all the way out to the Feed instead of
+ * back to the meal.
+ *
+ * So a closing sheet no longer touches history directly. It leaves its entry
+ * here; a sheet mounting in the same commit adopts it and skips its own
+ * push, and only what nobody adopted is handed back, once, from a microtask
+ * after the commit has settled.
+ */
+let orphanedEntries = 0
+
+function releaseOrphanedEntries() {
+  while (orphanedEntries > 0) {
+    orphanedEntries--
+    selfPops++
+    window.history.back()
+  }
+}
+
 function handleSheetPop() {
   if (selfPops > 0) {
     selfPops--
     return
   }
   openSheets.pop()?.close()
+}
+
+/**
+ * Attached on the first sheet ever opened and then left in place for good.
+ *
+ * It used to be added when the first sheet opened and removed when the last
+ * one closed — which dropped it in the exact window where it was still
+ * needed. Closing the last sheet takes its own entry back with
+ * history.back(), and the browser delivers that popstate asynchronously,
+ * *after* the cleanup that removed the listener had already run. Nobody was
+ * left to consume it, so `selfPops` stayed at 1 and the next real back press
+ * was swallowed as if it were that self-issued one: open a sheet, close it
+ * by the grip, open it again, press back — and nothing happened. Second
+ * press worked. That is what an "unround" back gesture felt like, and it got
+ * one step worse with every close.
+ *
+ * Keeping one listener costs nothing: with no sheets open it pops an empty
+ * array and lets the route handle its own back.
+ */
+let listening = false
+function ensureSheetPopListener() {
+  if (listening) return
+  listening = true
+  window.addEventListener('popstate', handleSheetPop)
 }
 
 export function Sheet({
@@ -108,6 +165,7 @@ export function Sheet({
   detents = [1],
   collapsible = false,
   manageHistory = true,
+  dismiss = false,
 }: {
   onClose: () => void
   children: ReactNode
@@ -141,8 +199,29 @@ export function Sheet({
    * express. Everything else leaves it on.
    */
   manageHistory?: boolean
+  /**
+   * Asks the sheet to close itself, from outside.
+   *
+   * For a sheet whose open state lives in the URL rather than in the parent's
+   * own state (Einstellungen): the parent can't just stop rendering it when
+   * the route changes, because that rips it out of the tree and the slide-out
+   * below never runs — the sheet vanished between one frame and the next on
+   * every back press, while every other sheet in the app slid away. So the
+   * parent keeps it mounted, flips this instead, and unmounts on `onClose`.
+   */
+  dismiss?: boolean
 }) {
   const [closing, setClosing] = useState(false)
+  /**
+   * The sheet is on its way out but still on screen.
+   *
+   * Separate from `closing`, which unmounts it: the dim behind the sheet has
+   * to fade *while* the sheet slides down, not after it has already gone.
+   * Fading it on unmount left the backdrop at full strength for the whole
+   * slide and then dropped it — the sheet left, and the room stayed dark for
+   * another quarter second.
+   */
+  const [dismissing, setDismissing] = useState(false)
   /** Only meaningful with `peekHeight`: whether the sheet has been pulled open. */
   const [expanded, setExpanded] = useState(false)
   const height = useMotionValue<number | 'auto'>('auto')
@@ -167,32 +246,10 @@ export function Sheet({
    */
   const peekPx = useRef<number | null>(null)
   const prefersReducedMotion = useReducedMotion()
-  const requestClose = useCallback(() => setClosing(true), [])
-
-  // Claims one history entry for as long as this sheet is open, so the back
-  // gesture closes it rather than navigating the page out from under it. The
-  // pushed entry duplicates the current one (same URL, same router state), so
-  // react-router sees no location change going either way — it exists purely
-  // as something for `back` to consume.
-  useEffect(() => {
-    if (!manageHistory) return
-    const entry = { close: requestClose }
-    window.history.pushState(window.history.state, '')
-    openSheets.push(entry)
-    if (openSheets.length === 1) window.addEventListener('popstate', handleSheetPop)
-    return () => {
-      const i = openSheets.indexOf(entry)
-      // Still listed means this sheet closed on its own (save, tap, swipe
-      // down) rather than by a back press, so its entry is still on the
-      // stack and has to come off. Closed *by* back and it is already gone.
-      if (i !== -1) {
-        openSheets.splice(i, 1)
-        selfPops++
-        window.history.back()
-      }
-      if (openSheets.length === 0) window.removeEventListener('popstate', handleSheetPop)
-    }
-  }, [manageHistory, requestClose])
+  // Read from inside requestClose, which is a stable useCallback([]) — a
+  // captured boolean would be whatever it was on first render.
+  const reducedMotionRef = useRef(prefersReducedMotion)
+  reducedMotionRef.current = prefersReducedMotion
 
   const dragEnabled = closeOnDrag && !prefersReducedMotion
   const y = useMotionValue(0)
@@ -364,6 +421,79 @@ export function Sheet({
    */
   const settling = useRef<{ stop: () => void } | null>(null)
 
+  /**
+   * Closes the sheet the same way a downward swipe does: it slides off the
+   * bottom edge, then unmounts.
+   *
+   * This used to be a bare `setClosing(true)`, which meant the sheet simply
+   * faded away in place — while a swipe-dismissed sheet slid down (see
+   * settle()). So the exact same sheet left by two different routes
+   * depending on how you dismissed it, and the common one — the grip, the
+   * backdrop, the back gesture, every "Speichern"/"Abbrechen" button — was
+   * the one that didn't move. A sheet that arrives from the bottom edge has
+   * to leave through it:
+   * > **apple-design §7**: "If something disappears one way, we expect it to
+   * > emerge from where it came."
+   *
+   * `closeRequested` guards re-entry: the backdrop tap and the history pop
+   * can both land, and starting the slide twice restarts it from wherever
+   * the first one had got to.
+   */
+  const closeRequested = useRef(false)
+  const requestClose = useCallback(() => {
+    if (closeRequested.current) return
+    closeRequested.current = true
+    setDismissing(true)
+    // Reduced motion gets the cross-fade it asks for, not a slide.
+    if (reducedMotionRef.current) {
+      setClosing(true)
+      return
+    }
+    settling.current?.stop()
+    settling.current = animate(y, (sheetRef.current?.offsetHeight ?? window.innerHeight) + 40, {
+      ...SPRING_DEFAULT,
+      // Whatever the sheet was already doing carries into the dismissal
+      // instead of being cut to zero — the same velocity handoff the
+      // gesture path gets (apple-design §5).
+      velocity: y.getVelocity(),
+      onComplete: () => {
+        settling.current = null
+        setClosing(true)
+      },
+    })
+  }, [y])
+
+  useEffect(() => {
+    if (dismiss) requestClose()
+  }, [dismiss, requestClose])
+
+  // Claims one history entry for as long as this sheet is open, so the back
+  // gesture closes it rather than navigating the page out from under it. The
+  // pushed entry duplicates the current one (same URL, same router state), so
+  // react-router sees no location change going either way — it exists purely
+  // as something for `back` to consume.
+  useEffect(() => {
+    if (!manageHistory) return
+    const entry = { close: requestClose }
+    // Adopt the entry a sheet that closed in this same commit left behind,
+    // rather than pushing a second one on top of it — see orphanedEntries.
+    if (orphanedEntries > 0) orphanedEntries--
+    else window.history.pushState(window.history.state, '')
+    openSheets.push(entry)
+    ensureSheetPopListener()
+    return () => {
+      const i = openSheets.indexOf(entry)
+      // Still listed means this sheet closed on its own (save, tap, swipe
+      // down) rather than by a back press, so its entry is still on the
+      // stack and has to come off. Closed *by* back and it is already gone.
+      if (i !== -1) {
+        openSheets.splice(i, 1)
+        orphanedEntries++
+        queueMicrotask(releaseOrphanedEntries)
+      }
+    }
+  }, [manageHistory, requestClose])
+
   const gesture = useRef<{
     startX: number
     startY: number
@@ -452,6 +582,13 @@ export function Sheet({
     if (!dragEnabled || event.pointerType === 'mouse') return
     settling.current?.stop()
     settling.current = null
+    // A sheet already sliding out can be caught and pulled back — the whole
+    // point of stopping the settle above (apple-design §3). Taking back the
+    // dismissal is part of that: leaving it set would keep the backdrop
+    // faded out under a sheet that is on screen again, and would make every
+    // later close request a no-op.
+    closeRequested.current = false
+    setDismissing(false)
     gesture.current = {
       startX: event.clientX,
       startY: event.clientY,
@@ -567,6 +704,8 @@ export function Sheet({
       // Keep going the way it was thrown (apple-design §8) rather than pulling
       // it back to a symmetric exit — that would read as the interface
       // fighting the user.
+      closeRequested.current = true
+      setDismissing(true)
       settling.current = animate(y, (sheetRef.current?.offsetHeight ?? window.innerHeight) + 40, {
         ...SPRING_MOMENTUM,
         velocity,
@@ -616,7 +755,7 @@ export function Sheet({
           <motion.div
             className="absolute inset-0 bg-ink/30 backdrop-blur-sm"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            animate={{ opacity: dismissing ? 0 : 1 }}
             exit={{ opacity: 0 }}
             transition={prefersReducedMotion ? REDUCED_MOTION_TRANSITION : SPRING_FADE}
             onClick={closeOnBackdropClick ? requestClose : undefined}
@@ -634,11 +773,14 @@ export function Sheet({
             onPointerUp={endGesture}
             onPointerCancel={endGesture}
           >
+            {/* No `exit` on the content: the sheet leaves by sliding out
+                (see requestClose), and an exit fade on top of that would only
+                hold the unmount — and with it the caller's onClose — for its
+                own duration after the sheet is already off screen. */}
             <motion.div
               className="contents"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
               transition={prefersReducedMotion ? REDUCED_MOTION_TRANSITION : SPRING_FADE}
             >
               {/* Always rendered, never gated on dragEnabled: the "✕" is gone

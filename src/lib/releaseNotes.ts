@@ -17,6 +17,29 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.20.4',
+    date: '2026-09-01',
+    highlights: [
+      'Das Kalorien-Diagramm zeichnet sich jetzt selbst statt über eine Diagramm-Bibliothek. Der Wechsel auf die Statistik hing dadurch spürbar: der schlimmste Bildaussetzer ist von 317 auf 100 Millisekunden gefallen, und die Statistik-Seite lädt 337 KB weniger Code — bei sieben Punkten in der Wochenansicht hat sich die Bibliothek schlicht nicht gerechnet.',
+      'Die Jahresansicht schnitt die Zahlen an der Y-Achse links ab („0.000" statt „80.000"). Die Achse richtet sich jetzt nach dem breitesten Wert.',
+      'Die Wochenansicht beschriftet wieder alle sieben Tage statt nur jeden zweiten.',
+    ],
+  },
+  {
+    version: '1.20.3',
+    date: '2026-08-31',
+    highlights: [
+      'Bugfix: Eine einzige unvollständige Zeile im Supp-Katalog brach den Katalog-Abgleich bei jedem Start ab — unbemerkt, weil er im Hintergrund läuft. Seither kamen keine neuen Katalog-Einträge mehr an.',
+      'Bugfix: Rezepte ohne Zutaten- oder Schrittliste rissen die ganze Kategorie- bzw. Detailseite mit runter statt nur die eine Karte leer zu lassen.',
+      'Bugfix: Beim Zurückkehren in die App liefen zwei Supp-Vorschlagsläufe gleichzeitig los — doppelte KI-Anfragen auf dein Kontingent.',
+      'Statistik öffnet spürbar flüssiger: die Tageswerte werden nur noch einmal statt bei jedem Neuzeichnen berechnet, und das Diagramm zeichnet sich nicht mehr Bild für Bild ein, während die Seite noch hereinkommt.',
+      'Der Sprung in eine Rezept-Kategorie wartet nicht mehr mitten in der Animation auf nachladenden Code.',
+      'Sheets gleiten jetzt nach unten weg, egal wie man sie schließt — über den Griff, den Hintergrund, die Zurück-Geste oder einen Speichern-Button. Bisher rutschte nur das weggewischte Sheet heraus, alle anderen blendeten an Ort und Stelle aus. Die Einstellungen verschwanden sogar von einem Bild aufs nächste.',
+      'Bugfix: Nach dem Schließen und erneuten Öffnen eines Sheets tat der erste Zurück-Druck nichts — erst der zweite schloss es. Das wurde mit jedem Schließen um einen Druck schlimmer.',
+      'Bugfix: Beim Schließen des Mahlzeiten-Editors landete man auf der Heute-Seite statt zurück auf der Mahlzeit, aus der man ihn geöffnet hatte.',
+    ],
+  },
+  {
     version: '1.20.2',
     date: '2026-08-31',
     highlights: [

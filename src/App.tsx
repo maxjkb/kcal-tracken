@@ -1,10 +1,11 @@
-import { Suspense, lazy, useLayoutEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { BottomNav } from './components/BottomNav'
 import { SwipeNavigator } from './components/SwipeNavigator'
 import { RecipesPage, StatsPage, SupplementsPage } from './components/SectionPreview'
 import { AddMealContext } from './hooks/useAddMeal'
 import { SwipeProgressProvider } from './lib/swipeProgress'
+import { preloadSection, registerSectionLoaders } from './lib/preloadSection'
 import { TopGradient } from './components/TopGradient'
 import { BackgroundRings } from './components/BackgroundRings'
 import { FeedPage } from './pages/FeedPage'
@@ -25,12 +26,23 @@ import { guessMealType } from './lib/mealTypeGuess'
 import { GlassStage } from './glass/GlassStage'
 import type { LightState } from './glass/useLightSource'
 
-const RecipeCategoryPage = lazy(
-  lazyRetry(() => import('./pages/RecipeCategoryPage').then((m) => ({ default: m.RecipeCategoryPage }))),
-)
-const RecipeDetailPage = lazy(
-  lazyRetry(() => import('./pages/RecipeDetailPage').then((m) => ({ default: m.RecipeDetailPage }))),
-)
+const loadRecipeCategory = () => import('./pages/RecipeCategoryPage').then((m) => ({ default: m.RecipeCategoryPage }))
+const loadRecipeDetail = () => import('./pages/RecipeDetailPage').then((m) => ({ default: m.RecipeDetailPage }))
+
+const RecipeCategoryPage = lazy(lazyRetry(loadRecipeCategory))
+const RecipeDetailPage = lazy(lazyRetry(loadRecipeDetail))
+
+// The same reasoning as preloadSection's, one level deeper: standing on the
+// Rezepte list, the only places to go are a category and then a recipe. A
+// measured tap on a category fetched both its chunk and SlideInPage's *during*
+// the slide-in — the panel slid in empty for a third of a second on a throttled
+// connection, which is precisely the "interrupted by loading" the transitions
+// rework is about. Fetched while the user is still reading the list instead,
+// the tap has nothing left to wait for.
+registerSectionLoaders({
+  '/recipes/:category': loadRecipeCategory,
+  '/recipes/:category/:id': loadRecipeDetail,
+})
 
 /**
  * Der Glas-Baukasten (src/lab/) — der reine Material-Vergleich (CSS/SVG/
@@ -88,6 +100,14 @@ export default function App() {
   // page on top, and back returns to the sheet exactly as it was. Sheets that
   // never open a page keep their own marker entry instead (see Sheet.tsx).
   const settingsOpen = new URLSearchParams(location.search).get('sheet') === 'settings'
+  // Latched on by the route, cleared by the sheet once it has finished
+  // sliding out — so the sheet outlives the search param by exactly its own
+  // exit animation. Set during render rather than from an effect (React's
+  // "adjusting state when a prop changes"): an effect would commit the
+  // param change first and only then mount the sheet, costing a frame on
+  // every open.
+  const [settingsMounted, setSettingsMounted] = useState(false)
+  if (settingsOpen && !settingsMounted) setSettingsMounted(true)
   const section = sectionForPath(location.pathname)
   // A static stand-in, not useLightSource(): that hook runs its own
   // pointer/device-orientation tracking loop purely to feed GlassStage's
@@ -110,6 +130,27 @@ export default function App() {
       document.body.style.removeProperty('--color-section')
       document.body.style.removeProperty('--color-section-icon')
     }
+  }, [section])
+
+  // Standing in Rezepte, the only way deeper is a category and then a recipe.
+  // Fetching both chunks while the list is still being read costs nothing the
+  // user can feel; fetching them on the tap costs the whole slide-in.
+  // requestIdleCallback so it never competes with the route change that just
+  // brought us here (Safari has no such thing — a timeout is close enough for
+  // work with no deadline).
+  useEffect(() => {
+    if (section !== 'recipes') return
+    const warm = () => {
+      preloadSection('/recipes/:category')
+      preloadSection('/recipes/:category/:id')
+    }
+    const ric = window.requestIdleCallback
+    if (ric) {
+      const id = ric(warm, { timeout: 1500 })
+      return () => window.cancelIdleCallback?.(id)
+    }
+    const id = window.setTimeout(warm, 400)
+    return () => window.clearTimeout(id)
   }, [section])
 
   return (
@@ -215,7 +256,22 @@ export default function App() {
             onClose={() => setAddingMeal(false)}
           />
         )}
-        {settingsOpen && <SettingsSheet onClose={() => navigate(-1)} />}
+        {/* Kept mounted across the search param going away, so the sheet
+            gets to slide out before it leaves the tree; `dismiss` starts that
+            slide and the unmount happens on the sheet's own onClose. The
+            branch inside it separates the two ways out: the route already
+            changed (back gesture — nothing left to pop), or the sheet
+            dismissed itself (grip, backdrop), in which case its history entry
+            still has to come off. */}
+        {settingsMounted && (
+          <SettingsSheet
+            dismiss={!settingsOpen}
+            onClose={() => {
+              setSettingsMounted(false)
+              if (settingsOpen) navigate(-1)
+            }}
+          />
+        )}
       </div>
       </SwipeProgressProvider>
     </SettingsSheetContext.Provider>

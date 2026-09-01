@@ -17,14 +17,21 @@ import { GlassSurface } from '../glass/GlassSurface'
  */
 export function RecipeCard({ recipe, onView }: { recipe: Recipe; onView: () => void }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const ingredientCount = (recipe.ingredients ?? []).length
+  const stepCount = (recipe.steps ?? []).length
 
   return (
     <GlassSurface rim={22} className="press-card glass-subtle glass-subtle-themed rounded-3xl p-4 shadow-sm shadow-black/5">
       <button className="press-target block w-full text-left" onClick={onView}>
         <h3 className="text-base font-semibold text-ink">{recipe.title}</h3>
+        {/* `?? []` on both: a recipe row read back from IndexedDB is not
+            guaranteed to match the declared type (a half-written import, an
+            AI extraction that failed mid-save), and reading .length off the
+            missing array threw right here — taking the whole category page
+            down with it, not just this one card. */}
         <p className="mt-0.5 text-xs text-ink-soft">
-          {recipe.ingredients.length} {recipe.ingredients.length === 1 ? 'Zutat' : 'Zutaten'}
-          {recipe.steps.length > 0 && ` · ${recipe.steps.length} ${recipe.steps.length === 1 ? 'Schritt' : 'Schritte'}`}
+          {ingredientCount} {ingredientCount === 1 ? 'Zutat' : 'Zutaten'}
+          {stepCount > 0 && ` · ${stepCount} ${stepCount === 1 ? 'Schritt' : 'Schritte'}`}
         </p>
       </button>
       <div className="mt-3 flex items-center gap-2">

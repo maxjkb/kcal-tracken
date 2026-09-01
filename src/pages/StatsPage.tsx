@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMealSummariesInRange } from '../hooks/useMeals'
 import { MEAL_TYPE_LABELS, toLocalDateKey, type Nutrition } from '../lib/db'
@@ -53,20 +53,28 @@ export function StatsPage() {
 
   // Per-day totals across all four macros, not just kcal: the chart's points
   // are tappable and open the full nutrient rings for that day or week.
-  const nutritionByDate = new Map<string, Nutrition>()
-  const totals = { kcal: 0, protein: 0, carbs: 0, fat: 0 }
-  for (const m of meals ?? []) {
-    const day = nutritionByDate.get(m.date) ?? { kcal: 0, protein: 0, carbs: 0, fat: 0 }
-    day.kcal += m.nutrition.kcal
-    day.protein += m.nutrition.protein
-    day.carbs += m.nutrition.carbs
-    day.fat += m.nutrition.fat
-    nutritionByDate.set(m.date, day)
-    totals.kcal += m.nutrition.kcal
-    totals.protein += m.nutrition.protein
-    totals.carbs += m.nutrition.carbs
-    totals.fat += m.nutrition.fat
-  }
+  //
+  // Memoised together, because everything downstream (the buckets below) keys
+  // off this Map's identity. Rebuilt on every render it would defeat their
+  // memoisation as surely as having none — and on a year's worth of meals
+  // that is a full pass over every row, repeated for every unrelated render.
+  const { nutritionByDate, totals } = useMemo(() => {
+    const byDate = new Map<string, Nutrition>()
+    const sum = { kcal: 0, protein: 0, carbs: 0, fat: 0 }
+    for (const m of meals ?? []) {
+      const day = byDate.get(m.date) ?? { kcal: 0, protein: 0, carbs: 0, fat: 0 }
+      day.kcal += m.nutrition.kcal
+      day.protein += m.nutrition.protein
+      day.carbs += m.nutrition.carbs
+      day.fat += m.nutrition.fat
+      byDate.set(m.date, day)
+      sum.kcal += m.nutrition.kcal
+      sum.protein += m.nutrition.protein
+      sum.carbs += m.nutrition.carbs
+      sum.fat += m.nutrition.fat
+    }
+    return { nutritionByDate: byDate, totals: sum }
+  }, [meals])
 
   const mealCount = meals?.length ?? 0
   const dailyAverage = computeDailyAverage(startKey, endKey, totals.kcal)
@@ -92,9 +100,22 @@ export function StatsPage() {
   // Woche bars = days (click → that day's Tag view); Monat bars = weeks
   // (click → that week's Woche view); Jahr points = months (click → that
   // month's Monat view) — each period's chart drills into the next-finer one.
-  const dayData = period === 'week' ? bucketByDay(startKey, endKey, nutritionByDate) : []
-  const weekData = period === 'month' ? bucketByWeek(startKey, endKey, nutritionByDate) : []
-  const monthData = period === 'year' ? bucketByMonth(Number(anchorKey.slice(0, 4)), nutritionByDate) : []
+  // Memoised: bucketing walks every meal in the period, and this page
+  // re-renders for reasons that have nothing to do with the buckets (a sheet
+  // opening, the header's scroll value, a live query settling). Without this
+  // each of those repeated the whole pass over the data.
+  const dayData = useMemo(
+    () => (period === 'week' ? bucketByDay(startKey, endKey, nutritionByDate) : []),
+    [period, startKey, endKey, nutritionByDate],
+  )
+  const weekData = useMemo(
+    () => (period === 'month' ? bucketByWeek(startKey, endKey, nutritionByDate) : []),
+    [period, startKey, endKey, nutritionByDate],
+  )
+  const monthData = useMemo(
+    () => (period === 'year' ? bucketByMonth(Number(anchorKey.slice(0, 4)), nutritionByDate) : []),
+    [period, anchorKey, nutritionByDate],
+  )
   const barData = period === 'week' ? dayData : period === 'month' ? weekData : []
 
   // The target-kcal line on the trend chart, bucketed the exact same way as

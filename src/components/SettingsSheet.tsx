@@ -23,10 +23,14 @@ import { Sheet } from './Sheet'
  * --color-accent — see the block comment there for why a settings menu is
  * exempt from the macro/meal palette's photo-derived discipline.
  */
-export function SettingsSheet({ onClose }: { onClose: () => void }) {
+export function SettingsSheet({ onClose, dismiss }: { onClose: () => void; dismiss: boolean }) {
   return (
     <Sheet
       onClose={onClose}
+      // Driven by the route rather than by an internal tap: see Sheet's
+      // `dismiss`. Without it the search param disappearing would unmount
+      // this sheet outright, skipping its slide-out.
+      dismiss={dismiss}
       // This sheet's open state is a search param App reads, not a marker
       // entry — see Sheet.tsx's `manageHistory` and App.tsx's settingsOpen.
       manageHistory={false}

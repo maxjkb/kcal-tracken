@@ -114,6 +114,11 @@ export function RecipeDetailPage() {
   }
 
   const color = MEAL_TYPE_COLOR[recipe.category]
+  // `?? []` for the same reason as RecipeCard's: the row comes from
+  // IndexedDB, so the declared arrays are what we write, not a guarantee of
+  // what we read back. A recipe missing either one crashed this whole page.
+  const ingredients = recipe.ingredients ?? []
+  const steps = recipe.steps ?? []
 
   return (
     <SlideInPage>
@@ -147,7 +152,7 @@ export function RecipeDetailPage() {
           </div>
         </div>
 
-        {recipe.ingredients.length > 0 && (
+        {ingredients.length > 0 && (
           <GlassSurface rim={24} className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-4 shadow-sm shadow-black/5">
             <button
               onClick={() => setIngredientsOpen((v) => !v)}
@@ -161,7 +166,7 @@ export function RecipeDetailPage() {
             </button>
             <Collapse open={ingredientsOpen}>
               <div className="mt-3 flex flex-col divide-y divide-line/60">
-                {recipe.ingredients.map((ing, i) => (
+                {ingredients.map((ing, i) => (
                   <div key={i} className="py-2.5 first:pt-0 last:pb-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-medium text-ink">{ing.name}</span>
@@ -179,7 +184,7 @@ export function RecipeDetailPage() {
           </GlassSurface>
         )}
 
-        {recipe.steps.length > 0 && (
+        {steps.length > 0 && (
           <GlassSurface rim={24} className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-4 shadow-sm shadow-black/5">
             <button onClick={() => setStepsOpen((v) => !v)} className="flex w-full items-center justify-between text-left">
               <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">
@@ -190,7 +195,7 @@ export function RecipeDetailPage() {
             </button>
             <Collapse open={stepsOpen}>
               <ol className="mt-3 flex flex-col gap-3">
-                {recipe.steps.map((s, i) => (
+                {steps.map((s, i) => (
                   <li key={i} className="flex gap-3 text-sm text-ink">
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-section-12 text-xs font-bold text-section">
                       {i + 1}
@@ -278,7 +283,7 @@ function MealprepVersionCard({
           <div>
             <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft">Zutaten</span>
             <div className="flex flex-col gap-1.5">
-              {version.ingredients.map((ing, i) => (
+              {(version.ingredients ?? []).map((ing, i) => (
                 <div key={i} className="flex items-start justify-between gap-2 text-sm">
                   <div className="min-w-0">
                     <span className="text-ink">{ing.name}</span>
