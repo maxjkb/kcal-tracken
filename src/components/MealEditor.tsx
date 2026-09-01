@@ -25,6 +25,7 @@ import { mealTypeToSupplementTimeOfDay } from '../lib/mealTypeGuess'
 import { addMySupplement, toggleSupplementCheck } from '../hooks/useSupplements'
 import { lookupFoodByBarcode } from '../lib/foodDatabase'
 import { DictationButton } from './DictationButton'
+import { DictationWaveform } from './DictationWaveform'
 import { PhotoActionButton, PhotoPreview } from './PhotoInput'
 import { ActionButton } from './ActionButton'
 import { NutritionFields } from './NutritionFields'
@@ -227,6 +228,8 @@ function MealEditorContent({
   const [manuallyEdited, setManuallyEdited] = useState(restored?.manuallyEdited ?? baseline.manuallyEdited)
   const [pickingRecipe, setPickingRecipe] = useState(false)
   const [ingredientsOpen, setIngredientsOpen] = useState(false)
+  /** Mirrors the inline DictationButton's own recording state — see its `onListeningChange`. */
+  const [dictating, setDictating] = useState(false)
   // Set right after a successful save if the description mentions a
   // supplement not yet checked off today — non-null switches the whole sheet
   // over to the confirmation panel below instead of closing immediately.
@@ -781,7 +784,11 @@ function MealEditorContent({
                         // messenger field explains itself and a caption over
                         // a single line just costs a line.
                         minHeight={44}
-                        placeholder="Was hast du gegessen?"
+                        // Blanked while recording: the waveform below takes
+                        // over the placeholder's job of saying "nothing here
+                        // yet" — showing both at once would be two answers to
+                        // the same question sitting on top of each other.
+                        placeholder={dictating ? '' : 'Was hast du gegessen?'}
                         className={`glass-subtle glass-subtle-themed w-full rounded-2xl py-3 pl-3.5 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent/40 ${
                           // Room for the embedded mic only while it's shown —
                           // once text fades it out, the text may use the
@@ -789,6 +796,30 @@ function MealEditorContent({
                           description.trim() ? 'pr-3.5' : 'pr-11'
                         } ${cleaningUp ? 'opacity-50' : ''}`}
                       />
+                      {/* Recording feedback, in the field itself rather than
+                          only on the button — "im Textfeld... eine
+                          Animation... als ob die KI auf meine Stimme
+                          reagiert". Left-aligned where the placeholder text
+                          would otherwise start; `pointer-events-none` so it
+                          never stands between a tap and the field or the
+                          stop button next to it. The field stays single-line
+                          for the whole recording (dictation only ever lands
+                          in `description` once, on stop — see
+                          handleDictationDone), so a fixed vertical center is
+                          always correct, never fighting a growing textarea. */}
+                      <AnimatePresence>
+                        {dictating && (
+                          <motion.span
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={prefersReducedMotion ? REDUCED_MOTION_TRANSITION : SPRING_SNAPPY}
+                            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2"
+                          >
+                            <DictationWaveform />
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
                       <AnimatePresence>
                         {!description.trim() && (
                           <motion.span
@@ -798,7 +829,12 @@ function MealEditorContent({
                             transition={prefersReducedMotion ? REDUCED_MOTION_TRANSITION : SPRING_SNAPPY}
                             className="absolute bottom-[0.4rem] right-2"
                           >
-                            <DictationButton onRecordingDone={handleDictationDone} disabled={cleaningUp} variant="inline" />
+                            <DictationButton
+                              onRecordingDone={handleDictationDone}
+                              onListeningChange={setDictating}
+                              disabled={cleaningUp}
+                              variant="inline"
+                            />
                           </motion.span>
                         )}
                       </AnimatePresence>
