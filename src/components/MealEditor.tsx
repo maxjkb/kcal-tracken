@@ -749,12 +749,16 @@ function MealEditorContent({
           </div>
 
           {/* Docked: outside the scroll area, so its height is the sheet's
-              collapsed height and nothing above can bleed into it. No
-              backdrop-blur — the sheet behind is opaque, so the filter blurred
-              a flat color (screenshots with and without were pixel-identical)
-              while still costing a compositing layer per animation frame. */}
+              collapsed height and nothing above can bleed into it.
+              `glass-docked` (index.css) is the liquid-glass treatment for
+              this specific spot — no `backdrop-filter`: the sheet behind is
+              opaque, so a blur here would cost a compositing layer for a
+              provably invisible result (screenshots with and without were
+              pixel-identical), the same finding that kept plain `.glass`
+              off this row in the first place. The gradient/border/shadow
+              that actually reads as "glass" stays. */}
           {!pickingRecipe && (
-            <div ref={inputRowRef} data-sheet-peek className="shrink-0 bg-bg px-5 pb-4 pt-2">
+            <div ref={inputRowRef} data-sheet-peek className="glass-docked shrink-0 px-5 pb-4 pt-3">
                   <div className="flex items-start gap-2">
                     {/* `relative` so the dictation button can sit inside the
                         field's own right edge, however many lines it grows
