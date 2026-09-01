@@ -14,10 +14,18 @@ export function DictationButton({
   onRecordingDone,
   disabled,
   variant = 'floating',
+  onListeningChange,
 }: {
   onRecordingDone: (rawText: string) => void
   disabled?: boolean
   variant?: DictationButtonVariant
+  /**
+   * Reports the recording state up to a caller that wants to react to it
+   * elsewhere on the page — the Mahlzeiten-Editor's field-filling waveform
+   * (see MealEditor.tsx), which lives in a sibling element this button has
+   * no reach into on its own.
+   */
+  onListeningChange?: (listening: boolean) => void
 }) {
   const [listening, setListening] = useState(false)
   const [interim, setInterim] = useState('')
@@ -28,6 +36,16 @@ export function DictationButton({
   useEffect(() => {
     return () => sessionRef.current?.stop()
   }, [])
+
+  // Mirrors `listening` up to the caller on every change — a plain effect
+  // rather than a `setListening` wrapper called at each of the three spots
+  // that flip it below: `onListeningChange` is passed fresh on every render
+  // (MealEditor hands it an inline setState function), so a wrapper closing
+  // over it would need a ref just to stay current, for no benefit over
+  // letting the effect read the latest prop itself.
+  useEffect(() => {
+    onListeningChange?.(listening)
+  }, [listening, onListeningChange])
 
   function toggle() {
     if (listening) {

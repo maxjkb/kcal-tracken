@@ -55,6 +55,21 @@ export function useSwipeBack(onBack: (() => void) | null, onForward?: (() => voi
     onPointerMove(event: React.PointerEvent) {
       const g = gesture.current
       if (!g || g.done || g.pointerId !== event.pointerId) return
+      // Claim this pointer for as long as this gesture is still being
+      // decided or actively tracked. Every caller of this hook lives inside
+      // a Sheet, whose own drag-to-dismiss recogniser listens on an
+      // ancestor of wherever these handlers are attached — and once that
+      // recogniser calls `setPointerCapture` (which it does the moment its
+      // own vertical/horizontal split leans vertical enough), the browser
+      // retargets every later pointer event on this pointerId to it, so a
+      // nested listener like this one would stop receiving events entirely.
+      // A real thumb rarely swipes perfectly horizontal from the first
+      // pixel — without this, that ordinary wobble could hand a "swipe
+      // right to go back" straight to the sheet's own drag instead, which
+      // is exactly the "only very specific gestures register" complaint
+      // this fixes. Once this gesture is `done` (below), propagation is no
+      // longer stopped and the sheet gets the rest of it as normal.
+      event.stopPropagation()
       const dx = event.clientX - g.x
       const dy = event.clientY - g.y
 
