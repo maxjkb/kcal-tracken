@@ -14,6 +14,17 @@ const DIRECTION_LOCK_PX = 8
 const HORIZONTAL_BIAS = 1
 /** Fraction of the viewport the projected endpoint must pass to change page. */
 const COMMIT_FRACTION = 0.22
+/**
+ * How long the outgoing preview stays on screen, masking the destination
+ * route's own fresh mount, after a committed swipe (see `endGesture`'s
+ * `onComplete`). Measured (repro-swipe-flash2.mjs): a freshly-mounted
+ * section's own data — Dexie's `useLiveQuery` always resolves at least one
+ * tick after mount, even against a small, local, already-warm database —
+ * took ~30-60ms to go from its empty first render to its populated one.
+ * 120ms is comfortable margin over that measured worst case without being
+ * long enough to itself read as a pause.
+ */
+const SWIPE_HOLDOVER_MS = 120
 
 /** Apple's scroll-deceleration projection — where a flick would come to rest. 0.99 rather than the free-scroll 0.998, so distance still matters for a discrete page commit. */
 function project(velocity: number, decelerationRate = 0.99): number {
@@ -83,6 +94,15 @@ export function SwipeNavigator({ children }: { children: ReactNode }) {
    */
   const settling = useRef<{ stop: () => void } | null>(null)
 
+  /**
+   * The commit-hold timer (see `onComplete` in `endGesture` below) — kept in
+   * a ref for the same reason `settling` is: a new gesture starting before
+   * it fires must be able to cancel it. Left to run, a stale timer from a
+   * swipe two gestures ago would reset `x`/`preview` out from under
+   * whatever the CURRENT gesture is actively doing.
+   */
+  const holdTimer = useRef<ReturnType<typeof window.setTimeout> | null>(null)
+
   const gesture = useRef<{
     startX: number
     startY: number
@@ -145,6 +165,16 @@ export function SwipeNavigator({ children }: { children: ReactNode }) {
     get: () => backHandler.current,
   }))
 
+  // SwipeNavigator wraps every routed page, so it never actually unmounts
+  // in normal use — this is a safety net (StrictMode's double-invoke, a
+  // future refactor) against a hold timer outliving the component and
+  // firing into motion values nothing reads any more.
+  useEffect(() => {
+    return () => {
+      if (holdTimer.current !== null) window.clearTimeout(holdTimer.current)
+    }
+  }, [])
+
   const clearGesture = useCallback(() => {
     gesture.current = null
     setPreview(null)
@@ -167,6 +197,14 @@ export function SwipeNavigator({ children }: { children: ReactNode }) {
     // has always done this; here it was written down and not wired up.
     settling.current?.stop()
     settling.current = null
+    // A pending commit-hold from the previous swipe (see endGesture's
+    // onComplete) has already done its job the moment a new gesture starts
+    // — this one owns `x`/`preview` now. Left to fire later it would reset
+    // both out from under whatever this new gesture is doing.
+    if (holdTimer.current !== null) {
+      window.clearTimeout(holdTimer.current)
+      holdTimer.current = null
+    }
     gesture.current = {
       startX: event.clientX,
       startY: event.clientY,
@@ -278,10 +316,33 @@ export function SwipeNavigator({ children }: { children: ReactNode }) {
         settling.current = null
         // Swap only once the outgoing page is exactly one viewport away, which
         // is where the incoming one already sits — so the route change lands
-        // on an identical frame and is invisible.
+        // on an identical frame and is invisible... at the position, that is.
+        // The CONTENT wasn't: `navigate()` mounts the real destination route
+        // fresh, and a fresh mount's own data (useLiveQuery et al.) starts
+        // from nothing — measured (repro-swipe-flash2.mjs) as a real, visible
+        // dip in rendered content right at this exact moment, the "kann ich
+        // sehen, wie sich die Seite neu laden muss" report.
+        //
+        // `x` and the preview are deliberately NOT reset here, only after a
+        // short hold. Until then, `x` stays at `destination` — a no-op frame
+        // to frame, since that's already where it visually is — which keeps
+        // BOTH halves exactly where they already were the instant before
+        // this callback ran: the fresh (currently data-less) real route,
+        // now `{children}`, stays carried one viewport off-screen by that
+        // unchanged `x`; the preview — still the SAME already-fully-loaded
+        // component instance the whole drag rendered, never remounted —
+        // stays sitting exactly on screen, its own `left:±100%` offset
+        // still cancelling `x` out the same way it did a moment ago. The
+        // user keeps looking at settled, populated content throughout;
+        // only what's hidden behind it changes. Once the hold elapses the
+        // real route has had time to load, and snapping `x` to 0 swaps
+        // which half is on screen without anything having visibly moved.
         navigate(SECTION_TABS[target].to)
-        x.set(0)
-        setPreview(null)
+        holdTimer.current = window.setTimeout(() => {
+          holdTimer.current = null
+          x.set(0)
+          setPreview(null)
+        }, SWIPE_HOLDOVER_MS)
       },
     })
   }
