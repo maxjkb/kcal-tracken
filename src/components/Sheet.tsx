@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion } from 'motion/react'
 import { REDUCED_MOTION_TRANSITION, SPRING_DEFAULT, SPRING_FADE, SPRING_MOMENTUM } from '../lib/motionTokens'
 import { SheetCloseContext } from '../hooks/useSheetClose'
+import { SheetExpandContext } from '../hooks/useSheetExpand'
 import { lockBodyScroll, unlockBodyScroll } from '../lib/scrollLock'
 
 /** Movement before a touch is read as a sheet drag rather than a scroll. */
@@ -164,6 +165,7 @@ export function Sheet({
   closeOnDrag = true,
   detents = [1],
   collapsible = false,
+  startExpanded = false,
   manageHistory = true,
   dismiss = false,
 }: {
@@ -191,6 +193,18 @@ export function Sheet({
    * returns to the peek before a further pull dismisses.
    */
   collapsible?: boolean
+  /**
+   * Mounts a `collapsible` sheet already fully expanded, instead of
+   * collapsing to peek first and growing from there.
+   *
+   * For the one case where the peek view was never the right starting
+   * point at all — the Mahlzeiten-Editor opened onto an existing meal opens
+   * straight onto its review step, which has no docked field to peek at.
+   * Collapsing to peek on mount and then immediately re-expanding (see
+   * `useSheetExpand`) would work too, but risks a one-frame flash of the
+   * wrong height; deciding it once, before the first paint, doesn't.
+   */
+  startExpanded?: boolean
   /**
    * Whether this sheet manages its own history entry (see `openSheets`).
    * Only a sheet whose open state already lives in the URL sets this false —
@@ -223,9 +237,9 @@ export function Sheet({
    */
   const [dismissing, setDismissing] = useState(false)
   /** Only meaningful with `peekHeight`: whether the sheet has been pulled open. */
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(startExpanded)
   const height = useMotionValue<number | 'auto'>('auto')
-  const expandedRef = useRef(false)
+  const expandedRef = useRef(startExpanded)
   const handleRef = useRef<HTMLButtonElement>(null)
   /**
    * How tall the sheet is while collapsed, measured rather than summed.
@@ -366,7 +380,8 @@ export function Sheet({
   }, [measure, y])
 
   // Measure the collapsed height once, before the first paint, while the
-  // sheet still has its natural height — then collapse to it.
+  // sheet still has its natural height — then collapse to it, unless the
+  // caller already knows this sheet has nothing to peek at (`startExpanded`).
   useLayoutEffect(() => {
     if (!collapsible) return
     const sheet = sheetRef.current
@@ -374,33 +389,74 @@ export function Sheet({
     if (!sheet || !collapsing) return
     const peek = sheet.getBoundingClientRect().height - collapsing.getBoundingClientRect().height
     peekPx.current = peek
-    height.set(peek)
-    // Mount only — the observer below keeps it current from here.
+    if (!startExpanded) height.set(peek)
+    // Mount only — the effect below keeps it current from here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Keep the collapsed height in step with the marked element: when the
-  // description field wraps, the peek has to grow by the same amount or the
-  // taller row (and the send button with it) is cut off at the bottom.
-  useEffect(() => {
-    if (!collapsible) return
+  /**
+   * Recomputes the collapsed height from scratch — an absolute figure, never
+   * an accumulated delta.
+   *
+   * The delta-tracking version of this (diff the peek marker's own size
+   * against its last-seen size, add the difference) silently corrupted
+   * `peekPx` the moment the marker was ever removed from the DOM: a detached
+   * element's `getBoundingClientRect()` reports all zeros, which read as
+   * "the docked row just shrank by its entire height" and subtracted that
+   * from the peek. That is exactly what happens when a caller swaps the
+   * docked row out for a full-content view (a recipe list, a barcode
+   * scanner) — the one moment this measurement most needs to stay correct.
+   * Recomputing the absolute value fresh every time is immune to that: it
+   * doesn't matter whether the marker was there a moment ago, only what's
+   * there right now.
+   *
+   * Skipped mid-drag (would fight the finger) and while expanded (nothing
+   * currently on screen depends on the answer — see `expandNow`'s own
+   * comment on the trade-off that leaves).
+   */
+  const remeasurePeek = useCallback(() => {
+    if (!collapsible || expandedRef.current || gesture.current?.phase === 'dragging') return
     const sheet = sheetRef.current
-    const marker = sheet?.querySelector('[data-sheet-peek]')
-    if (!sheet || !marker || typeof ResizeObserver === 'undefined') return
-    let previous = marker.getBoundingClientRect().height
-    const observer = new ResizeObserver(() => {
-      const next = marker.getBoundingClientRect().height
-      const delta = next - previous
-      previous = next
-      if (Math.abs(delta) < 1 || peekPx.current == null) return
-      peekPx.current += delta
-      if (expandedRef.current) return
-      settling.current?.stop()
-      settling.current = animate(height, peekPx.current, SPRING_DEFAULT)
-    })
-    observer.observe(marker)
-    return () => observer.disconnect()
+    const collapsing = sheet?.querySelector('[data-sheet-collapse]')
+    if (!sheet || !collapsing) return
+    const peek = sheet.getBoundingClientRect().height - collapsing.getBoundingClientRect().height
+    if (peekPx.current != null && Math.abs(peek - peekPx.current) < 1) return
+    peekPx.current = peek
+    settling.current?.stop()
+    settling.current = animate(height, peek, SPRING_DEFAULT)
   }, [collapsible, height])
+
+  // Keeps the collapsed height in step with whatever the docked row actually
+  // needs. Two triggers, because a size change can happen two different ways:
+  // a ResizeObserver on the current peek marker for continuous growth (the
+  // description field wrapping to a second line), and a MutationObserver on
+  // the whole sheet for structural change (the docked row itself being
+  // swapped for a recipe list, or reappearing afterward) — the marker is a
+  // different DOM node each time that happens, so the ResizeObserver has to
+  // be re-attached to whichever one currently exists, not the one it started
+  // watching at mount.
+  useEffect(() => {
+    if (!collapsible || typeof ResizeObserver === 'undefined' || typeof MutationObserver === 'undefined') return
+    const sheet = sheetRef.current
+    if (!sheet) return
+    let currentMarker: Element | null = null
+    const markerObserver = new ResizeObserver(remeasurePeek)
+    function syncMarker() {
+      const marker = sheet!.querySelector('[data-sheet-peek]')
+      if (marker === currentMarker) return
+      markerObserver.disconnect()
+      currentMarker = marker
+      if (marker) markerObserver.observe(marker)
+      remeasurePeek()
+    }
+    syncMarker()
+    const structureObserver = new MutationObserver(syncMarker)
+    structureObserver.observe(sheet, { childList: true, subtree: true })
+    return () => {
+      markerObserver.disconnect()
+      structureObserver.disconnect()
+    }
+  }, [collapsible, remeasurePeek])
 
   // The page behind must not scroll. Tied to mount rather than to `closing`
   // so it stays frozen through the exit animation.
@@ -645,7 +701,6 @@ export function Sheet({
     y.set(next >= 0 ? next : rubberband(next, window.innerHeight * 0.06))
   }
 
-  /** The tallest this sheet may become — its own content, capped by the caller's max-height. */
   /**
    * How tall "open" is: the collapsed height plus everything the scrolling
    * middle actually wants. Computed here rather than taken from the caller,
@@ -653,16 +708,68 @@ export function Sheet({
    * sheet shrank on release until only the header showed. `scrollHeight` is
    * the middle's own content, unaffected by however far it is squeezed right
    * now, so this stays correct mid-gesture.
+   *
+   * `querySelectorAll`, not just the first match: a multi-step sheet (the
+   * Mahlzeiten-Editor's input/review carousel) keeps every step mounted at
+   * once for the slide transition, and each can tag its own scrolling
+   * content `data-sheet-collapse`. Taking the widest of them means whichever
+   * step is actually on screen gets the room it asked for, not whichever
+   * step happened to be first in the DOM.
    */
   function maxSheetHeight(): number {
     const node = sheetRef.current
     if (!collapsible || peekPx.current == null) {
       return Math.min(node?.scrollHeight ?? window.innerHeight * 0.92, window.innerHeight * 0.92)
     }
-    const collapsing = node?.querySelector('[data-sheet-collapse]')
-    const wanted = peekPx.current + (collapsing?.scrollHeight ?? 0)
-    return Math.min(wanted, window.innerHeight * 0.92)
+    const collapsing = node?.querySelectorAll('[data-sheet-collapse]')
+    if (collapsing && collapsing.length > 0) {
+      const tallest = Math.max(...[...collapsing].map((el) => el.scrollHeight))
+      return Math.min(peekPx.current + tallest, window.innerHeight * 0.92)
+    }
+    // No `data-sheet-collapse` region exists right now at all — a view that
+    // replaced the sheet's *whole* content rather than swapping out just its
+    // scrolling middle (the Mahlzeiten-Editor's barcode scanner, its "Supp
+    // erkannt" confirmation). There's no docked-row-plus-collapse split to
+    // add up here; measure the sheet's own natural height directly instead,
+    // the same relax-then-restore the mount-time peek measurement uses two
+    // effects up. Safe to do outside a layout effect: this is a read/write
+    // pair on a `transform`-adjacent style value with nothing in between
+    // that would commit the intermediate 'auto' to a paint.
+    if (!node) return window.innerHeight * 0.92
+    const previousHeight = height.get()
+    height.set('auto')
+    const natural = node.scrollHeight
+    height.set(previousHeight)
+    return Math.min(natural, window.innerHeight * 0.92)
   }
+
+  /**
+   * Grows a collapsible sheet to its full height on request — the
+   * imperative half of `handlePointerMove`'s drag-up path, for a caller that
+   * knows the current view needs the whole sheet without waiting for a drag
+   * (see `useSheetExpand`'s own doc comment for why that matters).
+   *
+   * Idempotent, and a no-op on a sheet that isn't `collapsible` — nothing to
+   * expand into. Once set, stays expanded until the user drags it back down
+   * past the peek threshold (`settlePeek`) — this never re-collapses it on
+   * its own, the same way opening a sheet never auto-closes it. The one
+   * accepted gap that leaves: `remeasurePeek` skips its work while expanded
+   * (nothing on screen depends on the answer), so if the docked row's own
+   * size were to change while expanded and the sheet were then dragged back
+   * down, it would settle at a peek height measured before that change. A
+   * real cost only in the combination of "expand, then change what the peek
+   * row needs, then drag back down without ever seeing peek in between" —
+   * narrow enough to accept rather than pay for with a live remeasure that
+   * has nothing to render while it's true.
+   */
+  const expandNow = useCallback(() => {
+    if (!collapsible || expandedRef.current) return
+    settling.current?.stop()
+    expandedRef.current = true
+    setExpanded(true)
+    settling.current = animate(height, maxSheetHeight(), reducedMotionRef.current ? REDUCED_MOTION_TRANSITION : SPRING_DEFAULT)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collapsible, height])
 
   /**
    * Release of a peek-height drag: project where the throw was heading
@@ -811,7 +918,9 @@ export function Sheet({
               >
                 <div className="h-1.5 w-12 rounded-full bg-ink-faint/50" />
               </button>
-              <SheetCloseContext.Provider value={requestClose}>{children}</SheetCloseContext.Provider>
+              <SheetCloseContext.Provider value={requestClose}>
+                <SheetExpandContext.Provider value={expandNow}>{children}</SheetExpandContext.Provider>
+              </SheetCloseContext.Provider>
             </motion.div>
           </motion.div>
         </div>

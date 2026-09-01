@@ -35,6 +35,8 @@ import { MacroBadge, MacroRingBadge } from './MacroBadge'
 import { Link } from 'react-router-dom'
 import { Sheet } from './Sheet'
 import { useSheetClose } from '../hooks/useSheetClose'
+import { useSheetExpand } from '../hooks/useSheetExpand'
+import { Collapse } from './Collapse'
 import { useSwipeBack } from '../hooks/useSwipeBack'
 import { useIngredientScaling } from '../hooks/useIngredientScaling'
 import { useDraftAutosave, useRestoredDraft } from '../hooks/useFormDraft'
@@ -115,6 +117,11 @@ export function MealEditor({
       // detent reveals the sheet's TOP strip, and the thing that has to stay
       // on screen here sits at its bottom.
       collapsible
+      // Editing an existing meal opens straight onto the review step, which
+      // has no docked field to peek at in the first place — collapsing to
+      // peek on mount and then immediately re-expanding would work too, but
+      // risks a one-frame flash of the wrong height.
+      startExpanded={Boolean(initial)}
     >
       <MealEditorContent
         date={date}
@@ -139,6 +146,7 @@ function MealEditorContent({
   defaultMealType?: MealType
 }) {
   const requestClose = useSheetClose()
+  const expandSheet = useSheetExpand()
 
   // The form's whole restorable state in one object, so the baseline (what the
   // sheet opened with) and the current values can be compared wholesale to
@@ -220,6 +228,7 @@ function MealEditorContent({
   const [note, setNote] = useState<string | undefined>(restored ? restored.note : baseline.note)
   const [manuallyEdited, setManuallyEdited] = useState(restored?.manuallyEdited ?? baseline.manuallyEdited)
   const [pickingRecipe, setPickingRecipe] = useState(false)
+  const [ingredientsOpen, setIngredientsOpen] = useState(false)
   // Set right after a successful save if the description mentions a
   // supplement not yet checked off today — non-null switches the whole sheet
   // over to the confirmation panel below instead of closing immediately.
@@ -237,6 +246,18 @@ function MealEditorContent({
   // button the user can simply tap again — same reasoning as the PDF
   // export's dynamic import elsewhere in this codebase.
   const [BarcodeScannerComp, setBarcodeScannerComp] = useState<BarcodeScannerType | null>(null)
+  // Wherever the sheet needs the whole thing — a docked field no longer
+  // reflects what's on screen. Review swaps the field for the nutrition
+  // form; the recipe picker and the barcode scanner replace it outright.
+  // Each of those views used to sit clipped under whatever peek height the
+  // field itself had needed a moment before (the field's own height has
+  // nothing to do with a recipe list's or the scanner's), reachable only by
+  // a drag nothing on screen hinted at.
+  useEffect(() => {
+    if (step === 'review' || pickingRecipe || barcodeStep !== 'idle' || matchedSupplements) {
+      expandSheet()
+    }
+  }, [step, pickingRecipe, barcodeStep, matchedSupplements, expandSheet])
 
   const snapshot: MealDraft = {
     step,
@@ -818,8 +839,14 @@ function MealEditorContent({
           )}
           </div>
 
-          {/* Step 2: review */}
-          <div className="w-full shrink-0 overflow-y-auto overflow-x-hidden px-5 pb-5">
+          {/* Step 2: review. `data-sheet-collapse` here too, alongside step
+              1's own: Sheet's `maxSheetHeight()` takes the taller of every
+              tagged region, so whichever step is actually on screen gets
+              sized from ITS OWN content rather than from step 1's — reaching
+              review used to size the sheet off the suggestions list still
+              sitting off-screen in step 1, which had nothing to do with
+              what review actually needed to show. */}
+          <div data-sheet-collapse className="w-full shrink-0 overflow-y-auto overflow-x-hidden px-5 pb-5">
             <div className="flex flex-col gap-4">
               <label className="flex flex-col gap-1">
                 <span className="text-xs text-ink-soft">Datum</span>
@@ -875,37 +902,54 @@ function MealEditorContent({
 
               {ingredients && ingredients.length > 0 && (
                 <div>
-                  <span className="mb-2 block text-xs text-ink-soft">Zutaten</span>
-                  <div className="flex flex-col gap-2">
-                    {ingredients.map((ing, i) => (
-                      <div key={i} className="rounded-2xl border border-line p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-medium text-ink">{ing.name}</span>
-                          <div className="flex shrink-0 items-center gap-1">
-                            <NumberField
-                              value={ing.amount}
-                              onChange={(next: number) => handleIngredientAmountChange(i, next)}
-                              ariaLabel={`Menge für ${ing.name}`}
-                              className="w-16 rounded-lg border border-line bg-bg px-1.5 py-1 text-right text-xs text-ink focus:border-accent focus:outline-none"
-                            />
-                            <span className="text-xs text-ink-soft">{ing.unit}</span>
+                  {/* Closed by default: the review step opens straight to
+                      full height (see useSheetExpand above), and Zutaten is
+                      the one section that can genuinely run long (a
+                      multi-ingredient dish, easily a dozen rows) — left
+                      expanded, it was the reason Nährwerte and Speichern
+                      needed a scroll to reach even at that full height. This
+                      is the one thing on this step someone reliably wants
+                      collapsed rather than reachable at a glance. */}
+                  <button
+                    type="button"
+                    onClick={() => setIngredientsOpen((v) => !v)}
+                    className="mb-2 flex w-full items-center justify-between text-left"
+                  >
+                    <span className="text-xs text-ink-soft">Zutaten ({ingredients.length})</span>
+                    <ChevronDownIcon open={ingredientsOpen} />
+                  </button>
+                  <Collapse open={ingredientsOpen}>
+                    <div className="flex flex-col gap-2 pb-2">
+                      {ingredients.map((ing, i) => (
+                        <div key={i} className="rounded-2xl border border-line p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium text-ink">{ing.name}</span>
+                            <div className="flex shrink-0 items-center gap-1">
+                              <NumberField
+                                value={ing.amount}
+                                onChange={(next: number) => handleIngredientAmountChange(i, next)}
+                                ariaLabel={`Menge für ${ing.name}`}
+                                className="w-16 rounded-lg border border-line bg-bg px-1.5 py-1 text-right text-xs text-ink focus:border-accent focus:outline-none"
+                              />
+                              <span className="text-xs text-ink-soft">{ing.unit}</span>
+                            </div>
                           </div>
+                          <div className="mt-1.5 flex flex-wrap gap-1.5">
+                            <MacroBadge type="kcal" value={ing.kcal} size="sm" />
+                            <MacroRingBadge type="protein" value={ing.protein} size="sm" />
+                            <MacroRingBadge type="carbs" value={ing.carbs} size="sm" />
+                            <MacroRingBadge type="fat" value={ing.fat} size="sm" />
+                          </div>
+                          {ing.note && <p className="mt-1.5 text-xs italic text-ink-soft">{ing.note}</p>}
                         </div>
-                        <div className="mt-1.5 flex flex-wrap gap-1.5">
-                          <MacroBadge type="kcal" value={ing.kcal} size="sm" />
-                          <MacroRingBadge type="protein" value={ing.protein} size="sm" />
-                          <MacroRingBadge type="carbs" value={ing.carbs} size="sm" />
-                          <MacroRingBadge type="fat" value={ing.fat} size="sm" />
-                        </div>
-                        {ing.note && <p className="mt-1.5 text-xs italic text-ink-soft">{ing.note}</p>}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mb-2 flex justify-end">
-                    <InfoButton label="Wie wirkt sich eine Mengenänderung aus?" title="Menge ändern">
-                      Menge ändern skaliert die Nährwerte dieser Zutat automatisch (keine neue Schätzung).
-                    </InfoButton>
-                  </div>
+                      ))}
+                    </div>
+                    <div className="mb-2 flex justify-end">
+                      <InfoButton label="Wie wirkt sich eine Mengenänderung aus?" title="Menge ändern">
+                        Menge ändern skaliert die Nährwerte dieser Zutat automatisch (keine neue Schätzung).
+                      </InfoButton>
+                    </div>
+                  </Collapse>
                 </div>
               )}
 
@@ -931,6 +975,20 @@ function BackIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-5 w-5">
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+    </svg>
+  )
+}
+
+function ChevronDownIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.2}
+      className={`h-4 w-4 shrink-0 text-ink-soft transition-transform ${open ? 'rotate-180' : ''}`}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
     </svg>
   )
 }
