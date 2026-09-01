@@ -784,7 +784,7 @@ export function Sheet({
     const open = projected > peek + (full - peek) * 0.35
     expandedRef.current = open
     setExpanded(open)
-    settling.current = animate(height, open ? full : peek, {
+    const heightAnim = animate(height, open ? full : peek, {
       ...SPRING_MOMENTUM,
       velocity: -velocity,
       onComplete: () => {
@@ -795,12 +795,52 @@ export function Sheet({
         // maxSheetHeight() above is the honest figure and it stays.
       },
     })
+    settling.current = heightAnim
+    return heightAnim
   }
 
   /** Snap to the nearest detent, or dismiss if thrown past the smallest one. */
   function settle(velocity: number) {
     if (collapsible && !expandedRef.current) {
-      settlePeek(velocity)
+      // A downward drag on a still-peeked sheet moves `y`, not `height` (see
+      // handlePointerMove's fallthrough) — `settlePeek` below only ever
+      // decides peek-vs-expand from `height`, so without this check a drag
+      // aimed at dismissing a peeked sheet was silently un-decidable: `y`
+      // just sat wherever the finger left it, and the very next
+      // `ResizeObserver` tick (fired by settlePeek's own height animation)
+      // saw a `y` that no longer matched its measured offset and sprang it
+      // straight back to 0. The sheet visually snapped back to exactly
+      // where it started — the "I swiped it away and it didn't close" bug.
+      // Decide dismissal here first, the same way the expanded path below
+      // does, using 0 as "smallest": a peeked sheet has no detents of its
+      // own to rest at in `y`, only "not dragged" (0) or "being dragged
+      // away".
+      const draggedY = y.get()
+      if (draggedY > 0 && draggedY + project(velocity) > DISMISS_DISTANCE) {
+        closeRequested.current = true
+        setDismissing(true)
+        settling.current = animate(y, (sheetRef.current?.offsetHeight ?? window.innerHeight) + 40, {
+          ...SPRING_MOMENTUM,
+          velocity,
+          onComplete: () => {
+            settling.current = null
+            setClosing(true)
+          },
+        })
+        return
+      }
+      // Not far/fast enough to dismiss — release `y` back to 0 alongside
+      // settlePeek's own (height-based) peek-vs-expand animation. Both run
+      // at once (there's nothing to sequence: they animate different
+      // properties), so a gesture starting mid-settle needs to stop both —
+      // `settling` only holds one handle, so combine them into one.
+      if (draggedY !== 0) {
+        const yAnim = animate(y, 0, { ...SPRING_MOMENTUM, velocity })
+        const heightAnim = settlePeek(velocity)
+        settling.current = { stop: () => { yAnim.stop(); heightAnim.stop() } }
+      } else {
+        settlePeek(velocity)
+      }
       return
     }
     const current = y.get()
