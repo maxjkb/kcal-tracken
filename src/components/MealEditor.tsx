@@ -492,6 +492,14 @@ function MealEditorContent({
    * only into the totals, so the review step's existing per-ingredient
    * amount field is immediately how someone corrects the portion size —
    * "the tub was 250g, not 100g" is a number edit, not a re-scan.
+   *
+   * Appends rather than replaces: a meal is often more than one scanned
+   * product (a yogurt AND its topping, both packaged), and this is also
+   * what "Produkt scannen" in the review step (see below) re-invokes —
+   * replacing here would silently throw away whatever was already scanned
+   * or typed. Title/description follow the same rule: the first scan sets
+   * them outright, a later one appends to the description without
+   * clobbering a title the user may have already edited themselves.
    */
   async function handleBarcodeDetected(barcode: string) {
     setBarcodeStep('looking-up')
@@ -500,12 +508,20 @@ function MealEditorContent({
       setBarcodeStep('not-found')
       return
     }
-    setDescription(match.name)
-    setTitle(match.name)
-    setIngredients([
-      { name: match.name, amount: 100, unit: 'g', kcal: match.kcal100g, protein: match.protein100g, carbs: match.carbs100g, fat: match.fat100g },
-    ])
-    setNutrition({ kcal: match.kcal100g, protein: match.protein100g, carbs: match.carbs100g, fat: match.fat100g })
+    const newIngredient: Ingredient = {
+      name: match.name,
+      amount: 100,
+      unit: 'g',
+      kcal: match.kcal100g,
+      protein: match.protein100g,
+      carbs: match.carbs100g,
+      fat: match.fat100g,
+    }
+    const nextIngredients = ingredients && ingredients.length > 0 ? [...ingredients, newIngredient] : [newIngredient]
+    setIngredients(nextIngredients)
+    setNutrition(sumIngredients(nextIngredients))
+    setDescription((prev) => (prev.trim() ? `${prev}, ${match.name}` : match.name))
+    setTitle((prev) => prev.trim() || match.name)
     setManuallyEdited(false)
     setHasResult(true)
     setStep('review')
@@ -999,6 +1015,23 @@ function MealEditorContent({
                 </div>
               )}
 
+              {/* Reachable from review, not just from the input step's docked
+                  row: a meal is often more than one scanned product (see
+                  handleBarcodeDetected's own doc comment), and without this
+                  the only way to add a second one was to save this meal,
+                  reopen the editor, and scan into an unrelated new entry —
+                  exactly the "muss erst eine Mahlzeit anlegen" complaint. */}
+              <button
+                type="button"
+                onClick={openBarcodeScanner}
+                className="flex items-center justify-center gap-1.5 rounded-2xl border border-line py-2.5 text-sm font-medium text-ink-soft transition hover:bg-bg"
+              >
+                <BarcodeIcon className="h-4 w-4" />
+                Weiteres Produkt scannen
+              </button>
+
+              {barcodeLoadError && <p className="text-sm font-medium text-danger">{barcodeLoadError}</p>}
+
               <button
                 type="button"
                 onClick={handleSave}
@@ -1147,9 +1180,9 @@ function RecipeIcon() {
   )
 }
 
-function BarcodeIcon() {
+function BarcodeIcon({ className = 'h-5 w-5' }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
       <path strokeLinecap="round" d="M4 5v14M8 5v14M11 5v14M13 5v14M16 5v14M20 5v14" />
     </svg>
   )
