@@ -234,8 +234,8 @@ Formuliere daraus einen klaren, kurzen, gut lesbaren Beschreibungstext auf Deuts
 1. Korrigiere erkennbare Erkennungsfehler bei Lebensmitteln, Mengen und Einheiten aktiv, wenn aus dem Kontext eindeutig hervorgeht, was gemeint war — hier darfst und sollst du eingreifen, das ist der Hauptzweck dieser Bereinigung.
 2. Füge KEINE Zutaten, Mengen oder Angaben hinzu, die im Transkript nicht in irgendeiner (auch fehlerhaften) Form vorkommen — korrigieren ja, erfinden nein.
 3. Entferne Wiederholungen und Füllwörter ("äh", "also", "quasi").
-4. Ist ein Satzteil erkennbar abgebrochen und ergibt für sich keinen Sinn (z. B. eine unvollständige Mengenangabe ohne zugehörige Zutat), lass ihn lieber weg als ihn zu erraten.
-5. Bei tatsächlicher Unsicherheit (nicht bei offensichtlichen Erkennungsfehlern) im Zweifel näher am Original bleiben.
+4. Ist ein Satzteil unklar oder wirkt abgebrochen und ergibt für sich keinen Sinn (z. B. eine unvollständige Mengenangabe ohne erkennbar zugehörige Zutat), UND lässt sich auch aus dem Kontext nicht sinnvoll vervollständigen: lösche ihn NICHT. Lass ihn wörtlich, so wie er erkannt wurde, im Text stehen, statt ihn zu erraten oder wegzulassen. Ein roh stehen gelassener, sichtbar unklarer Rest ist besser als ein Inhalt, der dem Nutzer spurlos und unbemerkt verloren geht — er sieht es dann selbst und kann es von Hand korrigieren.
+5. Bei tatsächlicher Unsicherheit (nicht bei offensichtlichen Erkennungsfehlern) im Zweifel näher am Original bleiben — das gilt genauso für ganze Wörter/Phrasen wie für Zahlen und Einheiten.
 
 Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema.`
 
