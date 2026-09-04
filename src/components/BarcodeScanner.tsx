@@ -31,6 +31,15 @@ export function BarcodeScanner({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [error, setError] = useState<string | null>(null)
+  // Fallback for when the camera won't cooperate — bad lighting, a worn or
+  // curved label, or (per the "Scanner funktioniert nicht zuverlässig"
+  // report) a camera/decoder combination that just doesn't reliably read on
+  // this device. Typing the number printed under the barcode always works,
+  // so it stays one tap away rather than only appearing after an error —
+  // an unreliable scan often looks like "still trying", not a thrown error.
+  const [manualMode, setManualMode] = useState(false)
+  const [manualCode, setManualCode] = useState('')
+  const [manualError, setManualError] = useState<string | null>(null)
 
   useEffect(() => {
     let controls: IScannerControls | null = null
@@ -76,6 +85,20 @@ export function BarcodeScanner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  function submitManualCode() {
+    // EAN-8/UPC-E through EAN-13/UPC-A/GTIN-14 — the same family HINTS
+    // restricts the camera decoder to, so a manually typed code lands in
+    // exactly the range Open Food Facts actually expects. Digits only:
+    // spaces are common when copying a code off a label, so trimmed and
+    // stripped rather than rejected outright.
+    const digits = manualCode.replace(/\s+/g, '')
+    if (!/^\d{8,14}$/.test(digits)) {
+      setManualError('Bitte die 8- bis 14-stellige Zahl unter dem Barcode eingeben.')
+      return
+    }
+    onDetected(digits)
+  }
+
   return (
     <div className="flex flex-col gap-4 p-5 pt-7">
       <h2 className="text-lg font-semibold text-ink">Barcode scannen</h2>
@@ -98,6 +121,44 @@ export function BarcodeScanner({
           Open Food Facts
         </a>
       </p>
+
+      {manualMode ? (
+        <div className="flex flex-col gap-2">
+          <label htmlFor="barcode-manual-input" className="text-xs text-ink-soft">
+            Nummer unter dem Barcode
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="barcode-manual-input"
+              type="text"
+              inputMode="numeric"
+              autoFocus
+              value={manualCode}
+              onChange={(e) => {
+                setManualCode(e.target.value)
+                setManualError(null)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submitManualCode()
+              }}
+              placeholder="z.B. 4008400123456"
+              className="min-w-0 flex-1 rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={submitManualCode}
+              className="shrink-0 rounded-2xl bg-accent/12 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/20"
+            >
+              Suchen
+            </button>
+          </div>
+          {manualError && <p className="text-xs font-medium text-danger">{manualError}</p>}
+        </div>
+      ) : (
+        <button type="button" onClick={() => setManualMode(true)} className="text-center text-xs font-medium text-accent">
+          Erkennt die Kamera den Code nicht? Nummer manuell eingeben
+        </button>
+      )}
 
       <button
         type="button"
