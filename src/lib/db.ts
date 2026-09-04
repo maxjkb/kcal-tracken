@@ -261,6 +261,14 @@ export interface Supplement {
   typicalDosage: string
   isCustom: boolean
   createdAt: number
+  /**
+   * Other names/spellings this supplement is commonly typed under —
+   * "Calcium" for "Kalzium", "B12" for "Vitamin B12" — that automatic
+   * detection in a meal's free text (supplementTextMatch.ts) also matches
+   * against, not just `name` itself. Not shown anywhere in the UI, so no
+   * migration/index needed: an absent field is just an empty alias list.
+   */
+  aliases?: string[]
 }
 
 /**

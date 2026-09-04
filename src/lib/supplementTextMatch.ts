@@ -5,35 +5,50 @@ function escapeRegExp(s: string): string {
 }
 
 /**
- * A lenient matcher for one catalog name: matches just the "core" name —
- * before any parenthetical qualifier, e.g. "Kreatin" out of "Kreatin
- * (Monohydrat)" — so someone doesn't have to type the qualifier to be
- * recognized, and tolerates a space where the catalog spells a hyphen or
- * vice versa (e.g. "Omega 3" matching the catalog's "Omega-3"). Returns null
- * for anything too short to search for reliably — a 1-2 letter core would
- * match all sorts of unrelated text.
+ * A lenient matcher for one name or alias: strips any parenthetical
+ * qualifier (e.g. "Kreatin" out of "Kreatin (Monohydrat)", so someone
+ * doesn't have to type the qualifier to be recognized), tolerates a space
+ * where the catalog spells a hyphen or vice versa (e.g. "Omega 3" matching
+ * the catalog's "Omega-3"), and now tolerates NO separator at all (e.g.
+ * "VitaminD" matching "Vitamin D") — German compounds words together often
+ * enough that requiring a space/hyphen was its own source of misses.
+ * Returns null for anything too short to search for reliably — a 1-2
+ * letter core would match all sorts of unrelated text.
  */
-function buildMatcher(name: string): RegExp | null {
-  const core = name.split('(')[0].trim()
+function buildMatcher(text: string): RegExp | null {
+  const core = text.split('(')[0].trim()
   if (core.length < 3) return null
-  const pattern = escapeRegExp(core).replace(/[\s-]+/g, '[\\s-]+')
+  const pattern = escapeRegExp(core).replace(/[\s-]+/g, '[\\s-]*')
   return new RegExp(`\\b${pattern}\\b`, 'i')
 }
 
 /**
- * Finds catalog supplements mentioned by name in freeform meal-entry text —
- * "Frühstück, dazu noch Kreatin und Vitamin D genommen" recognizes both.
+ * Every string a mention of this supplement in someone's own words could
+ * plausibly look like: its catalog name, plus `aliases` — an English name
+ * ("Calcium" for "Kalzium"), a common short form ("B12" for "Vitamin
+ * B12"), or an alternate spelling ("Creatin" for "Kreatin") that the name
+ * alone, however leniently matched, would never catch.
+ */
+function matchStringsFor(s: Supplement): string[] {
+  return [s.name, ...(s.aliases ?? [])]
+}
+
+/**
+ * Finds catalog supplements mentioned by name (or known alias) in freeform
+ * meal-entry text — "Frühstück, dazu noch Kreatin und Vitamin D genommen"
+ * recognizes both.
  *
  * A plain lenient regex rather than another AI call: this runs on every
- * meal save, so it has to be instant and free, and matching a name someone
- * typed themselves against a fixed, known list of ~90 entries doesn't need
- * a language model — it needs to not miss "kreatin" for capitalization or
- * "omega 3" for a hyphen, which the matcher above already handles.
+ * meal save, so it has to be instant and free, and matching against a
+ * fixed, known list of ~90 entries (plus their aliases) doesn't need a
+ * language model — it needs to not miss "kreatin" for capitalization,
+ * "omega 3" for a hyphen, or "Calcium" for "Kalzium", which the matcher
+ * and alias list above already handle.
  */
 export function matchSupplementsInText(text: string, catalog: Supplement[]): Supplement[] {
   const trimmed = text.trim()
   if (!trimmed) return []
-  return catalog.filter((s) => buildMatcher(s.name)?.test(trimmed))
+  return catalog.filter((s) => matchStringsFor(s).some((candidate) => buildMatcher(candidate)?.test(trimmed)))
 }
 
 /** One catalog supplement recognized in a meal's text, plus whether it's already on the user's list. */
