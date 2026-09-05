@@ -12,7 +12,7 @@ import { useGlassSurfaceNode } from '../glass/glassSurfaces'
 // drift out of sync with these.
 /** The trend line is the one thing on the chart that isn't data — red keeps it from reading as another series. */
 export const TREND_COLOR = '#ff3b30'
-export const LINE_COLOR = '#1E90FF' // matches --color-kcal/--color-accent in index.css
+export const LINE_COLOR = '#2f6bff' // matches --color-kcal (light) in index.css — kcal is the one place blue survives the v2.0.0 rebrand
 /** A third, distinct hue for the target line — never red (the average) or blue (actual intake). */
 export const TARGET_COLOR = '#af52de'
 

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { BottomNav } from './components/BottomNav'
 import { SwipeNavigator } from './components/SwipeNavigator'
@@ -68,26 +68,6 @@ function sectionForPath(pathname: string): Section | null {
   return null
 }
 
-/** The --color-section-* custom property (see index.css) each area washes its AmbientBackground and
-  * .glass-accent buttons in — Rezepte/Supplements lighter than Feed's exact accent blue, Statistik
-  * darker, per the uploaded blue-scale palette (index.css has the full reasoning). */
-const SECTION_COLOR_VAR: Record<Section, string> = {
-  feed: 'var(--color-section-feed)',
-  recipes: 'var(--color-section-recipes)',
-  supplements: 'var(--color-section-supplements)',
-  stats: 'var(--color-section-stats)',
-}
-
-/** Same idea as SECTION_COLOR_VAR, for .text-section's icon glyphs (PageHeader's gear/"+",
-  * SupplementsPage's category pill) — Statistik has no dedicated -icon token (index.css explains
-  * why: its own value already reads fine as a glyph color), so it reuses its section color directly. */
-const SECTION_ICON_VAR: Record<Section, string> = {
-  feed: 'var(--color-section-feed-icon)',
-  recipes: 'var(--color-section-recipes-icon)',
-  supplements: 'var(--color-section-supplements-icon)',
-  stats: 'var(--color-section-stats)',
-}
-
 export default function App() {
   const [addingMeal, setAddingMeal] = useState(false)
   const location = useLocation()
@@ -117,20 +97,13 @@ export default function App() {
   // pages still use it live for the WebGL/CSS/SVG comparison.
   const lightRef = useRef<LightState>({ azimuth: 0, elevation: 0, x: 0, y: 0, z: 1 })
 
-  // Set on <body> rather than a wrapping element: Sheets (MealEditor, RecipeEditor, the date
-  // pickers, …) portal straight to document.body, outside this component's own DOM subtree, so a
-  // custom property set anywhere inside here wouldn't reach them — body is the one ancestor every
-  // portaled Sheet actually shares. useLayoutEffect (not useEffect) so the new area's color is
-  // already in place before the browser paints the route change, no one-frame flash of the old one.
-  useLayoutEffect(() => {
-    if (section) {
-      document.body.style.setProperty('--color-section', SECTION_COLOR_VAR[section])
-      document.body.style.setProperty('--color-section-icon', SECTION_ICON_VAR[section])
-    } else {
-      document.body.style.removeProperty('--color-section')
-      document.body.style.removeProperty('--color-section-icon')
-    }
-  }, [section])
+  // Rebrand (v2.0.0): this used to set --color-section/-icon on <body> to a
+  // per-area blue-scale value on every route change (Sheets portal straight
+  // to document.body, so that's where it had to live) — the "vier Blautöne"
+  // mechanism explicit feedback named as part of why the app still read as
+  // the old one. Retired along with --color-section-* itself in index.css;
+  // that token now just always equals --color-accent (see body{} there), so
+  // no per-route effect is needed to drive it anymore.
 
   // Standing in Rezepte, the only way deeper is a category and then a recipe.
   // Fetching both chunks while the list is still being read costs nothing the
@@ -165,13 +138,11 @@ export default function App() {
           behind it; body's own canvas-level background doesn't have that
           problem, it's always the bottom-most layer. */}
       <BackgroundRings />
-      {/* Big-Number-Redesign point 5: unconditional (TopGradient only ever
-          rendered inside the four main areas) — a Sheet portalled to
-          document.body from Einstellungen or anywhere else now also has
-          colour behind it to blur, not just Feed/Rezepte/Supplements/
-          Statistik. Still area-aware where an area exists: --color-section
-          falls back to --color-accent outside the four main routes (see
-          body{} in index.css), so this reads as plain accent-blue there. */}
+      {/* Mounted unconditionally, not just inside the four main areas — a
+          Sheet portalled to document.body from Einstellungen or anywhere
+          else always has the same neutral dot-grid texture behind it to
+          blur (see AmbientBackground/.ambient-bg — no area-specific colour
+          left to be conditional about since the rebrand). */}
       <AmbientBackground />
       {/* Disabled (was unconditionally on in v1.14.3): the WebGL layer tracks
           each flow-positioned card's position by reading getBoundingClientRect()

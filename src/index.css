@@ -2,26 +2,27 @@
 
 /* Registers --color-section/--color-section-icon as typed, animatable
    <color> custom properties (CSS Houdini @property) rather than the
-   untyped strings CSS custom properties are by default — untyped ones
-   can't be transitioned at all, which is exactly why switching between the
-   four main pages used to cut instantly to the next blue tone instead of
-   easing into it. Once registered, every consumer below picks the smooth
-   transition up for free: TopGradient's gradient, .glass-accent,
-   .bg-section-12/-20, .text-section and .glass-subtle-themed all just read
-   var(--color-section) / var(--color-section-icon) inside an ordinary
-   declarative background/border/color, so as the custom property itself
-   animates frame-by-frame, everything downstream of it repaints along with
-   it — no per-component change needed. The actual transition is declared
-   on body{} below, since that's where App.tsx sets these two per route. */
+   untyped strings CSS custom properties are by default. This dates from
+   when App.tsx set these two per route to a different blue-scale value for
+   each of the four main pages, so switching pages could ease between tones
+   instead of cutting instantly — that per-area variation is retired as
+   part of the v2.0.0 rebrand (see the @theme block below and body{}'s own
+   comment), so both properties now just permanently equal --color-accent
+   and this transition never actually has anything to animate between.
+   Left registered rather than removed: every consumer (.glass-accent,
+   .bg-section-12/-20, .text-section, .glass-subtle-themed) still just reads
+   var(--color-section)/var(--color-section-icon) unconditionally, so
+   deleting the registration would mean touching every one of those for no
+   visible benefit — it's a harmless no-op now, not a bug. */
 @property --color-section {
   syntax: "<color>";
   inherits: true;
-  initial-value: #1e90ff;
+  initial-value: #101114;
 }
 @property --color-section-icon {
   syntax: "<color>";
   inherits: true;
-  initial-value: #1e90ff;
+  initial-value: #101114;
 }
 
 @theme {
@@ -65,81 +66,57 @@
   --text-2xl--line-height: 1.9rem;
   --text-2xl--letter-spacing: -0.023em;
 
-  /* Apple-inspired light palette */
-  --color-bg: #f2f2f7;
+  /* --- Rebrand (v2.0.0, Big-Number-Redesign) ---
+     v1's whole palette traced back to one premise: an "uploaded blue-scale
+     photo" that made #1E90FF the app's wallpaper — every button, every nav
+     icon, a colored wash behind every page, four shades of the same blue
+     splitting the four main areas apart. That premise is retired outright,
+     not tuned: explicit feedback was that the app still read as "the old
+     app with big numbers" specifically because of "das Blau, der
+     Farbverlauf, der Hintergrund". The replacement below matches the chosen
+     Vision Board (design-demo/vision-board-big-number.html) exactly, not
+     approximated — a near-white/near-black neutral canvas, and ink itself
+     as the app's one generic accent instead of a color at all. */
+  --color-bg: #fbfbf9;
   --color-surface: #ffffff;
-  --color-ink: #1d1d1f;
-  --color-ink-soft: #6e6e73;
-  /* Darkened from the original #aeaeb2 (1.98:1 on --color-bg — fails even
-     the loosest 3:1 non-text bar) to comfortably clear 3:1 against both
-     --color-bg and --color-surface (apple-hig-review: Accessibility —
-     minimum contrast). Still deliberately lighter than --color-ink-soft,
-     preserving the ink > ink-soft > ink-faint hierarchy — this is the
-     tertiary tier (dots, hairline icons, the faintest captions), not
-     meant to carry primary reading contrast. */
-  --color-ink-faint: #868686;
-  --color-line: #e5e5ea;
+  --color-ink: #101114;
+  --color-ink-soft: #5c6068;
+  --color-ink-faint: #9296a0;
+  --color-line: #e6e5e0;
 
-  /* Main accent (buttons, nav, "+", arrows) — solid, not pastel. Kcal reuses
-     the same hue since it's now one of the four equal nutrient rings. Stays
-     the single dominant color everywhere — see --color-section below for
-     the secondary, per-area tint layered on top of it.
-     #1E90FF is the "Kern-Blau" from the uploaded blue-scale palette
-     (Primär-Akzent) — used exactly as given, not approximated, per explicit
-     request. Kept identical in light and dark mode (same simplification the
-     old #0a84ff value already used): it clears 3.2:1 on white and 6.5:1 on
-     black, comfortably better than the old value's dark-mode contrast. */
-  --color-accent: #1E90FF;
-  --color-kcal: #1E90FF;
-  /* Macro badge colors — Apple Health-style. carbs/fat already landed
-     exactly on the uploaded palette's green/yellow swatches (#34C759,
-     #FFCC00) with no change needed. The uploaded photos have no pink/
-     magenta anywhere — rather than leave protein an orphaned leftover,
-     v1.14.1 formally extends the palette with Pink #ff375f (2B: "erweitere
-     eigenständig die Farbpalette... Farben, die mit dem #1E90FF Blau
-     harmonieren"): it sits at ~344° on the hue wheel, between the palette's
-     own Purple (283°, --color-meal-dinner/--color-micro-vitaminb12 below)
-     and the new Red (4°, --color-danger just below) — closing what was
-     otherwise a gap in an already near-continuous hue progression from
-     Blue through Purple/Pink/Red into Orange/Yellow/Green and back to Blue. */
+  /* Every primary button/pill now inverts bg↔ink (see .glass-accent below)
+     the same way the Vision Board's own CTA does — "Nährwerte schätzen" is
+     a near-black button there, not a blue one. This is the actual fix for
+     blue-as-wallpaper: --color-kcal is freed to mean exactly one thing
+     (Kalorien) and nothing else on screen borrows it anymore. */
+  --color-accent: #101114;
+  --color-kcal: #2f6bff;
   --color-protein: #ff375f;
-  --color-carbs: #34c759;
-  --color-fat: #ffcc00;
+  --color-carbs: #2fae63;
+  /* Was a bright, generic #ffcc00 (still literally the color --color-carbs'
+     old green sat next to, "Apple Health yellow") — the Vision Board's own
+     amber reads as chosen rather than inherited from a system palette, and
+     is dark enough to still need --color-ink text on top of it, unlike the
+     old yellow which needed the opposite (a documented inconsistency the
+     old MacroBadge had to special-case). */
+  --color-fat: #d98d00;
 
-  /* One colour per meal type, keyed to the time of day it names: sunrise
-     orange, midday yellow, night indigo, and green for the snack.
-     Indigo rather than a lilac purple for the evening — a lilac was tried for
-     the section theme and read as washed-out next to this palette.
-     Note the tension this creates, deliberately accepted: --color-fat is the
-     same yellow and --color-carbs the same green. The macro colours appear as
-     ring outlines with a macro glyph inside, these as filled badges behind a
-     time-of-day pictogram, so shape and context separate them — but they are
-     the same hues, and if that ever reads as one meaning rather than two, the
-     lunch and snack values are the ones to shift. */
+  /* One colour per meal type. Lunch/snack still deliberately reuse
+     fat's/carbs' exact hues (ring outlines with a glyph vs. filled
+     time-of-day badges never share a screen, so the reuse never collides)
+     — same reasoning as before, just carried onto the new values. */
   --color-meal-breakfast: #ff9500;
-  --color-meal-lunch: #ffcc00;
-  /* Was Indigo (#5e5ce6) — the uploaded palette has no indigo, and its
-     closest bunte swatch by hue is the Purple (#af52de) also used below for
-     --color-micro-vitaminb12. Accepted deliberately rather than avoided:
-     meal badges (Feed/Rezepte) and the micronutrient bars (Statistik) never
-     appear on the same screen, so the two never actually collide on
-     screen — same reasoning already applied to --color-fat/--color-meal-lunch
-     and --color-carbs/--color-good/--color-meal-snack below. */
+  --color-meal-lunch: #d98d00;
   --color-meal-dinner: #af52de;
-  --color-meal-snack: #34c759;
-  /* Same story as --color-protein above: no red anywhere in the uploaded
-     photos, so this is the palette's other formal extension — Red #ff3b30,
-     the hue-wheel neighbor that closes the gap between Pink (344°) and the
-     given Orange (36°). Shared verbatim by --color-micro-iron below (blood/
-     anaemia is the one micronutrient where reusing "danger red" actually
-     reads as intentional rather than accidental). */
+  --color-meal-snack: #2fae63;
+
   --color-danger: #ff3b30;
   /* Positive/"good source of" accent — MealDetail's per-meal micronutrient
      badges. Deliberately its own token rather than reusing --color-carbs,
      even though they're the same green: the two contexts (a meal-detail
      badge, a macro ring) never appear together, but a dedicated token keeps
      the meanings independently adjustable later. */
-  --color-good: #34c759;
+  --color-good: #2fae63;
 
   /*
    * Micronutrient identity colors — the Statistik page's micronutrient bars
@@ -234,76 +211,20 @@
   --color-supp-general_health: #32ade6; /* Cyan — Vitamine & Grundversorgung */
 
   /*
-   * One accent color per main area (Rezepte/Supplements/Feed/Statistik, in
-   * their actual left-to-right tab order — lib/sections.ts SECTION_TABS),
-   * now driven by the uploaded blue-scale palette photo rather than a
-   * hand-picked cool-hue family. Explicit request: Feed is exactly #1E90FF
-   * (== --color-accent, see above); every area to its LEFT in the tab strip
-   * must read lighter than that; every area to its RIGHT must read darker.
-   * The blue-scale photo's five stops are #E1F0FF < #B0D6FF < #1E90FF <
-   * #005BB5 < #003366. The lightest (#E1F0FF) turned out too close to the
-   * page's own near-white background to read as "blue" at all once actually
-   * checked on screen (a wash needs contrast against its own backdrop, not
-   * just against the color next to it in the scale) — dropped in favor of a
-   * point 45% of the way from #B0D6FF to #1E90FF (#6eb6ff), which is
-   * legibly lighter than Feed while still clearly a color rather than a
-   * near-invisible tint. So: Rezepte gets #B0D6FF (the palette's own
-   * lighter stop, used as-is), Supplements the new #6eb6ff (closer to Feed,
-   * matching its place right next to it in the tab order), Feed the exact
-   * #1E90FF, Statistik the darker #005BB5 — brightness genuinely following
-   * the swipe order left to right, not just "some lighter, some darker".
-   * The scale's darkest stop (#003366, itself labeled "tiefe Textränder" in
-   * the photo) is held back for the icon variants below instead of used as
-   * a fifth area color.
-   *
-   * Statistik previously had no separate token at all (it just stayed on
-   * --color-accent) — now that it needs to read as *darker* than Feed
-   * specifically, it gets a real --color-section-stats token. Only in light
-   * mode, though: on a black background "darker than blue" has no legible
-   * equivalent, and per the Hintergrund request's point 1C, dark mode is
-   * meant to change as little as possible (only the white canvas itself
-   * inverts to black) — so in dark mode --color-section-stats simply falls
-   * back to --color-accent again, exactly like before. The other three
-   * areas' dark-mode values are untouched from before this change for the
-   * same reason: they already had their own tuned, high-contrast (~11-12:1
-   * on black) dark variants, and the new palette photo is itself a
-   * light-mode swatch sheet (its own "Verwendung" labels call out
-   * light-surface uses — buttons, hover, active states).
-   *
-   * These are consumed several ways (App.tsx sets --color-section to
-   * whichever of these applies to the current route, on document.body so it
-   * also reaches body-portaled Sheets):
-   * - TopGradient's wash uses --color-section directly.
-   * - .glass-accent (every primary button/pill in the app) blends a small
-   *   amount of it into the accent blue — buttons stay recognizably blue,
-   *   with just a hint of the current area's color, per explicit request
-   *   ("die Funktionstasten... behalten das Standardblau, bekommen aber
-   *   einen kleinen minimalen Farbverlauf").
-   * - .bg-section-12/.bg-section-20 (icon-badge backgrounds, the selected
-   *   pill in a page's own segmented control) and .glass-subtle-themed (a
-   *   card's border) go further and show the area color directly,
-   *   undiluted, since neither sits under text that needs to stay
-   *   readable.
-   * - .text-section (an icon badge's glyph) uses the separate
-   *   --color-section-*-icon tokens just below instead of these — Rezepte
-   *   and Supplements' own pale washes measure well under 3:1 on white
-   *   (checked numerically), so their icon glyphs borrow darker stops from
-   *   the SAME blue scale instead: Feed's icon steps one stop darker within
-   *   its own scale (#005BB5), Rezepte's the darkest stop (#003366), and
-   *   Supplements' the palette's separate "Tiefschieferblau" swatch
-   *   (#2c4258) — all comfortably clear 6:1+ on white. Light-mode only,
-   *   same as before: dark mode's own section values already clear 10:1+
-   *   against near-black, so those just repeat the plain token (Statistik
-   *   still has no icon token — it never did, its own value already reads
-   *   fine as text/glyph, see contrast above).
+   * Rebrand (v2.0.0): the --color-section-* family used to give
+   * Rezepte/Supplements/Feed/Statistik four different shades of blue (a
+   * blue-scale "palette photo" wash, brighter/darker per tab). That was
+   * itself the old brand's DNA — explicit feedback was that the app still
+   * looked like "the old app with big numbers" specifically because of
+   * "das Blau, der Farbverlauf, der Hintergrund" — so it's retired, not
+   * retuned. AmbientBackground and App.tsx no longer set a per-route
+   * --color-section; body{} below now simply always resolves it (and its
+   * icon counterpart) to --color-accent. The custom properties themselves
+   * are kept defined here (rather than hunting down every .glass-accent/
+   * .bg-section-12/.text-section consumer) so those classes keep compiling
+   * unchanged — they just render the one shared accent everywhere now,
+   * with no per-area variation left to see.
    */
-  --color-section-feed: #1E90FF;
-  --color-section-recipes: #B0D6FF;
-  --color-section-supplements: #6eb6ff;
-  --color-section-stats: #005BB5;
-  --color-section-feed-icon: #005BB5;
-  --color-section-recipes-icon: #003366;
-  --color-section-supplements-icon: #2c4258;
 }
 
 html {
@@ -314,24 +235,18 @@ body {
   @apply antialiased;
   background: var(--color-bg);
   color: var(--color-ink);
-  /* Falls back to the plain accent blue everywhere App.tsx doesn't set an
-     explicit per-section override (Einstellungen, and before the route
-     effect below has run on first paint) — TopGradient/.glass-accent/the
-     classes below then render exactly as they did before per-area color
-     existed. */
+  /* Rebrand (v2.0.0): permanently equals --color-accent now — App.tsx no
+     longer sets a per-route override at all (there is no more per-area
+     value to override it with). Kept as its own property rather than having
+     every consumer read var(--color-accent) directly, so nothing downstream
+     (.glass-accent, .bg-section-12/-20, .text-section, .glass-subtle-themed)
+     needs touching. */
   --color-section: var(--color-accent);
   --color-section-icon: var(--color-accent);
-  /* The actual "dynamisch, nicht starr" transition for the two properties
-     above (see the @property registrations at the top of this file) —
-     400ms matches this app's other critically-damped defaults
-     (lib/motionTokens.ts's SPRING_DEFAULT), and the decel curve approximates
-     that same no-overshoot settle in plain CSS easing terms (@property
-     transitions run on the standard CSS timeline, not Motion's spring
-     engine, so it can't literally be a spring — this is the closest
-     equivalent shape). Automatically honors prefers-reduced-motion: the
-     `*` rule further down already zeroes every transition-duration on the
-     page, this one included, so reduced-motion users still get an instant
-     cut rather than a forced animation. */
+  /* Inert now that nothing ever changes --color-section/-icon at runtime —
+     kept rather than removed since it's a harmless no-op declared right
+     next to the values it would animate, should per-area color ever come
+     back. See the @property registrations at the top of this file. */
   transition:
     --color-section 400ms cubic-bezier(0.32, 0.72, 0, 1),
     --color-section-icon 400ms cubic-bezier(0.32, 0.72, 0, 1);
@@ -340,27 +255,39 @@ body {
 /* --- Dark mode — follows the device setting only (no in-app toggle) --- */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg: #000000;
-    --color-surface: #1c1c1e;
-    --color-ink: #ffffff;
-    --color-ink-soft: #98989d;
-    /* Same fix as the light value above, mirrored for the dark palette. */
-    --color-ink-faint: #767676;
-    --color-line: #38383a;
+    /* Rebrand (v2.0.0) — mirrors the light-mode block above and matches
+       design-demo/vision-board-big-number.html's own
+       :root[data-theme="dark"] tokens exactly, not approximated. Pure
+       #000000 is gone too: the Vision Board's dark canvas is a near-black
+       #0d0d0f, same reasoning as the light side's near-white rather than
+       pure #fff — a true black/white pair reads as a system default,
+       not a chosen surface. */
+    --color-bg: #0d0d0f;
+    --color-surface: #17171a;
+    --color-ink: #f5f5f3;
+    --color-ink-soft: #9c9ea3;
+    --color-ink-faint: #54565c;
+    --color-line: #232327;
 
-    --color-accent: #1E90FF;
-    --color-kcal: #1E90FF;
-    --color-carbs: #30d158;
-    --color-fat: #ffd60a;
+    /* --color-accent inverts with the canvas (ink itself, not a fixed
+       blue) — see .glass-accent below, which reads --color-bg for its
+       text so a dark-mode button (light ink on nothing) still shows dark
+       text on its own light fill. --color-kcal stays the one place blue
+       survives, lightened off the light-mode value for contrast on black. */
+    --color-accent: #f5f5f3;
+    --color-kcal: #5c8dff;
+    --color-protein: #ff6b8a;
+    --color-carbs: #4ecf8a;
+    --color-fat: #f0ac3a;
     --color-meal-breakfast: #ff9f0a;
-    --color-meal-lunch: #ffd60a;
+    --color-meal-lunch: #f0ac3a;
     /* Follows --color-meal-dinner's light-mode swap to Purple above — its
        dark-mode counterpart, matching --color-micro-vitaminb12's own
        light/dark pair just below. */
     --color-meal-dinner: #bf5af2;
-    --color-meal-snack: #30d158;
+    --color-meal-snack: #4ecf8a;
     --color-danger: #ff453a;
-    --color-good: #30d158;
+    --color-good: #4ecf8a;
 
     /* v2: same hues as the light-mode block above, solved for ≥9:1 contrast
        on black instead of ≥3.4:1 on white (see that block's comment for the
@@ -395,20 +322,10 @@ body {
     --color-supp-gut: #ac8e68;
     --color-supp-general_health: #64d2ff;
 
-    --color-section-feed: #64d2ff;
-    --color-section-recipes: #40cbe0;
-    --color-section-supplements: #66d4cf;
-    /* Unlike the other three, Statistik has no dark-mode value of its own —
-       see the long comment above --color-section-feed for why: on black,
-       "darker than accent" has no legible equivalent, so it simply falls
-       back to being the accent again, exactly as it did before this token
-       existed. */
-    --color-section-stats: var(--color-accent);
-    /* Already high-contrast against near-black, unlike the light-mode
-       values above — no separate darkened variant needed. */
-    --color-section-feed-icon: #64d2ff;
-    --color-section-recipes-icon: #40cbe0;
-    --color-section-supplements-icon: #66d4cf;
+    /* Rebrand (v2.0.0): the four per-area --color-section-* values are
+       retired here too, same reasoning as the light-mode block above —
+       body{}'s default (--color-section: var(--color-accent)) now covers
+       dark mode unconditionally as well. */
   }
 }
 
@@ -478,66 +395,25 @@ body {
 }
 
 /* --- Ambient background (components/AmbientBackground.tsx) ---
-   Big-Number-Redesign point 5: Liquid Glass needs colour behind it to
-   blur/refract, and TopGradient's wash (which this replaces) only ever
-   covered the top quarter of the screen — every glass surface further down
-   the page had nothing but the flat --color-bg to frost, which is a real
-   part of why the effect "geht fast komplett unter" on longer pages.
-   Three large, heavily blurred circles rather than many small ones —
-   abstract and minimal on purpose (explicit request), not a busy graphic in
-   its own right. Two follow --color-section (area-aware, like TopGradient
-   did); the third stays fixed on --color-kcal, since Kalorien is now the
-   one constant hero across every screen. Fixed + deeply negative z-index,
-   same stacking approach as TopGradient/BackgroundRings: ordinary page
-   content simply paints over it. */
+   Rebrand (v2.0.0): this used to be three large, heavily blurred colored
+   circles (two following the now-retired --color-section, one fixed on
+   --color-fat) — a "Farbverlauf" the explicit feedback named directly as
+   part of why the app still read as the old one. Replaced with the Vision
+   Board's own body-background rule verbatim (design-demo/
+   vision-board-big-number.html): a faint 22px dot grid at 5% ink over the
+   plain canvas, no color, no blur, no per-route variation. Liquid Glass
+   still gets something to frost — a repeating texture refracts under blur
+   just as a color wash did — it's just neutral now instead of a hue. Fixed
+   + deeply negative z-index, same stacking approach as before: ordinary
+   page content simply paints over it. */
 .ambient-bg {
   position: fixed;
   inset: 0;
   z-index: -30;
-  overflow: hidden;
-  background: var(--color-bg);
+  background:
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--color-ink) 5%, transparent) 1px, transparent 0) 0 0 / 22px 22px,
+    var(--color-bg);
   pointer-events: none;
-}
-.ambient-bg::before,
-.ambient-bg::after,
-.ambient-bg .ambient-blob {
-  content: "";
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(90px);
-}
-.ambient-bg::before {
-  width: 58vh;
-  height: 58vh;
-  top: -16vh;
-  left: -12vw;
-  background: var(--color-section);
-  opacity: 0.2;
-}
-.ambient-bg::after {
-  width: 52vh;
-  height: 52vh;
-  bottom: -18vh;
-  right: -14vw;
-  background: var(--color-kcal);
-  opacity: 0.2;
-}
-.ambient-bg .ambient-blob {
-  width: 42vh;
-  height: 42vh;
-  top: 34vh;
-  right: 6vw;
-  background: var(--color-fat);
-  opacity: 0.13;
-}
-@media (prefers-color-scheme: dark) {
-  .ambient-bg::before,
-  .ambient-bg::after {
-    opacity: 0.3;
-  }
-  .ambient-bg .ambient-blob {
-    opacity: 0.2;
-  }
 }
 /* The caption sizes below text-xs are one-off arbitrary values (the ring
    labels, the badge numbers), so they can't carry tracking through the theme
@@ -666,25 +542,34 @@ input[type="number"] {
   }
 }
 
-/* Solid accent-colored glass: no glow, no pastel tint on its own border —
-   fill and border are the same hue family so the edge never looks mismatched.
-   The fill is a small, deliberate gradient from the plain accent blue toward
-   --color-section (85%/15% — barely perceptible as its own color, but the
-   whole area's buttons pick up a consistent, recognizable hint of "where you
-   are" without ever stopping reading as blue). Outside a themed section
-   --color-section falls back to --color-accent itself (see body{} above),
-   so the gradient collapses to flat blue exactly as before. */
+/* Solid accent-colored glass: every primary button/pill in the app.
+   Rebrand (v2.0.0): used to be a small, deliberate gradient from the plain
+   accent blue toward the current area's --color-section (85%/15% — a
+   recognizable per-area hint without ever stopping reading as blue). That
+   whole mechanism is retired along with --color-section-* itself (see the
+   long comment above the light-mode @theme block) — --color-section now
+   permanently equals --color-accent (body{} below), so the fill is just
+   flat --color-accent, i.e. ink, inverted against the canvas per theme. */
 .glass-accent {
   background:
     radial-gradient(140% 160% at 22% -25%, rgba(255, 255, 255, 0.5), transparent 50%),
-    linear-gradient(135deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 85%, var(--color-section) 15%));
+    var(--color-accent);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid color-mix(in srgb, var(--color-accent) 55%, white 45%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.35),
     inset 0 -8px 14px -10px rgba(0, 0, 0, 0.35);
-  color: #ffffff;
+  /* Rebrand (v2.0.0): --color-accent is now ink itself, inverted against
+     --color-bg in each theme (light: near-black accent on a near-white
+     canvas; dark: near-white accent on a near-black canvas) — the same
+     bg/ink swap the Vision Board's own .sheet-cta uses. Text used to be a
+     hardcoded #ffffff, which only worked while the accent was permanently
+     a mid-tone blue; on a light-mode accent that's near-black, white text
+     is still correct (dark fill), but on the dark-mode accent (near-white
+     fill) white text would vanish — var(--color-bg) always matches
+     whichever theme is active. */
+  color: var(--color-bg);
   /* Same Safari press-transform/backdrop-filter fix as .glass above — this
      is the material every primary button/pill in the app uses, so it's the
      one most often actually pressed. */
@@ -943,9 +828,10 @@ input[type="number"] {
        signals, not one "accessibility mode") --- */
 
 /* Reduced transparency: the frosted layers become solid. Blur is what costs
-   legibility here, so it goes entirely rather than being softened. The
-   decorative top gradient goes too — with nothing left to frost it's just a
-   colored wash behind text. */
+   legibility here, so it goes entirely rather than being softened.
+   .ambient-bg itself needs no override — it's a flat, low-contrast texture
+   with no backdrop-filter of its own, so it isn't a transparency/contrast
+   concern the way the old colored blur wash was. */
 @media (prefers-reduced-transparency: reduce) {
   .glass,
   .glass-subtle {
@@ -959,9 +845,6 @@ input[type="number"] {
     -webkit-backdrop-filter: none;
   }
 
-  .ambient-bg::before,
-  .ambient-bg::after,
-  .ambient-bg .ambient-blob,
   .background-rings {
     display: none;
   }
@@ -978,9 +861,6 @@ input[type="number"] {
     border: 1px solid var(--color-ink);
   }
 
-  .ambient-bg::before,
-  .ambient-bg::after,
-  .ambient-bg .ambient-blob,
   .background-rings {
     display: none;
   }
