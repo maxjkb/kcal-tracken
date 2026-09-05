@@ -5,7 +5,8 @@ import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, toLocalDateKey, type Meal, type Meal
 import { MealCard } from '../components/MealCard'
 import { MealEditor } from '../components/MealEditor'
 import { MealDetail } from '../components/MealDetail'
-import { MiniNutrientRings, NutrientRings } from '../components/NutrientRings'
+import { MiniNutrientRings } from '../components/NutrientRings'
+import { RemainingHero } from '../components/RemainingHero'
 import { DayPickerModal } from '../components/DatePickerModal'
 import { Collapse } from '../components/Collapse'
 import { MealTypeBadge } from '../components/MealTypeBadge'
@@ -106,7 +107,7 @@ export function FeedPage() {
       />
 
       <GlassSurface rim={26} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-5 shadow-sm shadow-black/5">
-        <NutrientRings kcal={totals.kcal} protein={totals.protein} carbs={totals.carbs} fat={totals.fat} targets={targets} />
+        <RemainingHero kcal={totals.kcal} protein={totals.protein} carbs={totals.carbs} fat={totals.fat} targets={targets} />
       </GlassSurface>
 
       {meals === undefined ? (
