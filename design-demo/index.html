@@ -1,285 +1,474 @@
-<title>Fünf Richtungen</title>
-<meta name="description" content="Fünf komplett unterschiedliche visuelle Sprachen für Tracke, zum Vergleichen vor der Umsetzung.">
+<title>Acht Richtungen</title>
+<meta name="description" content="Vier weiterentwickelte plus vier neue visuelle Sprachen für Tracke, jede mit Hell/Dunkel und einem echten Nachfolger für die Ringe.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&family=Archivo:wght@500;700;800&family=Archivo+Black&family=Sora:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600;700&family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&family=Sora:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600;700&family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&family=Roboto+Slab:wght@600;700&family=Work+Sans:wght@400;500;600;700&family=Quicksand:wght@600;700&family=Nunito+Sans:wght@400;600;700&family=Space+Mono:wght@600;700&family=Unbounded:wght@600;700;800&display=swap">
 <style>
   :root{
-    --shell-bg:#f4f5f7; --shell-panel:#ffffff; --shell-ink:#14171c; --shell-soft:#666f7c; --shell-line:#e3e5e9;
-    --shell-accent:#3a63ff;
+    --shell-bg:#f4f5f7; --shell-panel:#fff; --shell-ink:#14171c; --shell-soft:#666f7c; --shell-line:#e3e5e9; --shell-accent:#3a63ff;
   }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --shell-bg:#0d0e11; --shell-panel:#17191e; --shell-ink:#f2f3f5; --shell-soft:#9aa2ad; --shell-line:#2a2d33;
-      --shell-accent:#6f8dff;
-    }
-  }
-  :root[data-theme="dark"]{
-    --shell-bg:#0d0e11; --shell-panel:#17191e; --shell-ink:#f2f3f5; --shell-soft:#9aa2ad; --shell-line:#2a2d33;
-    --shell-accent:#6f8dff;
-  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --shell-bg:#0d0e11; --shell-panel:#17191e; --shell-ink:#f2f3f5; --shell-soft:#9aa2ad; --shell-line:#2a2d33; --shell-accent:#6f8dff; } }
+  :root[data-theme="dark"]{ --shell-bg:#0d0e11; --shell-panel:#17191e; --shell-ink:#f2f3f5; --shell-soft:#9aa2ad; --shell-line:#2a2d33; --shell-accent:#6f8dff; }
   *{box-sizing:border-box;}
   body{background:var(--shell-bg); color:var(--shell-ink); font-family:'IBM Plex Sans', system-ui, sans-serif; margin:0;}
-  .wrap{max-width:1180px; margin:0 auto; padding:28px 20px 80px;}
-  .lede{max-width:640px; margin:0 0 28px;}
-  .lede h1{font-family:'Sora',system-ui,sans-serif; font-size:28px; font-weight:700; margin:0 0 8px; letter-spacing:-0.01em;}
-  .lede p{color:var(--shell-soft); font-size:14.5px; line-height:1.55; margin:0;}
-  .lede code{background:var(--shell-line); padding:1px 6px; border-radius:6px; font-size:13px;}
+  .wrap{max-width:1220px; margin:0 auto; padding:26px 20px 80px;}
+  .lede{max-width:680px; margin:0 0 22px;}
+  .lede h1{font-family:'Sora',system-ui,sans-serif; font-size:26px; font-weight:700; margin:0 0 8px; letter-spacing:-0.01em;}
+  .lede p{color:var(--shell-soft); font-size:14px; line-height:1.55; margin:0 0 6px;}
+  .lede b{color:var(--shell-ink);}
 
-  .approach-rail{display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:22px;}
-  @media (max-width:920px){.approach-rail{grid-template-columns:repeat(5,220px); overflow-x:auto; padding-bottom:6px;}}
-  .a-card{text-align:left; cursor:pointer; border-radius:16px; padding:14px 14px 12px; border:1.5px solid var(--shell-line); background:var(--shell-panel); display:flex; flex-direction:column; gap:8px; transition:border-color .15s, transform .15s;}
-  .a-card:hover{transform:translateY(-1px);}
+  .approach-rail{display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin-bottom:18px;}
+  @media (max-width:980px){.approach-rail{grid-template-columns:repeat(4,210px); overflow-x:auto; padding-bottom:6px;}}
+  .a-card{text-align:left; cursor:pointer; border-radius:14px; padding:12px 12px 11px; border:1.5px solid var(--shell-line); background:var(--shell-panel); display:flex; flex-direction:column; gap:6px;}
   .a-card[aria-pressed="true"]{border-color:var(--dot1); box-shadow:0 0 0 3px color-mix(in srgb, var(--dot1) 22%, transparent);}
-  .a-num{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--shell-soft); font-weight:600;}
-  .a-name{font-family:'Sora',system-ui,sans-serif; font-size:15.5px; font-weight:700; letter-spacing:-0.01em;}
-  .a-pitch{font-size:12px; color:var(--shell-soft); line-height:1.4; min-height:32px;}
-  .a-dots{display:flex; gap:5px;}
-  .a-dots span{width:16px; height:16px; border-radius:5px; display:block;}
+  .a-num{font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--shell-soft); font-weight:600;}
+  .a-name{font-family:'Sora',system-ui,sans-serif; font-size:14px; font-weight:700; letter-spacing:-0.01em;}
+  .a-pitch{font-size:11px; color:var(--shell-soft); line-height:1.35; min-height:28px;}
+  .a-tagchip{display:inline-block; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:2px 6px; border-radius:5px; background:color-mix(in srgb, var(--dot1) 16%, transparent); color:var(--dot1); width:max-content;}
+  .a-dots{display:flex; gap:4px;}
+  .a-dots span{width:13px; height:13px; border-radius:4px; display:block;}
 
-  .stage{display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;}
-  .screen-tabs{display:flex; gap:6px; background:var(--shell-panel); border:1px solid var(--shell-line); border-radius:12px; padding:4px; margin-bottom:14px; width:max-content;}
-  .screen-tabs button{border:none; background:transparent; font:inherit; font-size:12.5px; font-weight:600; color:var(--shell-soft); padding:7px 14px; border-radius:8px; cursor:pointer; font-family:'IBM Plex Sans',sans-serif;}
+  .toolbar{display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;}
+  .screen-tabs{display:flex; gap:6px; background:var(--shell-panel); border:1px solid var(--shell-line); border-radius:12px; padding:4px; width:max-content;}
+  .screen-tabs button{border:none; background:transparent; font:inherit; font-size:12px; font-weight:600; color:var(--shell-soft); padding:7px 12px; border-radius:8px; cursor:pointer;}
   .screen-tabs button[aria-pressed="true"]{background:var(--shell-accent); color:#fff;}
+  .theme-toggle{display:flex; gap:2px; background:var(--shell-panel); border:1px solid var(--shell-line); border-radius:12px; padding:4px;}
+  .theme-toggle button{border:none; background:transparent; font:inherit; font-size:12px; font-weight:600; color:var(--shell-soft); padding:7px 12px; border-radius:8px; cursor:pointer;}
+  .theme-toggle button[aria-pressed="true"]{background:var(--shell-ink); color:var(--shell-bg);}
 
+  .stage{display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap;}
   .phone-col{flex:0 0 auto;}
-  .phone-frame{width:380px; height:760px; border-radius:44px; background:#000; padding:12px; box-shadow:0 30px 60px -20px rgba(0,0,0,.35), 0 0 0 1px rgba(0,0,0,.08);}
+  .phone-frame{width:380px; height:780px; border-radius:44px; background:#000; padding:12px; box-shadow:0 30px 60px -20px rgba(0,0,0,.35), 0 0 0 1px rgba(0,0,0,.08);}
   .phone-inner{width:100%; height:100%; border-radius:34px; overflow:hidden; position:relative; background:#fff;}
-  .panel{position:absolute; inset:0; overflow-y:auto; -ms-overflow-style:none; scrollbar-width:none;}
+  .panel{position:absolute; inset:0; overflow-y:auto; scrollbar-width:none;}
   .panel::-webkit-scrollbar{display:none;}
   .panel[hidden]{display:none;}
 
-  .brief{flex:1 1 320px; min-width:280px; background:var(--shell-panel); border:1px solid var(--shell-line); border-radius:18px; padding:22px; position:sticky; top:20px;}
-  .brief h2{font-family:'Sora',system-ui,sans-serif; font-size:19px; margin:0 0 4px; letter-spacing:-0.01em;}
-  .brief .tag{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--shell-soft); text-transform:uppercase; letter-spacing:.06em; margin-bottom:14px; display:block;}
-  .brief p{font-size:13.5px; line-height:1.6; color:var(--shell-soft); margin:0 0 14px;}
-  .brief ul{margin:0 0 6px; padding-left:18px; font-size:13px; line-height:1.65; color:var(--shell-ink);}
-  .brief li{margin-bottom:5px;}
-  .brief .swatches{display:flex; gap:8px; margin-top:16px;}
-  .brief .swatches span{width:26px; height:26px; border-radius:8px; display:block; box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);}
+  .brief{flex:1 1 320px; min-width:280px; background:var(--shell-panel); border:1px solid var(--shell-line); border-radius:18px; padding:20px; position:sticky; top:20px;}
+  .brief h2{font-family:'Sora',system-ui,sans-serif; font-size:18px; margin:0 0 4px;}
+  .brief .tag{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--shell-soft); text-transform:uppercase; letter-spacing:.06em; margin-bottom:12px; display:block;}
+  .brief p{font-size:13px; line-height:1.6; color:var(--shell-soft); margin:0 0 12px;}
+  .brief ul{margin:0 0 4px; padding-left:17px; font-size:12.5px; line-height:1.6; color:var(--shell-ink);}
+  .brief li{margin-bottom:4px;}
+  .brief .swatches{display:flex; gap:7px; margin-top:14px;}
+  .brief .swatches span{width:24px; height:24px; border-radius:7px; display:block;}
+  .brief .successor{margin-top:14px; padding:10px 12px; border-radius:10px; background:color-mix(in srgb, var(--shell-accent) 8%, transparent); font-size:11.5px; line-height:1.5;}
+  .brief .successor b{color:var(--shell-ink);}
 
-  /* ============ shared mini components reused inside every language ============ */
   .hdr{display:flex; align-items:center; justify-content:space-between;}
   .badges{display:flex; gap:6px; flex-wrap:wrap;}
 
-  /* =========================================================================
-     1) VIVID GLASS — maximalist Liquid Glass: saturated gradient ground,
-     heavy blur, bright multi-hue accents, dark+light materials stacked.
-     ========================================================================= */
-  .appr-glass{ --g-protein:#ff375f; --g-carbs:#34c759; --g-fat:#ffb703; --g-kcal:#0a84ff; --g-ink:#0d1117; --g-soft:#48566b; --g-faint:#7c8aa0;
-    font-family:'IBM Plex Sans', system-ui, sans-serif; color:var(--g-ink); height:100%;
-    background:
-      radial-gradient(circle at 12% -6%, #93c5fd88, transparent 55%),
-      radial-gradient(circle at 108% 18%, #f9a8d488, transparent 50%),
-      radial-gradient(circle at -6% 62%, #c4b5fd88, transparent 50%),
-      radial-gradient(circle at 100% 96%, #86efac77, transparent 45%),
+  /* ===================================================================
+     shared "sheet" mock scaffolding — reused by every approach's Editor
+     screen so all 8 demonstrate the same text-input-sheet moment.
+     =================================================================== */
+  .sheet-screen{height:100%; display:flex; flex-direction:column;}
+  .backdrop-peek{position:relative; padding:20px 18px 0; flex:0 0 92px;}
+  .backdrop-peek::after{content:''; position:absolute; inset:0; background:rgba(0,0,0,.32);}
+  .sheet-mock{flex:1; border-top-left-radius:28px; border-top-right-radius:28px; padding:10px 18px 22px; display:flex; flex-direction:column; position:relative; z-index:1;}
+  .sheet-handle{width:36px; height:4px; border-radius:99px; margin:6px auto 14px;}
+  .sheet-title{font-weight:800; font-size:17px; margin-bottom:14px;}
+  .sheet-actions{display:flex; gap:10px; margin-top:12px;}
+  .sheet-actionbtn{flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:11px; border-radius:14px; font-size:12.5px; font-weight:600;}
+  .sheet-cta{margin-top:14px; padding:14px; border-radius:16px; text-align:center; font-weight:700; font-size:14px;}
+
+  /* ===================================================================
+     1) VIVID GLASS (weiterentwickelt) — jetzt mit echtem Dunkelmodus,
+     Makro-Nachfolger: Glas-Kapseln mit Flüssigkeitsstand statt Kachel.
+     =================================================================== */
+  .appr-glass{ font-family:'IBM Plex Sans',sans-serif; height:100%;
+    --g-protein:#ff375f; --g-carbs:#34c759; --g-fat:#ffb703; --g-kcal:#0a84ff; }
+  .appr-glass[data-theme="light"]{ color:#0d1117; --g-ink:#0d1117; --g-soft:#48566b; --g-faint:#7c8aa0;
+    background: radial-gradient(circle at 12% -6%, #93c5fd88, transparent 55%), radial-gradient(circle at 108% 18%, #f9a8d488, transparent 50%),
+      radial-gradient(circle at -6% 62%, #c4b5fd88, transparent 50%), radial-gradient(circle at 100% 96%, #86efac77, transparent 45%),
       linear-gradient(175deg,#dbeafe 0%,#eef1fd 38%,#fdf0f8 75%,#fff7e6 100%);
-  }
+    --g-surface:rgba(255,255,255,.45); --g-surface-strong:rgba(255,255,255,.72); --g-border:rgba(255,255,255,.65); --g-sheet:rgba(255,255,255,.86); --g-line:rgba(0,0,0,.08); }
+  .appr-glass[data-theme="dark"]{ color:#f0f2fb; --g-ink:#f0f2fb; --g-soft:#a9b1c6; --g-faint:#727c94;
+    background: radial-gradient(circle at 12% -6%, #1e3a6644, transparent 55%), radial-gradient(circle at 108% 18%, #6b1d4e55, transparent 50%),
+      radial-gradient(circle at -6% 62%, #3a2a6655, transparent 50%), radial-gradient(circle at 100% 96%, #12472f55, transparent 45%),
+      linear-gradient(175deg,#0c0f1a 0%,#111527 45%,#171224 80%,#1a1710 100%);
+    --g-surface:rgba(255,255,255,.08); --g-surface-strong:rgba(255,255,255,.12); --g-border:rgba(255,255,255,.16); --g-sheet:rgba(22,24,36,.82); --g-line:rgba(255,255,255,.1); }
   .appr-glass .pad{padding:20px 18px 30px;}
-  .appr-glass .hdr{margin-bottom:16px;}
-  .appr-glass .title{font-family:'Manrope',sans-serif; font-weight:800; font-size:26px; letter-spacing:-0.02em;}
-  .appr-glass .icon-btn{width:34px; height:34px; border-radius:12px; background:rgba(255,255,255,.55); backdrop-filter:blur(16px) saturate(160%); border:1px solid rgba(255,255,255,.7); display:flex; align-items:center; justify-content:center; font-size:15px;}
-  .appr-glass .glass{background:rgba(255,255,255,.42); backdrop-filter:blur(24px) saturate(180%); -webkit-backdrop-filter:blur(24px) saturate(180%); border:1px solid rgba(255,255,255,.65); border-radius:26px; box-shadow:0 8px 30px -12px rgba(20,30,60,.25), inset 0 1px 0 rgba(255,255,255,.8);}
-  .appr-glass .glass-dark{background:rgba(20,24,38,.62); backdrop-filter:blur(24px) saturate(160%); border:1px solid rgba(255,255,255,.14); color:#f2f4fb; border-radius:26px; box-shadow:0 10px 30px -10px rgba(0,0,0,.4);}
-  .appr-glass .rem-title{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--g-faint); padding:16px 18px 0;}
-  .appr-glass .rem-row{display:grid; grid-template-columns:repeat(4,1fr); gap:9px; padding:12px 16px 16px;}
-  .appr-glass .rem-item{border-radius:18px; padding:12px 6px; text-align:center; background:rgba(255,255,255,.5); border:1px solid rgba(255,255,255,.7);}
-  .appr-glass .rem-item .dot{width:9px; height:9px; border-radius:99px; margin:0 auto 7px;}
-  .appr-glass .rem-item .num{font-family:'Manrope',sans-serif; font-weight:800; font-size:18px; line-height:1;}
-  .appr-glass .rem-item .lbl{font-size:9.5px; color:var(--g-soft); margin-top:4px; font-weight:600;}
-  .appr-glass .section-title{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--g-soft); margin:20px 2px 10px;}
+  .appr-glass .title{font-family:'Manrope',sans-serif; font-weight:800; font-size:25px; letter-spacing:-0.02em;}
+  .appr-glass .icon-btn{width:33px; height:33px; border-radius:12px; background:var(--g-surface); backdrop-filter:blur(16px) saturate(160%); border:1px solid var(--g-border); display:flex; align-items:center; justify-content:center; font-size:14px;}
+  .appr-glass .glass{background:var(--g-surface); backdrop-filter:blur(24px) saturate(180%); border:1px solid var(--g-border); border-radius:24px; box-shadow:0 8px 30px -12px rgba(20,30,60,.25), inset 0 1px 0 rgba(255,255,255,.35);}
+  .appr-glass .section-title{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--g-soft); margin:18px 2px 9px;}
+  .appr-glass .g-caps{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:2px;}
+  .appr-glass .g-cap-shape{position:relative; height:94px; border-radius:18px; background:var(--g-surface); border:1px solid var(--g-border); overflow:hidden; backdrop-filter:blur(20px);}
+  .appr-glass .g-cap-fill{position:absolute; left:0; right:0; bottom:0; border-top:2px solid rgba(255,255,255,.55);}
+  .appr-glass .g-cap-num{position:absolute; top:8px; left:0; right:0; text-align:center; font-family:'Manrope',sans-serif; font-weight:800; font-size:15px; color:var(--g-ink);}
+  .appr-glass .g-cap-lbl{display:block; text-align:center; font-size:8.5px; font-weight:600; color:var(--g-soft); margin-top:6px;}
   .appr-glass .meal{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px;}
-  .appr-glass .meal-emoji{width:36px; height:36px; border-radius:12px; background:rgba(255,255,255,.55); display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0;}
-  .appr-glass .meal-name{font-weight:700; font-size:14px;}
-  .appr-glass .badge{font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:99px; color:#fff;}
-  .appr-glass .stat-tiles{display:grid; grid-template-columns:1.1fr 1fr; gap:10px; margin:0 18px 4px;}
-  .appr-glass .stat-tiles .glass{padding:14px;}
-  .appr-glass .stat-big{font-family:'Manrope',sans-serif; font-weight:800; font-size:24px;}
-  .appr-glass .stat-lbl{font-size:10.5px; color:var(--g-soft); font-weight:600; margin-top:2px;}
-  .appr-glass .micro-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px 16px; padding:14px 4px 4px;}
-  .appr-glass .micro-track{height:8px; border-radius:99px; background:rgba(0,0,0,.06); position:relative; margin:6px 0 5px;}
+  .appr-glass .meal-emoji{width:34px; height:34px; border-radius:12px; background:var(--g-surface); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;}
+  .appr-glass .meal-name{font-weight:700; font-size:13.5px;}
+  .appr-glass .badge{font-size:10px; font-weight:700; padding:2.5px 7px; border-radius:99px; color:#fff;}
+  .appr-glass .stat-tiles{display:grid; grid-template-columns:1.1fr 1fr; gap:9px; margin:0 18px 4px;}
+  .appr-glass .stat-tiles .glass{padding:13px;}
+  .appr-glass .stat-big{font-family:'Manrope',sans-serif; font-weight:800; font-size:22px;}
+  .appr-glass .stat-lbl{font-size:10px; color:var(--g-soft); font-weight:600; margin-top:2px;}
+  .appr-glass .micro-grid{display:grid; grid-template-columns:1fr 1fr; gap:13px 15px; padding:13px 4px 4px;}
+  .appr-glass .micro-track{height:7px; border-radius:99px; background:var(--g-line); position:relative; margin:6px 0 4px;}
   .appr-glass .micro-fill{position:absolute; inset:0; border-radius:99px;}
-  .appr-glass .micro-dot{position:absolute; top:50%; width:12px; height:12px; border-radius:99px; transform:translate(-50%,-50%); border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.25);}
-  .appr-glass .micro-ab{font-size:11px; font-weight:800;}
-  .appr-glass .micro-name{font-size:9.5px; color:var(--g-faint); font-weight:600;}
-  .appr-glass .supp{display:flex; align-items:center; gap:12px; padding:13px 14px; margin-bottom:9px;}
-  .appr-glass .supp-ic{width:38px; height:38px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; color:#fff;}
-  .appr-glass .supp-name{font-weight:700; font-size:13.5px;}
-  .appr-glass .supp-dose{font-size:11px; color:var(--g-soft); margin-top:1px;}
-  .appr-glass .warn{margin-left:auto; width:20px; height:20px; border-radius:99px; background:#ff9500; color:#fff; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .appr-glass .micro-dot{position:absolute; top:50%; width:11px; height:11px; border-radius:99px; transform:translate(-50%,-50%); border:2px solid var(--g-sheet); box-shadow:0 1px 4px rgba(0,0,0,.25);}
+  .appr-glass .micro-ab{font-size:10.5px; font-weight:800;}
+  .appr-glass .micro-name{font-size:9px; color:var(--g-faint); font-weight:600;}
+  .appr-glass .supp{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px;}
+  .appr-glass .supp-ic{width:36px; height:36px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; color:#fff;}
+  .appr-glass .supp-name{font-weight:700; font-size:13px;}
+  .appr-glass .supp-dose{font-size:10.5px; color:var(--g-soft); margin-top:1px;}
+  .appr-glass .warn{margin-left:auto; width:19px; height:19px; border-radius:99px; background:#ff9500; color:#fff; font-size:10.5px; font-weight:800; display:flex; align-items:center; justify-content:center;}
+  .appr-glass .backdrop-peek{background:var(--g-surface-strong);}
+  .appr-glass .sheet-mock{background:var(--g-sheet); backdrop-filter:blur(28px) saturate(180%);}
+  .appr-glass .sheet-handle{background:var(--g-faint);}
+  .appr-glass .sheet-input{border-radius:20px; background:var(--g-surface); border:1px solid var(--g-border); padding:16px; font-size:13.5px; color:var(--g-faint); min-height:84px;}
+  .appr-glass .sheet-actionbtn{background:var(--g-surface); border:1px solid var(--g-border); color:var(--g-ink);}
+  .appr-glass .sheet-cta{background:linear-gradient(135deg,var(--g-kcal),#7c5cff); color:#fff;}
 
-  /* =========================================================================
-     2) MICRO GAUGE — the Mikronährstoffe gauge-track language, extended to
-     every metric in the app. Cool neutral ground, identity colours carry
-     all the meaning, gauges everywhere instead of rings or percentages.
-     ========================================================================= */
-  .appr-gauge{ --q-bg:#eef0f4; --q-surface:#ffffff; --q-ink:#12151b; --q-soft:#5b6472; --q-faint:#8b93a1; --q-line:#dde1e8;
-    --q-protein:#ff375f; --q-carbs:#2fae63; --q-fat:#d98d00; --q-kcal:#2f6bff;
-    background:var(--q-bg); color:var(--q-ink); height:100%; font-family:'IBM Plex Sans',sans-serif;
-  }
+  /* ===================================================================
+     2) MICRO GAUGE (weiterentwickelt) — Halbkreis-Tacho mit Zeiger statt
+     Kachel: kein Füllstand, ein Zeiger auf einer Skala.
+     =================================================================== */
+  .appr-gauge{ font-family:'IBM Plex Sans',sans-serif; height:100%;
+    --q-protein:#ff375f; --q-carbs:#2fae63; --q-fat:#d98d00; --q-kcal:#2f6bff; }
+  .appr-gauge[data-theme="light"]{ background:#eef0f4; color:#12151b; --q-ink:#12151b; --q-soft:#5b6472; --q-faint:#8b93a1; --q-line:#dde1e8; --q-surface:#fff; --q-sheet:#fff; }
+  .appr-gauge[data-theme="dark"]{ background:#14171c; color:#eef0f4; --q-ink:#eef0f4; --q-soft:#9ba3b2; --q-faint:#666f80; --q-line:#282d36; --q-surface:#1c2027; --q-sheet:#1c2027;
+    --q-protein:#ff5c82; --q-carbs:#3ecb7d; --q-fat:#f0a938; --q-kcal:#5c8bff; }
   .appr-gauge .pad{padding:20px 18px 30px;}
-  .appr-gauge .title{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:22px; letter-spacing:-0.01em;}
-  .appr-gauge .icon-btn{width:32px; height:32px; border-radius:10px; background:var(--q-surface); border:1px solid var(--q-line); display:flex; align-items:center; justify-content:center; font-size:14px;}
+  .appr-gauge .title{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:21px;}
+  .appr-gauge .icon-btn{width:31px; height:31px; border-radius:10px; background:var(--q-surface); border:1px solid var(--q-line); display:flex; align-items:center; justify-content:center; font-size:13px;}
   .appr-gauge .card{background:var(--q-surface); border:1px solid var(--q-line); border-radius:16px;}
-  .appr-gauge .rem-title{font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--q-faint); margin:18px 0 10px;}
-  .appr-gauge .rem-list{display:flex; flex-direction:column; gap:12px;}
-  .appr-gauge .rem-row{display:grid; grid-template-columns:34px 1fr 56px; align-items:center; gap:10px; padding:11px 14px;}
-  .appr-gauge .rem-ab{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:12px;}
-  .appr-gauge .g-track{height:7px; border-radius:99px; background:var(--q-line); position:relative;}
-  .appr-gauge .g-fill{position:absolute; inset:0; border-radius:99px;}
-  .appr-gauge .g-dot{position:absolute; top:50%; width:11px; height:11px; border-radius:99px; transform:translate(-50%,-50%); border:2px solid var(--q-surface); box-shadow:0 0 0 1px rgba(0,0,0,.1);}
-  .appr-gauge .g-num{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:13px; text-align:right;}
-  .appr-gauge .g-sub{font-size:8.5px; color:var(--q-faint); text-align:right; font-weight:500;}
-  .appr-gauge .section-title{font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--q-faint); margin:22px 0 10px;}
-  .appr-gauge .meal{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px;}
-  .appr-gauge .meal-tag{width:6px; align-self:stretch; border-radius:4px; flex-shrink:0;}
-  .appr-gauge .meal-name{font-weight:600; font-size:13.5px;}
-  .appr-gauge .badge{font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:600; padding:2px 7px; border-radius:6px;}
-  .appr-gauge .stat-tiles{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:4px;}
-  .appr-gauge .stat-tiles .card{padding:14px;}
-  .appr-gauge .stat-big{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:22px;}
-  .appr-gauge .stat-lbl{font-size:10px; color:var(--q-faint); margin-top:3px; font-weight:500;}
-  .appr-gauge .micro-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px 18px; padding:16px;}
-  .appr-gauge .micro-ab{font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700;}
-  .appr-gauge .micro-name{font-size:9.5px; color:var(--q-faint);}
-  .appr-gauge .supp{display:flex; align-items:center; gap:12px; padding:13px 14px; margin-bottom:9px;}
-  .appr-gauge .supp-ic{width:8px; align-self:stretch; border-radius:5px; flex-shrink:0;}
-  .appr-gauge .supp-name{font-weight:600; font-size:13.5px;}
-  .appr-gauge .supp-dose{font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--q-faint); margin-top:2px;}
-  .appr-gauge .warn{margin-left:auto; width:18px; height:18px; border-radius:6px; background:#d98d00; color:#fff; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center;}
+  .appr-gauge .section-title{font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--q-faint); margin:20px 0 9px;}
+  .appr-gauge .arc-row{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; padding:10px 4px;}
+  .appr-gauge .arc-cell{display:flex; flex-direction:column; align-items:center;}
+  .appr-gauge .arc-num{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:15px; margin-top:2px;}
+  .appr-gauge .arc-lbl{font-size:8px; color:var(--q-faint); font-weight:600; text-align:center;}
+  .appr-gauge .meal{display:flex; align-items:center; gap:12px; padding:11px 14px; margin-bottom:7px;}
+  .appr-gauge .meal-tag{width:5px; align-self:stretch; border-radius:4px; flex-shrink:0;}
+  .appr-gauge .meal-name{font-weight:600; font-size:13px;}
+  .appr-gauge .badge{font-family:'IBM Plex Mono',monospace; font-size:9.5px; font-weight:600; padding:2px 6px; border-radius:6px;}
+  .appr-gauge .stat-tiles{display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:4px;}
+  .appr-gauge .stat-tiles .card{padding:13px;}
+  .appr-gauge .stat-big{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:20px;}
+  .appr-gauge .stat-lbl{font-size:9.5px; color:var(--q-faint); margin-top:3px;}
+  .appr-gauge .micro-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px 16px; padding:14px;}
+  .appr-gauge .micro-ab{font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:700;}
+  .appr-gauge .micro-track{height:6px; border-radius:99px; background:var(--q-line); position:relative; margin:6px 0 4px;}
+  .appr-gauge .micro-fill{position:absolute; inset:0; border-radius:99px;}
+  .appr-gauge .micro-dot{position:absolute; top:50%; width:10px; height:10px; border-radius:99px; transform:translate(-50%,-50%); border:2px solid var(--q-surface);}
+  .appr-gauge .micro-name{font-size:9px; color:var(--q-faint);}
+  .appr-gauge .supp{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px;}
+  .appr-gauge .supp-ic{width:7px; align-self:stretch; border-radius:5px; flex-shrink:0;}
+  .appr-gauge .supp-name{font-weight:600; font-size:13px;}
+  .appr-gauge .supp-dose{font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--q-faint); margin-top:2px;}
+  .appr-gauge .warn{margin-left:auto; width:17px; height:17px; border-radius:6px; background:var(--q-fat); color:#fff; font-size:9.5px; font-weight:800; display:flex; align-items:center; justify-content:center;}
+  .appr-gauge .backdrop-peek{background:var(--q-surface);}
+  .appr-gauge .sheet-mock{background:var(--q-sheet); border-top:1px solid var(--q-line);}
+  .appr-gauge .sheet-handle{background:var(--q-line);}
+  .appr-gauge .sheet-input{border-radius:12px; background:var(--q-surface); border:1.5px solid var(--q-line); padding:15px; font-size:13px; color:var(--q-faint); min-height:80px; font-family:'IBM Plex Mono',monospace;}
+  .appr-gauge .sheet-actionbtn{background:var(--q-surface); border:1.5px solid var(--q-line); color:var(--q-ink);}
+  .appr-gauge .sheet-cta{background:var(--q-kcal); color:#fff;}
 
-  /* =========================================================================
-     3) BOLD BLOCKS — flat, high-contrast, hard edges + hard offset shadows.
-     No blur anywhere. Colour is structural, not decorative.
-     ========================================================================= */
-  .appr-brutal{ --b-red:#ff2d3a; --b-blue:#0d5eff; --b-yellow:#ffcf00; --b-green:#12b76a; --b-ink:#0a0a0a;
-    background:#fbfbf8; color:var(--b-ink); height:100%; font-family:'Archivo',sans-serif;
-  }
-  .appr-brutal .pad{padding:18px 16px 28px;}
-  .appr-brutal .title{font-family:'Archivo Black',sans-serif; font-size:26px; text-transform:uppercase;}
-  .appr-brutal .icon-btn{width:34px; height:34px; border-radius:0; background:#fff; border:2.5px solid var(--b-ink); display:flex; align-items:center; justify-content:center; font-size:14px;}
-  .appr-brutal .block{border:2.5px solid var(--b-ink); border-radius:0; box-shadow:5px 5px 0 var(--b-ink); background:#fff;}
-  .appr-brutal .rem-title{font-family:'Archivo Black',sans-serif; font-size:12px; text-transform:uppercase; letter-spacing:.02em; margin:20px 0 10px;}
-  .appr-brutal .rem-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
-  .appr-brutal .rem-item{padding:14px; color:#fff;}
-  .appr-brutal .rem-item .num{font-family:'Archivo Black',sans-serif; font-size:30px; line-height:1;}
-  .appr-brutal .rem-item .unit{font-size:13px; font-weight:800;}
-  .appr-brutal .rem-item .lbl{font-size:11px; font-weight:700; text-transform:uppercase; margin-top:6px;}
-  .appr-brutal .rem-item .sub{font-size:10.5px; opacity:.85; margin-top:2px; font-weight:600;}
-  .appr-brutal .section-title{font-family:'Archivo Black',sans-serif; font-size:13px; text-transform:uppercase; margin:22px 0 10px;}
-  .appr-brutal .meal{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:10px;}
-  .appr-brutal .meal-emoji{width:34px; height:34px; border:2px solid var(--b-ink); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; background:#fff;}
-  .appr-brutal .meal-name{font-weight:800; font-size:14px; text-transform:uppercase; letter-spacing:-0.01em;}
-  .appr-brutal .badge{font-size:10.5px; font-weight:800; padding:2px 7px; border:2px solid var(--b-ink); color:var(--b-ink); background:#fff;}
-  .appr-brutal .stat-tiles{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:4px;}
-  .appr-brutal .stat-tiles .block{padding:14px;}
-  .appr-brutal .stat-big{font-family:'Archivo Black',sans-serif; font-size:24px;}
-  .appr-brutal .stat-lbl{font-size:10.5px; font-weight:700; text-transform:uppercase; margin-top:3px;}
-  .appr-brutal .micro-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;}
-  .appr-brutal .micro-cell{border:2px solid var(--b-ink); padding:9px 10px;}
-  .appr-brutal .micro-ab{font-family:'Archivo Black',sans-serif; font-size:12px;}
-  .appr-brutal .micro-track{height:8px; background:#efefe9; border:1.5px solid var(--b-ink); position:relative; margin:6px 0 4px;}
-  .appr-brutal .micro-fill{position:absolute; inset:0;}
-  .appr-brutal .micro-name{font-size:9px; font-weight:700; text-transform:uppercase;}
-  .appr-brutal .supp{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:10px;}
-  .appr-brutal .supp-ic{width:36px; height:36px; border:2px solid var(--b-ink); display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;}
-  .appr-brutal .supp-name{font-weight:800; font-size:13.5px; text-transform:uppercase;}
-  .appr-brutal .supp-dose{font-size:11px; font-weight:600; margin-top:2px;}
-  .appr-brutal .warn{margin-left:auto; width:22px; height:22px; background:var(--b-yellow); border:2px solid var(--b-ink); color:var(--b-ink); font-size:12px; font-weight:900; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
-
-  /* =========================================================================
-     4) DARK STUDIO — near-black canvas, glass panels with a visible highlight
-     rim, several neon accents at once (not one lone pop).
-     ========================================================================= */
-  .appr-dark{ --d-bg:#0a0b0f; --d-panel:rgba(255,255,255,.05); --d-ink:#f4f5f8; --d-soft:#9aa1af; --d-faint:#666e7c; --d-line:rgba(255,255,255,.1);
-    --d-protein:#ff4d7d; --d-carbs:#38e07a; --d-fat:#ffcf3d; --d-kcal:#3ea9ff;
-    background:
-      radial-gradient(circle at 15% 0%, #1c2440 0%, transparent 45%),
-      radial-gradient(circle at 100% 30%, #2a1638 0%, transparent 50%),
-      var(--d-bg);
-    color:var(--d-ink); height:100%; font-family:'IBM Plex Sans',sans-serif;
-  }
+  /* ===================================================================
+     4) DARK STUDIO (weiterentwickelt) — jetzt auch Hellmodus (Glow bleibt
+     als farbiger Halo statt Neon-auf-Schwarz). Makro-Nachfolger: vertikale
+     Pegel-Säule mit Marker, wie ein VU-Meter — kein Ring, kein Füllen.
+     =================================================================== */
+  .appr-dark{ font-family:'IBM Plex Sans',sans-serif; height:100%;
+    --d-protein:#ff4d7d; --d-carbs:#38e07a; --d-fat:#ffcf3d; --d-kcal:#3ea9ff; }
+  .appr-dark[data-theme="dark"]{ color:#f4f5f8; --d-ink:#f4f5f8; --d-soft:#9aa1af; --d-faint:#666e7c; --d-line:rgba(255,255,255,.1); --d-panel:rgba(255,255,255,.05); --d-sheet:#101216;
+    background: radial-gradient(circle at 15% 0%, #1c2440 0%, transparent 45%), radial-gradient(circle at 100% 30%, #2a1638 0%, transparent 50%), #0a0b0f; }
+  .appr-dark[data-theme="light"]{ color:#11131a; --d-ink:#11131a; --d-soft:#5c6472; --d-faint:#8a92a0; --d-line:rgba(0,0,0,.08); --d-panel:#fff; --d-sheet:#fff;
+    background: radial-gradient(circle at 15% 0%, #dbe6ff 0%, transparent 45%), radial-gradient(circle at 100% 30%, #ffe0f2 0%, transparent 50%), #f4f5f8; }
   .appr-dark .pad{padding:20px 18px 30px;}
-  .appr-dark .title{font-family:'Sora',sans-serif; font-weight:700; font-size:24px; letter-spacing:-0.01em;}
-  .appr-dark .icon-btn{width:33px; height:33px; border-radius:11px; background:var(--d-panel); border:1px solid var(--d-line); display:flex; align-items:center; justify-content:center; font-size:14px; backdrop-filter:blur(10px);}
-  .appr-dark .glass{background:var(--d-panel); backdrop-filter:blur(18px); border:1px solid var(--d-line); border-radius:22px; box-shadow:inset 0 1px 0 rgba(255,255,255,.08);}
-  .appr-dark .rem-title{font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--d-faint); margin:18px 2px 10px;}
-  .appr-dark .rem-row{display:grid; grid-template-columns:repeat(4,1fr); gap:9px;}
-  .appr-dark .rem-item{border-radius:16px; padding:12px 5px; text-align:center;}
-  .appr-dark .rem-item .num{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:17px;}
-  .appr-dark .rem-item .lbl{font-size:9px; color:var(--d-soft); margin-top:4px; font-weight:600;}
-  .appr-dark .section-title{font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--d-faint); margin:22px 2px 10px;}
-  .appr-dark .meal{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px;}
-  .appr-dark .meal-emoji{width:36px; height:36px; border-radius:12px; background:rgba(255,255,255,.06); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; border:1px solid var(--d-line);}
-  .appr-dark .meal-name{font-weight:600; font-size:13.5px;}
-  .appr-dark .badge{font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; padding:2px 7px; border-radius:7px;}
-  .appr-dark .stat-tiles{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:4px;}
-  .appr-dark .stat-tiles .glass{padding:14px;}
-  .appr-dark .stat-big{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:21px;}
-  .appr-dark .stat-lbl{font-size:10px; color:var(--d-faint); margin-top:3px;}
-  .appr-dark .micro-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px 16px; padding:15px;}
-  .appr-dark .micro-track{height:6px; border-radius:99px; background:rgba(255,255,255,.08); position:relative; margin:6px 0 5px;}
-  .appr-dark .micro-fill{position:absolute; inset:0; border-radius:99px; filter:brightness(1.15);}
-  .appr-dark .micro-dot{position:absolute; top:50%; width:10px; height:10px; border-radius:99px; transform:translate(-50%,-50%); border:2px solid #0a0b0f; box-shadow:0 0 8px 1px currentColor;}
-  .appr-dark .micro-ab{font-size:11px; font-weight:700;}
+  .appr-dark .title{font-family:'Sora',sans-serif; font-weight:700; font-size:23px; letter-spacing:-0.01em;}
+  .appr-dark .icon-btn{width:32px; height:32px; border-radius:11px; background:var(--d-panel); border:1px solid var(--d-line); display:flex; align-items:center; justify-content:center; font-size:13px; backdrop-filter:blur(10px);}
+  .appr-dark .glass{background:var(--d-panel); backdrop-filter:blur(18px); border:1px solid var(--d-line); border-radius:22px; box-shadow:inset 0 1px 0 rgba(255,255,255,.06);}
+  .appr-dark .section-title{font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--d-faint); margin:20px 2px 9px;}
+  .appr-dark .meter-row{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:14px 6px;}
+  .appr-dark .meter-cell{display:flex; flex-direction:column; align-items:center; gap:8px;}
+  .appr-dark .meter-track{width:9px; height:78px; border-radius:5px; background:var(--d-line); position:relative;}
+  .appr-dark .meter-tick{position:absolute; left:-3px; right:-3px; height:1px; background:var(--d-faint); opacity:.5;}
+  .appr-dark .meter-marker{position:absolute; left:-4px; right:-4px; height:8px; border-radius:3px;}
+  .appr-dark .meter-num{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px;}
+  .appr-dark .meter-lbl{font-size:8px; color:var(--d-faint); font-weight:600; text-align:center;}
+  .appr-dark .meal{display:flex; align-items:center; gap:12px; padding:11px 14px; margin-bottom:7px;}
+  .appr-dark .meal-emoji{width:34px; height:34px; border-radius:12px; background:var(--d-panel); display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; border:1px solid var(--d-line);}
+  .appr-dark .meal-name{font-weight:600; font-size:13px;}
+  .appr-dark .badge{font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:600; padding:2px 6px; border-radius:7px;}
+  .appr-dark .stat-tiles{display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:4px;}
+  .appr-dark .stat-tiles .glass{padding:13px;}
+  .appr-dark .stat-big{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:19px;}
+  .appr-dark .stat-lbl{font-size:9.5px; color:var(--d-faint); margin-top:3px;}
+  .appr-dark .micro-grid{display:grid; grid-template-columns:1fr 1fr; gap:13px 15px; padding:14px;}
+  .appr-dark .micro-track{height:6px; border-radius:99px; background:var(--d-line); position:relative; margin:6px 0 4px;}
+  .appr-dark .micro-fill{position:absolute; inset:0; border-radius:99px;}
+  .appr-dark .micro-dot{position:absolute; top:50%; width:10px; height:10px; border-radius:99px; transform:translate(-50%,-50%); border:2px solid var(--d-sheet);}
+  .appr-dark .micro-ab{font-size:10.5px; font-weight:700;}
   .appr-dark .micro-name{font-size:9px; color:var(--d-faint);}
-  .appr-dark .supp{display:flex; align-items:center; gap:12px; padding:13px 14px; margin-bottom:9px;}
-  .appr-dark .supp-ic{width:38px; height:38px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; border:1px solid var(--d-line);}
-  .appr-dark .supp-name{font-weight:600; font-size:13.5px;}
-  .appr-dark .supp-dose{font-size:11px; color:var(--d-faint); margin-top:1px;}
-  .appr-dark .warn{margin-left:auto; width:19px; height:19px; border-radius:99px; background:#ffcf3d; color:#1a1400; font-size:10.5px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 0 8px 1px #ffcf3d66;}
+  .appr-dark .supp{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px;}
+  .appr-dark .supp-ic{width:36px; height:36px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; border:1px solid var(--d-line); background:var(--d-panel);}
+  .appr-dark .supp-name{font-weight:600; font-size:13px;}
+  .appr-dark .supp-dose{font-size:10.5px; color:var(--d-faint); margin-top:1px;}
+  .appr-dark .warn{margin-left:auto; width:18px; height:18px; border-radius:99px; background:#ffcf3d; color:#1a1400; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center;}
+  .appr-dark .backdrop-peek{background:var(--d-panel);}
+  .appr-dark .sheet-mock{background:var(--d-sheet); border-top:1px solid var(--d-line);}
+  .appr-dark .sheet-handle{background:var(--d-line);}
+  .appr-dark .sheet-input{border-radius:18px; background:var(--d-panel); border:1px solid var(--d-line); padding:16px; font-size:13px; color:var(--d-faint); min-height:82px;}
+  .appr-dark .sheet-actionbtn{background:var(--d-panel); border:1px solid var(--d-line); color:var(--d-ink);}
+  .appr-dark .sheet-cta{background:var(--d-kcal); color:#0a0b0f;}
 
-  /* =========================================================================
-     5) DATA SPORT — scoreboard/coach aesthetic. Condensed display type, huge
-     numerals, segmented fuel-gauge bars, minimal decoration.
-     ========================================================================= */
-  .appr-sport{ --s-bg:#111316; --s-panel:#1b1e23; --s-ink:#f7f8fa; --s-soft:#9099a6; --s-line:#2b2f36; --s-accent:#ff5a1f;
-    --s-protein:#ff4f6e; --s-carbs:#3ddc84; --s-fat:#ffb020; --s-kcal:#ff5a1f;
-    background:var(--s-bg); color:var(--s-ink); height:100%; font-family:'Barlow',sans-serif;
-  }
+  /* ===================================================================
+     5) DATA SPORT (weiterentwickelt) — jetzt auch Hellmodus (weißer Grund,
+     farbige Kopfleisten). Makro-Nachfolger: Split-Flap-Ziffern + Skala mit
+     Zeiger-Keil statt Balken/Ring.
+     =================================================================== */
+  .appr-sport{ font-family:'Barlow',sans-serif; height:100%;
+    --s-protein:#ff4f6e; --s-carbs:#2fb46b; --s-fat:#e08a00; --s-kcal:#ff5a1f; }
+  .appr-sport[data-theme="dark"]{ background:#111316; color:#f7f8fa; --s-ink:#f7f8fa; --s-soft:#9099a6; --s-line:#2b2f36; --s-panel:#1b1e23; --s-digit:#25292f;
+    --s-protein:#ff4f6e; --s-carbs:#3ddc84; --s-fat:#ffb020; --s-kcal:#ff5a1f; }
+  .appr-sport[data-theme="light"]{ background:#f5f6f8; color:#14171b; --s-ink:#14171b; --s-soft:#5b6270; --s-line:#dfe2e7; --s-panel:#fff; --s-digit:#ecedf0; }
   .appr-sport .pad{padding:18px 16px 28px;}
-  .appr-sport .title{font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:30px; text-transform:uppercase; letter-spacing:.01em;}
-  .appr-sport .icon-btn{width:32px; height:32px; border-radius:8px; background:var(--s-panel); border:1px solid var(--s-line); display:flex; align-items:center; justify-content:center; font-size:14px;}
+  .appr-sport .title{font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:29px; text-transform:uppercase;}
+  .appr-sport .icon-btn{width:31px; height:31px; border-radius:8px; background:var(--s-panel); border:1px solid var(--s-line); display:flex; align-items:center; justify-content:center; font-size:13px;}
   .appr-sport .panel-box{background:var(--s-panel); border:1px solid var(--s-line); border-radius:12px;}
-  .appr-sport .rem-title{font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--s-soft); margin:20px 0 10px;}
-  .appr-sport .rem-row{display:flex; flex-direction:column; gap:10px;}
-  .appr-sport .rem-item{display:grid; grid-template-columns:64px 1fr; align-items:center; gap:12px; padding:10px 14px;}
-  .appr-sport .rem-item .num{font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:30px; line-height:1;}
-  .appr-sport .rem-item .unit{font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:600; color:var(--s-soft);}
-  .appr-sport .fuel{height:10px; border-radius:3px; background:#2b2f36; display:flex; gap:2px; overflow:hidden;}
-  .appr-sport .fuel span{display:block; height:100%; flex:1; background:#33373f;}
-  .appr-sport .fuel span.on{background:var(--seg-color, var(--s-accent));}
-  .appr-sport .rem-lbl{font-size:10.5px; color:var(--s-soft); font-weight:600; text-transform:uppercase; letter-spacing:.03em; margin-top:5px;}
-  .appr-sport .section-title{font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--s-soft); margin:22px 0 10px;}
-  .appr-sport .meal{display:flex; align-items:center; gap:12px; padding:11px 14px; margin-bottom:8px; border-left:3px solid var(--s-accent);}
-  .appr-sport .meal-name{font-weight:600; font-size:14px;}
-  .appr-sport .badge{font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700; padding:1px 7px; border-radius:4px; color:#fff;}
-  .appr-sport .stat-tiles{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:4px;}
-  .appr-sport .stat-tiles .panel-box{padding:14px;}
-  .appr-sport .stat-big{font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:28px;}
-  .appr-sport .stat-lbl{font-size:10.5px; color:var(--s-soft); margin-top:2px; text-transform:uppercase; font-weight:600; letter-spacing:.02em;}
-  .appr-sport .micro-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; padding:14px;}
-  .appr-sport .micro-ab{font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700;}
-  .appr-sport .micro-name{font-size:9.5px; color:var(--s-soft); text-transform:uppercase;}
-  .appr-sport .supp{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:9px; border-left:3px solid transparent;}
-  .appr-sport .supp-name{font-weight:600; font-size:13.5px;}
-  .appr-sport .supp-dose{font-size:11px; color:var(--s-soft); margin-top:1px; text-transform:uppercase; letter-spacing:.02em;}
-  .appr-sport .warn{margin-left:auto; width:19px; height:19px; border-radius:4px; background:var(--s-accent); color:#fff; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .appr-sport .section-title{font-family:'Barlow Condensed',sans-serif; font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--s-soft); margin:20px 0 9px;}
+  .appr-sport .flip-row{display:grid; grid-template-columns:repeat(4,1fr); gap:7px; padding:4px;}
+  .appr-sport .flip-cell{background:var(--s-panel); border:1px solid var(--s-line); border-radius:10px; padding:8px 4px 9px; text-align:center;}
+  .appr-sport .flip-digits{display:flex; justify-content:center; gap:2px; margin-bottom:5px;}
+  .appr-sport .flip-digit{position:relative; width:19px; height:26px; background:var(--s-digit); border-radius:4px; display:flex; align-items:center; justify-content:center; font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:17px; overflow:hidden;}
+  .appr-sport .flip-digit::after{content:''; position:absolute; left:0; right:0; top:50%; height:1px; background:rgba(0,0,0,.35);}
+  .appr-sport .flip-unit{font-size:8px; font-weight:700; color:var(--s-soft); text-transform:uppercase; letter-spacing:.03em;}
+  .appr-sport .flip-rail{height:4px; border-radius:2px; background:var(--s-line); margin-top:7px; position:relative;}
+  .appr-sport .flip-rail-fill{position:absolute; inset:0; border-radius:2px;}
+  .appr-sport .meal{display:flex; align-items:center; gap:12px; padding:11px 14px; margin-bottom:7px; border-left:3px solid var(--s-kcal);}
+  .appr-sport .meal-name{font-weight:600; font-size:13px;}
+  .appr-sport .badge{font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; padding:1px 6px; border-radius:4px; color:#fff;}
+  .appr-sport .stat-tiles{display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:4px;}
+  .appr-sport .stat-tiles .panel-box{padding:13px;}
+  .appr-sport .stat-big{font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:26px;}
+  .appr-sport .stat-lbl{font-size:9.5px; color:var(--s-soft); margin-top:2px; text-transform:uppercase; font-weight:600;}
+  .appr-sport .micro-grid{display:grid; grid-template-columns:1fr 1fr; gap:11px 15px; padding:13px;}
+  .appr-sport .micro-ab{font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700;}
+  .appr-sport .micro-name{font-size:9px; color:var(--s-soft); text-transform:uppercase;}
+  .appr-sport .supp{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px; border-left:3px solid transparent;}
+  .appr-sport .supp-name{font-weight:600; font-size:13px;}
+  .appr-sport .supp-dose{font-size:10.5px; color:var(--s-soft); margin-top:1px; text-transform:uppercase;}
+  .appr-sport .warn{margin-left:auto; width:18px; height:18px; border-radius:4px; background:var(--s-kcal); color:#fff; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center;}
+  .appr-sport .backdrop-peek{background:var(--s-panel);}
+  .appr-sport .sheet-mock{background:var(--s-panel); border-top:2px solid var(--s-kcal);}
+  .appr-sport .sheet-handle{background:var(--s-line);}
+  .appr-sport .sheet-input{border-radius:10px; background:var(--s-digit); border:1px solid var(--s-line); padding:15px; font-size:13px; color:var(--s-soft); min-height:80px; font-family:'Barlow Condensed',sans-serif;}
+  .appr-sport .sheet-actionbtn{background:var(--s-digit); border:1px solid var(--s-line); color:var(--s-ink); text-transform:uppercase; font-family:'Barlow Condensed',sans-serif; font-weight:700;}
+  .appr-sport .sheet-cta{background:var(--s-kcal); color:#fff; text-transform:uppercase; font-family:'Barlow Condensed',sans-serif; font-weight:800; letter-spacing:.02em;}
+
+  /* ===================================================================
+     6) LEDGER — Journal/Rechnungsheft-Optik. Makro-Nachfolger: Punktleiste
+     wie ein Inhaltsverzeichnis, die Linie darunter "läuft aus Tinte".
+     =================================================================== */
+  .appr-ledger{ font-family:'Work Sans',sans-serif; height:100%;
+    --l-protein:#c23b56; --l-carbs:#3f7d54; --l-fat:#b4791a; --l-kcal:#2c4a8a; }
+  .appr-ledger[data-theme="light"]{ background:#efeee6; color:#211f1a; --l-ink:#211f1a; --l-soft:#6b675c; --l-faint:#9b9686; --l-line:#d8d4c6; --l-panel:#f8f7f1; --l-sheet:#f8f7f1; }
+  .appr-ledger[data-theme="dark"]{ background:#1b1a17; color:#efece2; --l-ink:#efece2; --l-soft:#a8a396; --l-faint:#6f6a5c; --l-line:#37352d; --l-panel:#232019; --l-sheet:#232019;
+    --l-protein:#e8899a; --l-carbs:#7fbf8f; --l-fat:#e0aa5c; --l-kcal:#8fadf0; }
+  .appr-ledger .pad{padding:22px 20px 30px;}
+  .appr-ledger .title{font-family:'Roboto Slab',serif; font-weight:700; font-size:24px;}
+  .appr-ledger .icon-btn{width:30px; height:30px; border-radius:8px; background:var(--l-panel); border:1px solid var(--l-line); display:flex; align-items:center; justify-content:center; font-size:13px;}
+  .appr-ledger .section-title{font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:var(--l-faint); margin:22px 0 10px; border-bottom:1px solid var(--l-line); padding-bottom:6px;}
+  .appr-ledger .l-row{display:flex; align-items:baseline; gap:8px; padding:9px 0;}
+  .appr-ledger .l-label{font-size:11.5px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--l-soft); flex-shrink:0;}
+  .appr-ledger .l-leader{flex:1; border-bottom:2px dotted var(--l-line); margin-bottom:3px;}
+  .appr-ledger .l-value{font-family:'Roboto Slab',serif; font-weight:700; font-size:14px; flex-shrink:0;}
+  .appr-ledger .l-rule{height:3px; background:var(--l-line); border-radius:2px; position:relative; margin-bottom:2px;}
+  .appr-ledger .l-rule-ink{position:absolute; left:0; top:0; bottom:0; border-radius:2px;}
+  .appr-ledger .meal{display:flex; align-items:baseline; gap:10px; padding:10px 0; border-bottom:1px solid var(--l-line);}
+  .appr-ledger .meal-idx{font-family:'Roboto Slab',serif; font-size:11px; color:var(--l-faint); flex-shrink:0;}
+  .appr-ledger .meal-name{font-weight:600; font-size:13.5px; flex:1;}
+  .appr-ledger .badges{gap:8px;}
+  .appr-ledger .badge{font-family:'Roboto Slab',serif; font-size:11px; font-weight:700;}
+  .appr-ledger .stat-tiles{display:flex; gap:0; margin-bottom:6px; border-top:1px solid var(--l-line); border-bottom:1px solid var(--l-line);}
+  .appr-ledger .stat-tiles > div{flex:1; padding:13px 4px; text-align:center;}
+  .appr-ledger .stat-tiles > div + div{border-left:1px solid var(--l-line);}
+  .appr-ledger .stat-big{font-family:'Roboto Slab',serif; font-weight:700; font-size:21px;}
+  .appr-ledger .stat-lbl{font-size:9.5px; color:var(--l-faint); margin-top:3px; text-transform:uppercase; letter-spacing:.03em;}
+  .appr-ledger .micro-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px 20px; margin-top:6px;}
+  .appr-ledger .micro-row{display:flex; align-items:center; gap:8px; padding:5px 0;}
+  .appr-ledger .micro-ab{font-family:'Roboto Slab',serif; font-size:11px; font-weight:700; width:24px; flex-shrink:0;}
+  .appr-ledger .micro-leader{flex:1; height:2px; background:var(--l-line); position:relative;}
+  .appr-ledger .micro-ink{position:absolute; left:0; top:0; bottom:0;}
+  .appr-ledger .micro-name{font-size:9px; color:var(--l-faint); width:52px; flex-shrink:0; text-align:right;}
+  .appr-ledger .supp{display:flex; align-items:baseline; gap:10px; padding:10px 0; border-bottom:1px solid var(--l-line);}
+  .appr-ledger .supp-name{font-weight:600; font-size:13px; flex:1;}
+  .appr-ledger .supp-dose{font-size:10.5px; color:var(--l-faint); font-style:italic;}
+  .appr-ledger .warn{width:16px; height:16px; border-radius:99px; border:1.5px solid var(--l-fat); color:var(--l-fat); font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center;}
+  .appr-ledger .backdrop-peek{background:var(--l-panel);}
+  .appr-ledger .sheet-mock{background:var(--l-sheet); border-top:1px solid var(--l-line);}
+  .appr-ledger .sheet-handle{background:var(--l-line);}
+  .appr-ledger .sheet-input{border:none; border-bottom:2px solid var(--l-line); border-radius:0; padding:10px 2px; font-size:14px; color:var(--l-faint); min-height:76px; font-family:'Roboto Slab',serif;}
+  .appr-ledger .sheet-actionbtn{background:transparent; border:1.5px solid var(--l-line); color:var(--l-ink);}
+  .appr-ledger .sheet-cta{background:var(--l-ink); color:var(--l-sheet); border-radius:4px;}
+
+  /* ===================================================================
+     7) BOTANICAL — organische Blob-Formen, Obst/Gemüse-Farbwelt.
+     Makro-Nachfolger: "Frucht"-Blob mit Füllstand, Zahl als Samen-Badge.
+     =================================================================== */
+  .appr-botanical{ font-family:'Nunito Sans',sans-serif; height:100%;
+    --o-protein:#e05a7a; --o-carbs:#4c9a5a; --o-fat:#e0932e; --o-kcal:#3a8a7a; }
+  .appr-botanical[data-theme="light"]{ color:#1c2318; --o-ink:#1c2318; --o-soft:#5d6b56; --o-faint:#8b9683; --o-line:#dfe6d6; --o-panel:#fff;
+    background: radial-gradient(circle at 10% 0%, #d9f2c4aa, transparent 55%), radial-gradient(circle at 105% 15%, #ffd9a8aa, transparent 50%),
+      radial-gradient(circle at 0% 90%, #ffc9dbaa, transparent 50%), radial-gradient(circle at 100% 100%, #b9e8dfaa, transparent 50%), #f5f7ee; }
+  .appr-botanical[data-theme="dark"]{ color:#e9f0e2; --o-ink:#e9f0e2; --o-soft:#a9b6a0; --o-faint:#69765f; --o-line:#2a3324; --o-panel:#1a2116;
+    background: radial-gradient(circle at 10% 0%, #2a4a1e88, transparent 55%), radial-gradient(circle at 105% 15%, #5a3a1288, transparent 50%),
+      radial-gradient(circle at 0% 90%, #5a1f3888, transparent 50%), radial-gradient(circle at 100% 100%, #163a3288, transparent 50%), #10140f;
+    --o-protein:#f28aa2; --o-carbs:#7bc78a; --o-fat:#f0b055; --o-kcal:#5cb8a6; }
+  .appr-botanical .pad{padding:20px 18px 30px;}
+  .appr-botanical .title{font-family:'Quicksand',sans-serif; font-weight:700; font-size:25px;}
+  .appr-botanical .icon-btn{width:33px; height:33px; border-radius:14px 10px 14px 10px; background:var(--o-panel); border:1px solid var(--o-line); display:flex; align-items:center; justify-content:center; font-size:14px;}
+  .appr-botanical .card{background:var(--o-panel); border:1px solid var(--o-line); border-radius:26px 18px 26px 18px;}
+  .appr-botanical .section-title{font-family:'Quicksand',sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--o-soft); margin:18px 2px 10px;}
+  .appr-botanical .blob-row{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:6px 2px;}
+  .appr-botanical .blob-cell{display:flex; flex-direction:column; align-items:center; gap:6px;}
+  .appr-botanical .blob-shape{position:relative; width:58px; height:70px; border-radius:46% 54% 58% 42% / 52% 44% 56% 48%; background:color-mix(in srgb, var(--c) 14%, transparent); border:2px solid var(--c); overflow:hidden;}
+  .appr-botanical .blob-fill{position:absolute; left:0; right:0; bottom:0; background:linear-gradient(180deg, color-mix(in srgb, var(--c) 55%, transparent), var(--c));}
+  .appr-botanical .blob-num{font-family:'Quicksand',sans-serif; font-weight:700; font-size:13px; background:var(--o-panel); border:1.5px solid var(--c); border-radius:99px; padding:2px 8px; margin-top:-10px; z-index:1;}
+  .appr-botanical .blob-lbl{font-size:8.5px; color:var(--o-soft); font-weight:700; text-align:center;}
+  .appr-botanical .meal{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px;}
+  .appr-botanical .meal-emoji{width:36px; height:36px; border-radius:16px 10px 16px 10px; background:var(--o-line); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;}
+  .appr-botanical .meal-name{font-weight:700; font-size:13.5px;}
+  .appr-botanical .badge{font-size:10px; font-weight:700; padding:2.5px 8px; border-radius:99px; color:#fff;}
+  .appr-botanical .stat-tiles{display:grid; grid-template-columns:1.1fr 1fr; gap:9px; margin-bottom:4px;}
+  .appr-botanical .stat-tiles .card{padding:13px;}
+  .appr-botanical .stat-big{font-family:'Quicksand',sans-serif; font-weight:700; font-size:21px;}
+  .appr-botanical .stat-lbl{font-size:9.5px; color:var(--o-soft); margin-top:2px; font-weight:600;}
+  .appr-botanical .micro-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px 15px; padding:14px;}
+  .appr-botanical .micro-track{height:7px; border-radius:99px; background:var(--o-line); position:relative; margin:6px 0 4px;}
+  .appr-botanical .micro-fill{position:absolute; inset:0; border-radius:99px;}
+  .appr-botanical .micro-dot{position:absolute; top:50%; width:11px; height:11px; border-radius:99px; transform:translate(-50%,-50%); border:2px solid var(--o-panel);}
+  .appr-botanical .micro-ab{font-size:10.5px; font-weight:800; font-family:'Quicksand',sans-serif;}
+  .appr-botanical .micro-name{font-size:9px; color:var(--o-faint); font-weight:600;}
+  .appr-botanical .supp{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px;}
+  .appr-botanical .supp-ic{width:36px; height:36px; border-radius:16px 10px 16px 10px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; color:#fff;}
+  .appr-botanical .supp-name{font-weight:700; font-size:13px;}
+  .appr-botanical .supp-dose{font-size:10.5px; color:var(--o-soft); margin-top:1px;}
+  .appr-botanical .warn{margin-left:auto; width:19px; height:19px; border-radius:99px; background:var(--o-fat); color:#fff; font-size:10.5px; font-weight:800; display:flex; align-items:center; justify-content:center;}
+  .appr-botanical .backdrop-peek{background:var(--o-panel);}
+  .appr-botanical .sheet-mock{background:var(--o-panel); border-radius:34px 34px 0 0;}
+  .appr-botanical .sheet-handle{background:var(--o-line);}
+  .appr-botanical .sheet-input{border-radius:26px 16px 26px 16px; background:color-mix(in srgb, var(--o-carbs) 8%, transparent); border:1.5px solid var(--o-line); padding:16px; font-size:13.5px; color:var(--o-soft); min-height:82px;}
+  .appr-botanical .sheet-actionbtn{background:color-mix(in srgb, var(--o-carbs) 10%, transparent); border:1.5px solid var(--o-line); color:var(--o-ink); border-radius:16px 10px 16px 10px;}
+  .appr-botanical .sheet-cta{background:linear-gradient(120deg,var(--o-carbs),var(--o-kcal)); color:#fff; border-radius:20px 12px 20px 12px;}
+
+  /* ===================================================================
+     8) LAB DIAGNOSTIC — Messschieber/Kalibrierungs-Optik. Makro-Nachfolger:
+     Lineal mit Skalenstrichen + Klammer-Messbereich statt Ring.
+     =================================================================== */
+  .appr-lab{ font-family:'IBM Plex Sans',sans-serif; height:100%;
+    --x-protein:#c23b56; --x-carbs:#1f7a52; --x-fat:#b06a00; --x-kcal:#0057d8; }
+  .appr-lab[data-theme="light"]{ background:#fafbfc; color:#0d1013; --x-ink:#0d1013; --x-soft:#565d66; --x-faint:#9298a1; --x-line:#dde1e6; --x-panel:#fff; --x-sheet:#fff; }
+  .appr-lab[data-theme="dark"]{ background:#0c0f12; color:#c8f5d8; --x-ink:#c8f5d8; --x-soft:#6f9c84; --x-faint:#3d5a4a; --x-line:#1c2b23; --x-panel:#0f1a15; --x-sheet:#0f1a15;
+    --x-protein:#ff7a94; --x-carbs:#3ecf85; --x-fat:#f0a938; --x-kcal:#4fb0ff; }
+  .appr-lab .pad{padding:18px 16px 28px;}
+  .appr-lab .title{font-family:'Space Mono',monospace; font-weight:700; font-size:19px;}
+  .appr-lab .icon-btn{width:29px; height:29px; border-radius:0; background:var(--x-panel); border:1.5px solid var(--x-line); display:flex; align-items:center; justify-content:center; font-size:12px;}
+  .appr-lab .card{background:var(--x-panel); border:1px solid var(--x-line);}
+  .appr-lab .section-title{font-family:'Space Mono',monospace; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--x-faint); margin:20px 0 9px;}
+  .appr-lab .ruler-block{padding:10px 4px 4px;}
+  .appr-lab .ruler{position:relative; height:26px; margin:4px 0 2px;}
+  .appr-lab .ruler-tick{position:absolute; top:0; width:1px; background:var(--x-line);}
+  .appr-lab .ruler-tick.major{background:var(--x-faint);}
+  .appr-lab .ruler-used{position:absolute; bottom:0; height:3px; background:var(--x-line);}
+  .appr-lab .ruler-remain{position:absolute; bottom:0; height:3px;}
+  .appr-lab .ruler-tag{position:absolute; bottom:9px; transform:translateX(-50%); font-family:'Space Mono',monospace; font-size:9.5px; font-weight:700; padding:1px 5px; border:1px solid; border-radius:2px; background:var(--x-panel); white-space:nowrap;}
+  .appr-lab .ruler-lbl{font-family:'Space Mono',monospace; font-size:9.5px; font-weight:700; text-transform:uppercase; color:var(--x-soft); margin-bottom:14px; display:block;}
+  .appr-lab .meal{display:flex; align-items:center; gap:12px; padding:11px 14px; border-bottom:1px solid var(--x-line);}
+  .appr-lab .meal-name{font-weight:600; font-size:12.5px;}
+  .appr-lab .badge{font-family:'Space Mono',monospace; font-size:9.5px; font-weight:700; padding:2px 6px; border:1px solid;}
+  .appr-lab .stat-tiles{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:4px;}
+  .appr-lab .stat-tiles .card{padding:12px;}
+  .appr-lab .stat-big{font-family:'Space Mono',monospace; font-weight:700; font-size:19px;}
+  .appr-lab .stat-lbl{font-size:9px; color:var(--x-faint); margin-top:3px; text-transform:uppercase;}
+  .appr-lab .micro-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px 14px; padding:13px;}
+  .appr-lab .micro-ab{font-family:'Space Mono',monospace; font-size:10px; font-weight:700;}
+  .appr-lab .micro-track{height:5px; background:var(--x-line); position:relative; margin:6px 0 4px;}
+  .appr-lab .micro-fill{position:absolute; inset:0;}
+  .appr-lab .micro-name{font-size:8.5px; color:var(--x-faint); text-transform:uppercase;}
+  .appr-lab .supp{display:flex; align-items:center; gap:12px; padding:11px 14px; border-bottom:1px solid var(--x-line);}
+  .appr-lab .supp-name{font-weight:600; font-size:12.5px; font-family:'Space Mono',monospace;}
+  .appr-lab .supp-dose{font-size:9.5px; color:var(--x-faint); margin-top:1px;}
+  .appr-lab .warn{margin-left:auto; width:15px; height:15px; border:1.5px solid var(--x-fat); color:var(--x-fat); font-size:9px; font-weight:800; display:flex; align-items:center; justify-content:center;}
+  .appr-lab .backdrop-peek{background:var(--x-panel);}
+  .appr-lab .sheet-mock{background:var(--x-sheet); border-top:1.5px solid var(--x-line);}
+  .appr-lab .sheet-handle{background:var(--x-line); border-radius:0;}
+  .appr-lab .sheet-input{border:1.5px solid var(--x-line); border-radius:0; padding:14px; font-size:12.5px; color:var(--x-faint); min-height:78px; font-family:'Space Mono',monospace;}
+  .appr-lab .sheet-actionbtn{background:var(--x-panel); border:1.5px solid var(--x-line); color:var(--x-ink); border-radius:0; font-family:'Space Mono',monospace; text-transform:uppercase; font-size:10.5px;}
+  .appr-lab .sheet-cta{background:var(--x-kcal); color:#fff; border-radius:0; font-family:'Space Mono',monospace; text-transform:uppercase; letter-spacing:.03em;}
+
+  /* ===================================================================
+     9) BIG NUMBER — kinetische Typografie: eine dominante Zahl statt vier
+     gleichwertiger Kacheln, Unterstrich als Skala.
+     =================================================================== */
+  .appr-big{ font-family:'Work Sans',sans-serif; height:100%;
+    --n-protein:#ff375f; --n-carbs:#2fae63; --n-fat:#d98d00; --n-kcal:#2f6bff; }
+  .appr-big[data-theme="light"]{ background:#fbfbf9; color:#101114; --n-ink:#101114; --n-soft:#5c6068; --n-faint:#9296a0; --n-line:#e6e5e0; --n-panel:#fff; --n-sheet:#fff; }
+  .appr-big[data-theme="dark"]{ background:#0d0d0f; color:#f5f5f3; --n-ink:#f5f5f3; --n-soft:#9c9ea3; --n-faint:#54565c; --n-line:#232327; --n-panel:#17171a; --n-sheet:#17171a;
+    --n-protein:#ff6b8a; --n-carbs:#4ecf8a; --n-fat:#f0ac3a; --n-kcal:#5c8dff; }
+  .appr-big .pad{padding:20px 18px 30px;}
+  .appr-big .title{font-family:'Unbounded',sans-serif; font-weight:700; font-size:20px;}
+  .appr-big .icon-btn{width:30px; height:30px; border-radius:9px; background:var(--n-panel); border:1px solid var(--n-line); display:flex; align-items:center; justify-content:center; font-size:13px;}
+  .appr-big .section-title{font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--n-faint); margin:22px 0 9px;}
+  .appr-big .hero{padding:10px 0 4px;}
+  .appr-big .hero-num{font-family:'Unbounded',sans-serif; font-weight:700; font-size:76px; line-height:.86; letter-spacing:-0.03em;}
+  .appr-big .hero-unit{font-size:26px; font-weight:600; margin-left:2px;}
+  .appr-big .hero-lbl{font-size:12px; color:var(--n-soft); font-weight:500; margin-top:6px;}
+  .appr-big .hero-rule{height:3px; background:var(--n-line); border-radius:2px; margin-top:14px; position:relative;}
+  .appr-big .hero-rule-fill{position:absolute; left:0; top:0; bottom:0; border-radius:2px;}
+  .appr-big .strip{display:flex; gap:8px; margin-top:14px;}
+  .appr-big .strip-item{flex:1; background:var(--n-panel); border:1px solid var(--n-line); border-radius:12px; padding:10px; text-align:center;}
+  .appr-big .strip-num{font-family:'Unbounded',sans-serif; font-weight:700; font-size:16px;}
+  .appr-big .strip-lbl{font-size:9px; color:var(--n-faint); margin-top:2px; text-transform:uppercase;}
+  .appr-big .meal{display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--n-line);}
+  .appr-big .meal-name{font-weight:600; font-size:13.5px;}
+  .appr-big .badge{font-size:10px; font-weight:700; padding:2px 7px; border-radius:99px; color:#fff;}
+  .appr-big .stat-tiles{display:none;}
+  .appr-big .weekhero{margin-bottom:6px;}
+  .appr-big .micro-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px 15px; padding:13px 0;}
+  .appr-big .micro-track{height:6px; border-radius:99px; background:var(--n-line); position:relative; margin:6px 0 4px;}
+  .appr-big .micro-fill{position:absolute; inset:0; border-radius:99px;}
+  .appr-big .micro-dot{position:absolute; top:50%; width:10px; height:10px; border-radius:99px; transform:translate(-50%,-50%); border:2px solid var(--n-sheet);}
+  .appr-big .micro-ab{font-size:10.5px; font-weight:800;}
+  .appr-big .micro-name{font-size:9px; color:var(--n-faint);}
+  .appr-big .supp{display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--n-line);}
+  .appr-big .supp-name{font-weight:600; font-size:13.5px;}
+  .appr-big .supp-dose{font-size:10.5px; color:var(--n-faint); margin-top:1px;}
+  .appr-big .warn{margin-left:auto; width:18px; height:18px; border-radius:99px; background:var(--n-fat); color:#fff; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center;}
+  .appr-big .backdrop-peek{background:var(--n-panel);}
+  .appr-big .sheet-mock{background:var(--n-sheet); border-top:1px solid var(--n-line);}
+  .appr-big .sheet-handle{background:var(--n-line);}
+  .appr-big .sheet-input{border:none; border-bottom:2px solid var(--n-ink); border-radius:0; padding:8px 2px 12px; font-size:19px; font-family:'Unbounded',sans-serif; font-weight:600; color:var(--n-faint); min-height:76px;}
+  .appr-big .sheet-actionbtn{background:var(--n-panel); border:1px solid var(--n-line); color:var(--n-ink);}
+  .appr-big .sheet-cta{background:var(--n-ink); color:var(--n-sheet);}
 </style>
 
 <div class="wrap">
   <div class="lede">
-    <h1>Fünf Richtungen für Tracke</h1>
-    <p>Gleiche Inhalte (heutiger Tag, Wochen-Statistik, Supps), fünf komplett unterschiedliche visuelle Sprachen. Auf Karte tippen zum Wechseln, oben rechts zwischen <code>Heute</code> / <code>Statistik</code> / <code>Supps</code> wechseln. Noch nichts davon ist live — erst eine Richtung wählen, dann setze ich sie auf allen Hauptseiten um.</p>
+    <h1>Acht Richtungen im Vergleich</h1>
+    <p><b>01, 02, 04, 05</b> sind die weiterentwickelten Favoriten aus Runde 1 — jetzt mit echtem Hell-/Dunkelmodus und einem ausgearbeiteten Nachfolger für die Ringe (keine Zahlen-Kachel mehr). <b>06–09</b> sind komplett neu. Bold Blocks ist raus.</p>
+    <p>Screen <b>„Eingabe"</b> zeigt exemplarisch, wie sich jede Sprache auf ein Text-Eingabe-Sheet überträgt (der ursprüngliche Kritikpunkt) — dieselben Tokens tragen sich genauso auf Einstellungen, Rezepte, Kalender-Sheet und Chat fort, nur nicht einzeln durchgemockt.</p>
   </div>
 
   <div class="approach-rail" id="rail"></div>
 
   <div class="stage">
     <div class="phone-col">
-      <div class="screen-tabs" id="screenTabs">
-        <button data-s="today" aria-pressed="true">Heute</button>
-        <button data-s="stats" aria-pressed="false">Statistik</button>
-        <button data-s="supps" aria-pressed="false">Supps</button>
+      <div class="toolbar">
+        <div class="screen-tabs" id="screenTabs">
+          <button data-s="today" aria-pressed="true">Heute</button>
+          <button data-s="stats" aria-pressed="false">Statistik</button>
+          <button data-s="supps" aria-pressed="false">Supps</button>
+          <button data-s="sheet" aria-pressed="false">Eingabe</button>
+        </div>
+        <div class="theme-toggle" id="themeToggle">
+          <button data-t="light" aria-pressed="true">☀ Hell</button>
+          <button data-t="dark" aria-pressed="false">☾ Dunkel</button>
+        </div>
       </div>
       <div class="phone-frame">
         <div class="phone-inner" id="phoneInner"></div>
@@ -292,71 +481,58 @@
 
 <script>
 const APPROACHES = [
-  {
-    id:'glass', num:'01', name:'Vivid Glass', dot1:'#0a84ff',
-    pitch:'Liquid Glass ganz nach vorne — kräftiger, bunter Grund statt Weiß/Schwarz.',
+  { id:'glass', num:'01', name:'Vivid Glass', dot1:'#0a84ff', chip:'weiterentwickelt',
+    pitch:'Maximaler Liquid-Glass-Effekt, jetzt mit echtem Dunkelmodus.',
     dots:['#0a84ff','#ff375f','#34c759','#ffb703','#c4b5fd'],
-    tag:'Maximaler Liquid-Glass-Effekt',
-    body:'Der größte Kritikpunkt war, dass der Glas-Effekt im aktuellen Weiß/Schwarz fast untergeht. Hier trägt ein kräftiger, mehrfarbiger Verlauf den ganzen Screen — helle und dunkle Glas-Flächen liegen übereinander gestapelt, dahinter schimmert Farbe durch. Genau die Kombi aus hell/dunkel + knallig, die du gut findest.',
-    points:[
-      'Restliche Makros als vier Glas-Kacheln mit großer Zahl statt Ring',
-      'Farbe kommt vom Hintergrund selbst, nicht nur von Akzenten',
-      'Dunkle Glas-Fläche für den Wochenwert, helle für Details — Materialgewicht als Hierarchie',
-    ],
-  },
-  {
-    id:'gauge', num:'02', name:'Micro Gauge', dot1:'#2f6bff',
-    pitch:'Die Mikronährstoff-Balken, die du am liebsten magst — auf die ganze App ausgeweitet.',
+    tag:'Runde 2 · Glas', body:'Der bunte Verlauf trägt jetzt beide Modi: hell bleibt der luftige Himmel, dunkel wird daraus ein tiefer Nachthimmel mit denselben Farbtönen, nur gedämpfter. Die Ringe weichen Glas-Kapseln mit Flüssigkeitsstand.',
+    successor:'<b>Glas-Kapseln:</b> vier schlanke Gefäße, unten füllt sich ein Farbverlauf bis zur verbrauchten Menge — die große Zahl oben in der Kapsel ist aber immer der <b>Rest</b>, nicht der Verbrauch.',
+    points:['Funktioniert jetzt in Hell und Dunkel mit identischer Struktur','Eingabe-Sheet: Glas-Feld mit Blur, Diktier- und Foto-Button gleich gestaltet','Materialgewicht bleibt: dunklere Fläche = strukturell, hellere = interaktiv'] },
+  { id:'gauge', num:'02', name:'Micro Gauge', dot1:'#2f6bff', chip:'weiterentwickelt',
+    pitch:'Halbkreis-Tacho mit Zeiger statt Kachel — kein Füllstand.',
     dots:['#2f6bff','#ff375f','#2fae63','#d98d00','#5b6472'],
-    tag:'Ausgehend von der Mikros-Optik',
-    body:'Du hast gesagt: die Design-Sprache der Mikronährstoffe ist dir am liebsten. Diese Richtung nimmt genau diese Balken-mit-Marker-Logik und macht sie zum Grundprinzip der ganzen App — auch Makros, auch Kalorienbilanz laufen als farbcodierte Strecke statt als Ring. Kühles, neutrales Grau-Blau statt Creme, damit die Farben der Marker die ganze Wirkung tragen.',
-    points:[
-      'Restliche Makros: gleiche Strecke+Marker wie Mikros, mit fetter Zahl rechts',
-      'Eine Farbe pro Nährwert, konsequent überall wiederverwendet',
-      'Ruhigster der fünf Ansätze — Kontrast kommt von Farbe, nicht von Lautstärke',
-    ],
-  },
-  {
-    id:'brutal', num:'03', name:'Bold Blocks', dot1:'#0d5eff',
-    pitch:'Flache, knallige Farbflächen, harte Kanten, dicke Konturen. Maximaler Kontrast.',
-    dots:['#ff2d3a','#0d5eff','#ffcf00','#12b76a','#0a0a0a'],
-    tag:'Höchster Kontrast, kein Verlauf',
-    body:'Die direkteste Antwort auf „Einheitsbrei": keine Verläufe, kein Weichzeichnen — volle Farbflächen mit dicker schwarzer Kontur und hartem Versatz-Schatten. Zahlen stehen riesig und ohne Ring direkt auf der Farbe. Nicht jedermanns Sache, aber es ist unmöglich, das mit dem aktuellen Look zu verwechseln.',
-    points:[
-      'Restliche Makros: vier farbige Blöcke, riesige Zahl, kein Diagramm-Element',
-      'Jede Karte hat eine sichtbare Kontur + Schatten statt Weichzeichner-Tiefe',
-      'Großbuchstaben, breite Displayschrift für Überschriften',
-    ],
-  },
-  {
-    id:'dark', num:'04', name:'Dark Studio', dot1:'#3ea9ff',
-    pitch:'Fast-schwarzer Grund, Glas-Flächen mit sichtbarem Rand, mehrere Neonfarben gleichzeitig.',
+    tag:'Runde 2 · Gauge', body:'Die Mikros-Balken bleiben unverändert linear (dein Favorit), die Makros bekommen eine eigene, deutlich aufwendigere Darstellung: einen kleinen Halbkreis-Tacho mit Skalenstrichen und einem Zeiger — wie ein Drehzahlmesser, kein Kreis der sich füllt.',
+    successor:'<b>Tacho-Zeiger:</b> der Zeiger steht auf einer Skala von 0 bis 130% des Ziels. Er zeigt eine Position, keine Fläche — dieselbe Logik wie die Mikro-Strecken, nur als Zifferblatt.',
+    points:['Kühles Grau-Blau in Hell, tiefes Anthrazit in Dunkel, gleiche Akzentfarben','Eingabe-Sheet: monospaces Eingabefeld, technischer Rahmen statt Schatten','Ruhigster Ansatz — Kontrast kommt aus Farbe, nicht aus Lautstärke'] },
+  { id:'dark', num:'04', name:'Dark Studio', dot1:'#3ea9ff', chip:'weiterentwickelt',
+    pitch:'Glas mit Leuchtrand — jetzt auch als Hellmodus mit Farb-Halo.',
     dots:['#3ea9ff','#ff4d7d','#38e07a','#ffcf3d','#0a0b0f'],
-    tag:'Liquid Glass auf dunklem Grund',
-    body:'Glas wirkt auf dunklem Grund am stärksten — der helle Rand jeder Fläche fängt sichtbar "Licht" ein. Statt einem einzelnen Neon-Akzent (das übliche KI-Design-Klischee) laufen hier mehrere kräftige Farben parallel, je Nährwert eine eigene, mit leichtem Leuchten. Dunkel als Basis, nicht nur als Modus.',
-    points:[
-      'Restliche Makros als vier Glas-Kacheln auf Schwarz, Zahl leuchtet in Nährwert-Farbe',
-      'Warnhinweise bei Supps leuchten dezent statt grauer Fließtext',
-      'Wirkt am ehesten wie eine eigenständige App, nicht wie ein Dark-Mode-Toggle',
-    ],
-  },
-  {
-    id:'sport', num:'05', name:'Data Sport', dot1:'#ff5a1f',
-    pitch:'Scoreboard-Optik: riesige Zahlen zuerst, Coach-Charakter statt Wellness-Look.',
+    tag:'Runde 2 · Studio', body:'Dunkel bleibt die Heimat dieses Looks, aber jetzt mit echtem Hellmodus: derselbe Farb-Glow sitzt dann als weicher Halo hinter weißen Glas-Karten statt als Neon auf Schwarz. Die Ringe werden zu vertikalen Pegel-Säulen — wie ein Lautstärke-Meter.',
+    successor:'<b>Pegel-Säule:</b> eine schmale Säule mit Skalenstrichen, ein leuchtender Marker steht auf der erreichten Höhe. Die Zahl daneben ist der Rest, nicht der Pegel selbst.',
+    points:['Mehrere Akzentfarben gleichzeitig statt einem einzelnen Neon-Pop','Eingabe-Sheet: Glas-Feld mit Leuchtrand bei Fokus','Hell- und Dunkelmodus sehen aus wie zwei bewusste Zustände, nicht wie ein Invertieren'] },
+  { id:'sport', num:'05', name:'Data Sport', dot1:'#ff5a1f', chip:'weiterentwickelt',
+    pitch:'Split-Flap-Ziffern + Skala mit Zeiger-Keil, jetzt auch hell.',
     dots:['#ff5a1f','#ff4f6e','#3ddc84','#ffb020','#f7f8fa'],
-    tag:'Zahlen zuerst, wie ein Trainer-Display',
-    body:'Direkte Antwort auf „ich will absolute Zahlen sehen, nicht nur Ringe". Restliche Makros stehen riesig, kondensiert, wie eine Stadion-Anzeige — daneben ein Tank-Balken in Segmenten statt Prozent-Ring. Passt zum geplanten Coach-Chat: die App liest sich wie ein Trainer-Dashboard, nicht wie ein Wellness-Tagebuch.',
-    points:[
-      'Restliche Makros: große kondensierte Zahl + Segment-Tankanzeige, kein Kreis',
-      'Ein kräftiger Signalton (Orange) statt vieler gleichrangiger Akzente',
-      'Am dunkelsten und ruhigsten in der Fläche, am lautesten in der Typografie',
-    ],
-  },
+    tag:'Runde 2 · Sport', body:'Dunkel bleibt Standard fürs Scoreboard-Gefühl, aber ein Hellmodus mit weißem Grund und farbigen Kopfleisten funktioniert genauso. Die Segment-Balken werden zu echten Split-Flap-Ziffern wie an einer Bahnhofsanzeige, mit einer feinen Skala samt Zeiger darunter.',
+    successor:'<b>Split-Flap + Skala:</b> die Rest-Zahl steht als Klapp-Ziffern-Anzeige da, darunter eine dünne Skala mit einem farbigen Füllbalken bis zum Verbrauch — Zahl zuerst, Balken nur zur Einordnung.',
+    points:['Coach-Charakter passt zum geplanten globalen Chat-Button','Eingabe-Sheet: farbige Kopfleiste über dem Textfeld, Großbuchstaben-Buttons','Am ruhigsten in der Fläche, am lautesten in der Typografie'] },
+  { id:'ledger', num:'06', name:'Ledger', dot1:'#2c4a8a', chip:'neu',
+    pitch:'Journal-Optik: Zahlen wie in einem Rechnungsheft, mit Tinte statt Balken.',
+    dots:['#2c4a8a','#c23b56','#3f7d54','#b4791a','#211f1a'],
+    tag:'Neu · Journal', body:'Ruhigste der neun Richtungen. Steinfarbenes Papier statt Creme, Trennlinien statt Karten, eine Schreibmaschinen-Serife für Zahlen. Fühlt sich an wie ein geführtes Ernährungstagebuch, nicht wie ein Dashboard.',
+    successor:'<b>Punktleiste + Tinten-Linie:</b> „PROTEIN ..... 31 g Rest" wie ein Inhaltsverzeichnis. Darunter eine Linie, die bis zum Verbrauch als durchgezogene Tinte erscheint — der Rest bleibt eine dünne, ungeschriebene Linie.',
+    points:['Hellmodus: Stein-Papier + Tinte; Dunkelmodus: Kreide auf Tafel-Schwarz','Eingabe-Sheet: eine einzelne Unterstreichungs-Linie statt Kasten, wie ein Notizblock','Farbe nur an den Zahlen, sonst fast monochrom — Kontrast durch Struktur, nicht durch Buntheit'] },
+  { id:'botanical', num:'07', name:'Botanical', dot1:'#3a8a7a', chip:'neu',
+    pitch:'Organische Blob-Formen statt Kreise, Obst- und Gemüse-Farbwelt.',
+    dots:['#3a8a7a','#e05a7a','#4c9a5a','#e0932e','#1c2318'],
+    tag:'Neu · Organisch', body:'Keine geometrischen Kreise oder Rechtecke — jede Fläche hat eine leicht unregelmäßige, handgezeichnete Kontur. Farben kommen direkt aus Obst und Gemüse statt aus einer Tech-Palette. Fühlt sich nach Ernährung an, nicht nach Fitness-App.',
+    successor:'<b>Frucht-Blob:</b> eine unregelmäßige Tropfen-Form pro Makro füllt sich wie ein Glas, die Rest-Zahl sitzt als kleines "Samen"-Abzeichen obendrauf, halb überlappend.',
+    points:['Hellmodus: helles Blattgrün-Weiß mit Zitrus-Flecken; Dunkelmodus: tiefes Waldgrün','Eingabe-Sheet: asymmetrische Rundungen an jeder Ecke, kein einheitlicher Radius','Am wärmsten und am wenigsten "technisch" von allen neun'] },
+  { id:'lab', num:'08', name:'Lab Diagnostic', dot1:'#0057d8', chip:'neu',
+    pitch:'Messschieber-Optik: Skala, Klammer-Messbereich, keine Kurven.',
+    dots:['#0057d8','#c23b56','#1f7a52','#b06a00','#0d1013'],
+    tag:'Neu · Diagnostik', body:'Alles wirkt gemessen statt gefühlt: feine Skalenstriche, scharfe rechte Winkel, Monospace-Zahlen. Referenz sind Labor- und Diagnosegeräte, nicht Wellness-Apps.',
+    successor:'<b>Messschieber-Lineal:</b> ein Lineal mit mm-Strichen zeigt 0 bis Ziel. Eine graue Klammer markiert den Verbrauch, eine farbige Klammer + Beschriftung markiert exakt den Rest — wie ein Messwert, nicht wie ein Fortschrittsbalken.',
+    points:['Hellmodus: klinisches Weiß; Dunkelmodus: Phosphor-Grün auf Graphit, wie ein altes Laborterminal','Eingabe-Sheet: eckiges Feld mit Skalenraster, kein Radius irgendwo','Am präzisesten und am unaufgeregtesten von allen neun'] },
+  { id:'big', num:'09', name:'Big Number', dot1:'#2f6bff', chip:'neu',
+    pitch:'Eine riesige Zahl als Held statt vier gleichwertiger Kacheln.',
+    dots:['#2f6bff','#ff375f','#2fae63','#d98d00','#101114'],
+    tag:'Neu · Typografie', body:'Radikal andere Hierarchie: nur der wichtigste Rest-Wert (bei dir: Fett) steht riesig da, die anderen drei rücken zu einer kleinen Leiste darunter. Typografie ist hier das ganze Interface, nicht nur Beschriftung.',
+    successor:'<b>Headline-Zahl + Unterstrich-Skala:</b> die Zahl selbst ist der Fokus. Ein dünner Strich darunter füllt sich farbig bis zum Verbrauch — die Skala steckt in der Linie, nicht in einer separaten Grafik.',
+    points:['Hellmodus: Off-White + Tinte; Dunkelmodus: Tiefschwarz + Off-White, gleiche Struktur','Eingabe-Sheet: riesiger Cursor-Strich statt Eingabe-Box','Setzt bewusst nur EINE Zahl in den Mittelpunkt, passend zu "ich schaue vor allem auf Fett"'] },
 ];
 
-const SCREENS = ['today','stats','supps'];
+const SCREENS = ['today','stats','supps','sheet'];
 
-// ---- shared demo data (grounded in the real app / real screenshot) ----
 const MEALS = [
   {emoji:'🌅', name:'Haferflocken mit Beeren', kcal:380, p:14, c:58, f:9},
   {emoji:'☀️', name:'Hähnchen mit Reis', kcal:620, p:45, c:65, f:18},
@@ -366,352 +542,308 @@ const MEALS = [
 const TARGET = {kcal:2750, p:150, c:310, f:80};
 const CONSUMED = MEALS.reduce((a,m)=>({kcal:a.kcal+m.kcal, p:a.p+m.p, c:a.c+m.c, f:a.f+m.f}), {kcal:0,p:0,c:0,f:0});
 const REMAIN = {kcal:TARGET.kcal-CONSUMED.kcal, p:TARGET.p-CONSUMED.p, c:TARGET.c-CONSUMED.c, f:TARGET.f-CONSUMED.f};
-
 const MICROS = [
-  {ab:'D', name:'Vitamin D', ratio:0.30, hue:'#ff9500'},
-  {ab:'B12', name:'Vitamin B12', ratio:0.90, hue:'#af52de'},
-  {ab:'B9', name:'Folat', ratio:0.60, hue:'#6a977f'},
-  {ab:'C', name:'Vitamin C', ratio:1.00, hue:'#b26800'},
-  {ab:'Ca', name:'Calcium', ratio:0.55, hue:'#5a748a'},
-  {ab:'Fe', name:'Eisen', ratio:0.35, hue:'#ff3b30'},
-  {ab:'Mg', name:'Magnesium', ratio:0.65, hue:'#4757b4'},
-  {ab:'Zn', name:'Zink', ratio:0.85, hue:'#4385a9'},
-  {ab:'K', name:'Kalium', ratio:0.50, hue:'#97826e'},
-  {ab:'I', name:'Jod', ratio:1.30, hue:'#4caad4'},
+  {ab:'D', name:'Vitamin D', ratio:0.30, hue:'#ff9500'}, {ab:'B12', name:'Vitamin B12', ratio:0.90, hue:'#af52de'},
+  {ab:'B9', name:'Folat', ratio:0.60, hue:'#6a977f'}, {ab:'C', name:'Vitamin C', ratio:1.00, hue:'#b26800'},
+  {ab:'Ca', name:'Calcium', ratio:0.55, hue:'#5a748a'}, {ab:'Fe', name:'Eisen', ratio:0.35, hue:'#ff3b30'},
+  {ab:'Mg', name:'Magnesium', ratio:0.65, hue:'#4757b4'}, {ab:'Zn', name:'Zink', ratio:0.85, hue:'#4385a9'},
+  {ab:'K', name:'Kalium', ratio:0.50, hue:'#97826e'}, {ab:'I', name:'Jod', ratio:1.30, hue:'#4caad4'},
 ];
-
 const SUPPS = [
   {name:'Vitamin D3', dose:'2.000 IE · morgens', icon:'☀️', warn:null},
   {name:'Omega-3', dose:'1g EPA/DHA · Abendessen', icon:'🐟', warn:'Nicht mehr notwendig'},
   {name:'Magnesium Bisglycinat', dose:'300mg · abends', icon:'💊', warn:null},
   {name:'Kreatin Monohydrat', dose:'5g · täglich', icon:'⚡', warn:'Schon auf der Liste'},
 ];
-
 const WEEK = {avg:2139, target:2759, range:'31.08. – 06.09.2026'};
 
-function pct(r){ return Math.max(0, Math.min(100, (r/1.5)*100)); }
-function macroColorVars(prefix){
-  return {kcal:`var(--${prefix}-kcal)`, p:`var(--${prefix}-protein)`, c:`var(--${prefix}-carbs)`, f:`var(--${prefix}-fat)`};
-}
+function clampPct(r, cap){ return Math.max(0, Math.min(100, (r/(cap||1.3))*100)); }
+function ratioOf(k){ return CONSUMED[k]/TARGET[k]; }
 
-function microGrid(prefix, style){
-  // style: 'gradientdot' (glass/gauge/dark) | 'flatbar' (brutal) | 'condensed' (sport)
-  return MICROS.map(m=>{
-    if(style==='flatbar'){
-      return `<div class="micro-cell">
-        <span class="micro-ab" style="color:${m.hue}">${m.ab}</span>
-        <div class="micro-track"><div class="micro-fill" style="width:${pct(m.ratio)}%; background:${m.hue};"></div></div>
-        <span class="micro-name">${m.name}</span>
-      </div>`;
-    }
-    if(style==='condensed'){
-      return `<div>
-        <span class="micro-ab" style="color:${m.hue}">${m.ab}</span>
-        <div class="fuel" style="margin:6px 0 4px;">${Array.from({length:8}).map((_,i)=>`<span class="${i < Math.round(pct(m.ratio)/12.5) ? 'on':''}" style="--seg-color:${m.hue}"></span>`).join('')}</div>
-        <span class="micro-name">${m.name}</span>
-      </div>`;
-    }
-    return `<div>
-      <span class="micro-ab" style="color:${m.hue}">${m.ab}</span>
-      <div class="micro-track">
-        <div class="micro-fill" style="background:linear-gradient(to right, color-mix(in srgb, ${m.hue} 15%, transparent), ${m.hue});"></div>
-        <span class="micro-dot" style="left:${pct(m.ratio)}%; background:${m.hue}; color:${m.hue};"></span>
-      </div>
-      <span class="micro-name">${m.name}</span>
-    </div>`;
+// ---------- shared list renderers, parameterised per approach's markup dialect ----------
+function mealsList(kcalC,pC,cC,fC, style){
+  return MEALS.map((m,i)=>{
+    if(style==='ledger') return `<div class="meal"><span class="meal-idx">${String(i+1).padStart(2,'0')}</span><span class="meal-name">${m.name}</span>
+      <span class="badges"><span class="badge" style="color:${kcalC}">${m.kcal}</span><span class="badge" style="color:${pC}">${m.p}P</span><span class="badge" style="color:${cC}">${m.c}C</span><span class="badge" style="color:${fC}">${m.f}F</span></span></div>`;
+    if(style==='tagbar') return `<div class="meal"><div style="flex:1"><div class="meal-name">${m.name}</div><div class="badges" style="margin-top:6px">
+      <span class="badge" style="background:${kcalC}">${m.kcal} kcal</span><span class="badge" style="background:${pC}">${m.p}g P</span><span class="badge" style="background:${cC}">${m.c}g C</span><span class="badge" style="background:${fC}">${m.f}g F</span></div></div></div>`;
+    if(style==='plainline') return `<div class="meal"><div style="flex:1"><div class="meal-name">${m.name}</div><div class="badges" style="margin-top:6px">
+      <span class="badge" style="background:${kcalC}">${m.kcal} kcal</span><span class="badge" style="background:${pC}">${m.p}g P</span><span class="badge" style="background:${cC}">${m.c}g C</span><span class="badge" style="background:${fC}">${m.f}g F</span></div></div></div>`;
+    return `<div class="meal"><div class="meal-emoji">${m.emoji}</div><div style="flex:1"><div class="meal-name">${m.name}</div><div class="badges" style="margin-top:6px">
+      <span class="badge" style="background:${kcalC}">${m.kcal} kcal</span><span class="badge" style="background:${pC}">${m.p}g P</span><span class="badge" style="background:${cC}">${m.c}g C</span><span class="badge" style="background:${fC}">${m.f}g F</span></div></div></div>`;
   }).join('');
 }
-
-function mealsList(prefix, style){
-  return MEALS.map(m=>{
-    const badgeStyle = (c)=> style==='outline' ? `border:2px solid var(--b-ink); color:var(--b-ink);` : `background:${c}; color:#fff;`;
-    const kcalC = `var(--${prefix}-kcal)`, pC=`var(--${prefix}-protein)`, cC=`var(--${prefix}-carbs)`, fC=`var(--${prefix}-fat)`;
-    if(style==='tag'){
-      return `<div class="meal" style="border-left-color:${kcalC}">
-        <div style="flex:1">
-          <div class="meal-name">${m.name}</div>
-          <div class="badges" style="margin-top:6px">
-            <span class="badge" style="background:${kcalC}">${m.kcal} kcal</span>
-            <span class="badge" style="background:${pC}">${m.p}g P</span>
-            <span class="badge" style="background:${cC}">${m.c}g C</span>
-            <span class="badge" style="background:${fC}">${m.f}g F</span>
-          </div>
-        </div>
-      </div>`;
-    }
-    if(style==='outline'){
-      return `<div class="meal">
-        <div class="meal-emoji">${m.emoji}</div>
-        <div style="flex:1">
-          <div class="meal-name">${m.name}</div>
-          <div class="badges" style="margin-top:6px">
-            <span class="badge">${m.kcal} kcal</span>
-            <span class="badge">${m.p}g P</span>
-            <span class="badge">${m.c}g C</span>
-            <span class="badge">${m.f}g F</span>
-          </div>
-        </div>
-      </div>`;
-    }
-    return `<div class="meal">
-      <div class="meal-emoji">${m.emoji}</div>
-      <div style="flex:1">
-        <div class="meal-name">${m.name}</div>
-        <div class="badges" style="margin-top:6px">
-          <span class="badge" style="background:${kcalC}">${m.kcal} kcal</span>
-          <span class="badge" style="background:${pC}">${m.p}g P</span>
-          <span class="badge" style="background:${cC}">${m.c}g C</span>
-          <span class="badge" style="background:${fC}">${m.f}g F</span>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function suppsList(prefix, style){
+function suppsList(style, warnColorVar){
   return SUPPS.map(s=>{
-    if(style==='barleft'){
-      const color = s.warn ? 'var(--q-fat, var(--s-accent))' : 'transparent';
-      return `<div class="supp" style="${prefix==='sport' ? `border-left-color:${s.warn? 'var(--s-accent)':'transparent'}` : ''}">
-        ${prefix==='gauge' ? `<div class="supp-ic" style="background:${s.warn?'#d98d00':'#2f6bff'}"></div>` : ''}
-        <div style="flex:1">
-          <div class="supp-name">${s.name}</div>
-          <div class="supp-dose">${s.dose}</div>
-        </div>
-        ${s.warn ? `<span class="warn" role="img" aria-label="${s.warn}">!</span>` : ''}
-      </div>`;
-    }
-    return `<div class="supp">
-      <div class="supp-ic" style="${prefix==='brutal' ? 'background:#fff' : `background:${s.warn?'#ff9500':'#0a84ff'}`}">${s.icon}</div>
-      <div style="flex:1">
-        <div class="supp-name">${s.name}</div>
-        <div class="supp-dose">${s.dose}</div>
-      </div>
-      ${s.warn ? `<span class="warn" role="img" aria-label="${s.warn}">!</span>` : ''}
-    </div>`;
+    if(style==='ledger') return `<div class="supp"><span class="supp-name">${s.name}</span><span class="supp-dose">${s.dose}</span>${s.warn?`<span class="warn" role="img" aria-label="${s.warn}">!</span>`:''}</div>`;
+    return `<div class="supp">${style==='icon'?`<div class="supp-ic" style="background:${s.warn?warnColorVar:'var(--acc-supp,#0a84ff)'}">${s.icon}</div>`:''}<div style="flex:1"><div class="supp-name">${s.name}</div><div class="supp-dose">${s.dose}</div></div>${s.warn?`<span class="warn" role="img" aria-label="${s.warn}">!</span>`:''}</div>`;
   }).join('');
 }
+function microLinear(hueVar){
+  return MICROS.map(m=>`<div><span class="micro-ab" style="color:${m.hue}">${m.ab}</span><div class="micro-track">
+    <div class="micro-fill" style="background:linear-gradient(to right, color-mix(in srgb, ${m.hue} 15%, transparent), ${m.hue});"></div>
+    <span class="micro-dot" style="left:${clampPct(m.ratio,1.5)}%; background:${m.hue};"></span></div><span class="micro-name">${m.name}</span></div>`).join('');
+}
+function microFlat(){
+  return MICROS.map(m=>`<div><span class="micro-ab" style="color:${m.hue}">${m.ab}</span><div class="micro-track"><div class="micro-fill" style="width:${clampPct(m.ratio,1.5)}%; background:${m.hue};"></div></div><span class="micro-name">${m.name}</span></div>`).join('');
+}
+function microLedger(){
+  return MICROS.map(m=>`<div class="micro-row"><span class="micro-ab" style="color:${m.hue}">${m.ab}</span><div class="micro-leader"><div class="micro-ink" style="width:${clampPct(m.ratio,1.5)}%; background:${m.hue};"></div></div><span class="micro-name">${m.name}</span></div>`).join('');
+}
 
-// ---------- per-approach screen renderers ----------
+// ---------- sheet mock (shared skeleton, per-approach classes handle the skin) ----------
+function sheetMock(pageTitle){
+  return `<div class="sheet-screen">
+    <div class="backdrop-peek"><div class="hdr"><span class="title">${pageTitle}</span><span class="icon-btn">＋</span></div></div>
+    <div class="sheet-mock">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Mahlzeit hinzufügen</div>
+      <div class="sheet-input">z. B. „Hähnchen mit Reis, dazu ein Salat"…</div>
+      <div class="sheet-actions">
+        <div class="sheet-actionbtn">📷 Foto</div>
+        <div class="sheet-actionbtn">🎤 Diktieren</div>
+      </div>
+      <div class="sheet-cta">Nährwerte schätzen</div>
+    </div>
+  </div>`;
+}
+
+// ============================== 1) GLASS ==============================
 function renderGlass(screen){
+  const caps = [['KCAL',REMAIN.kcal,'kcal übrig','var(--g-kcal)',ratioOf('kcal')],['P',REMAIN.p,'g Protein übrig','var(--g-protein)',ratioOf('p')],
+    ['C',REMAIN.c,'g Carbs übrig','var(--g-carbs)',ratioOf('c')],['F',REMAIN.f,'g Fett übrig','var(--g-fat)',ratioOf('f')]];
+  const capsHtml = `<div class="g-caps">${caps.map(([ab,v,l,c,r])=>`<div><div class="g-cap-shape">
+      <div class="g-cap-fill" style="height:${Math.min(100,r*100)}%; background:${c};"></div><div class="g-cap-num">${v}<small style="font-size:9px;">${ab==='KCAL'?'':'g'}</small></div>
+    </div><span class="g-cap-lbl">${l}</span></div>`).join('')}</div>`;
+  if(screen==='sheet') return `<div class="appr-glass">${sheetMock('Heute')}</div>`;
   if(screen==='today') return `<div class="appr-glass"><div class="pad">
     <div class="hdr"><span class="title">Heute</span><span class="icon-btn">＋</span></div>
-    <div class="rem-title">Noch übrig heute</div>
-    <div class="rem-row">
-      ${[['kcal',REMAIN.kcal,'kcal','var(--g-kcal)'],['p',REMAIN.p,'g Protein','var(--g-protein)'],['c',REMAIN.c,'g Carbs','var(--g-carbs)'],['f',REMAIN.f,'g Fett','var(--g-fat)']]
-        .map(([k,v,l,c])=>`<div class="rem-item"><span class="dot" style="background:${c}"></span><div class="num">${v}</div><div class="lbl">${l}</div></div>`).join('')}
-    </div>
-    <div class="section-title">Mahlzeiten</div>
-    <div class="glass" style="padding:2px 2px; margin-bottom:2px;">${mealsList('g','plain')}</div>
+    <div class="section-title">Noch übrig</div>${capsHtml}
+    <div class="section-title">Mahlzeiten</div>${mealsList('var(--g-kcal)','var(--g-protein)','var(--g-carbs)','var(--g-fat)','plain')}
   </div></div>`;
   if(screen==='stats') return `<div class="appr-glass"><div class="pad">
     <div class="hdr"><span class="title">Statistik</span><span class="icon-btn">⚙︎</span></div>
     <p style="text-align:center; font-size:12px; color:var(--g-soft); font-weight:600; margin:4px 0 14px;">${WEEK.range}</p>
-    <div class="stat-tiles">
-      <div class="glass"><div class="stat-big" style="color:var(--g-kcal)">${WEEK.avg.toLocaleString('de-DE')}</div><div class="stat-lbl">Ø kcal/Tag · Ziel ${WEEK.target.toLocaleString('de-DE')}</div></div>
-      <div class="glass-dark"><div class="stat-big">${TARGET.kcal-WEEK.avg}</div><div class="stat-lbl" style="color:#c7ccdb">kcal unter Ziel</div></div>
-    </div>
-    <div class="rem-title">Ø Restliche Makros/Tag</div>
-    <div class="rem-row">
-      ${[['p',REMAIN.p,'g Protein','var(--g-protein)'],['c',REMAIN.c,'g Carbs','var(--g-carbs)'],['f',REMAIN.f,'g Fett','var(--g-fat)'],['kcal',REMAIN.kcal,'kcal','var(--g-kcal)']]
-        .map(([k,v,l,c])=>`<div class="rem-item"><span class="dot" style="background:${c}"></span><div class="num">${v}</div><div class="lbl">${l}</div></div>`).join('')}
-    </div>
-    <div class="section-title">Mikronährstoffe</div>
-    <div class="glass"><div class="micro-grid">${microGrid('g','gradientdot')}</div></div>
+    <div class="stat-tiles"><div class="glass"><div class="stat-big" style="color:var(--g-kcal)">${WEEK.avg.toLocaleString('de-DE')}</div><div class="stat-lbl">Ø kcal/Tag · Ziel ${WEEK.target.toLocaleString('de-DE')}</div></div>
+      <div class="glass"><div class="stat-big">${WEEK.target-WEEK.avg}</div><div class="stat-lbl">kcal unter Ziel</div></div></div>
+    <div class="section-title">Ø Rest/Tag</div>${capsHtml}
+    <div class="section-title">Mikronährstoffe</div><div class="glass" style="padding:14px;"><div class="micro-grid">${microLinear()}</div></div>
   </div></div>`;
-  return `<div class="appr-glass"><div class="pad">
-    <div class="hdr"><span class="title">Supps</span><span class="icon-btn">＋</span></div>
-    <div class="section-title" style="margin-top:16px;">Meine Liste</div>
-    ${suppsList('glass','icon')}
-  </div></div>`;
+  return `<div class="appr-glass"><div class="pad"><div class="hdr"><span class="title">Supps</span><span class="icon-btn">＋</span></div>
+    <div class="section-title">Meine Liste</div>${suppsList('icon','#ff9500')}</div></div>`;
 }
 
+// ============================== 2) GAUGE ==============================
+function arcSvg(ratio, colorLight, colorDark){
+  const pct = Math.max(0, Math.min(1, ratio/1.3));
+  const angle = (pct-0.5)*180;
+  return `<svg width="76" height="42" viewBox="0 0 100 56" fill="none">
+    <path d="M4,50 A46,46 0 0 1 96,50" stroke="var(--q-line)" stroke-width="6" stroke-linecap="round"/>
+    <path d="M12,50 L4,50 M23.13,23.13 L17.47,17.47 M50,12 L50,4 M76.87,23.13 L82.53,17.47 M88,50 L96,50" stroke="var(--q-faint)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="50" y1="50" x2="50" y2="16" stroke="${colorLight}" stroke-width="3" stroke-linecap="round" transform="rotate(${angle.toFixed(1)} 50 50)"/>
+    <circle cx="50" cy="50" r="4.5" fill="${colorLight}"/>
+  </svg>`;
+}
 function renderGauge(screen){
-  const remRow = (items)=>`<div class="card"><div class="rem-list">${items.map(([ab,v,unit,c,ratio])=>`
-    <div class="rem-row">
-      <span class="rem-ab" style="color:${c}">${ab}</span>
-      <div class="g-track"><div class="g-fill" style="width:${ratio}%; background:${c}"></div></div>
-      <div><div class="g-num">${v}</div><div class="g-sub">${unit}</div></div>
-    </div>`).join('')}</div></div>`;
-  const remItems = [
-    ['KCAL',REMAIN.kcal,'übrig','var(--q-kcal)', pct(CONSUMED.kcal/TARGET.kcal)],
-    ['P',REMAIN.p,'g übrig','var(--q-protein)', pct(CONSUMED.p/TARGET.p)],
-    ['C',REMAIN.c,'g übrig','var(--q-carbs)', pct(CONSUMED.c/TARGET.c)],
-    ['F',REMAIN.f,'g übrig','var(--q-fat)', pct(CONSUMED.f/TARGET.f)],
-  ];
-  if(screen==='today') return `<div class="appr-gauge"><div class="pad">
-    <div class="hdr"><span class="title">Heute</span><span class="icon-btn">＋</span></div>
-    <div class="rem-title">Noch übrig</div>
-    ${remRow(remItems)}
-    <div class="section-title">Mahlzeiten</div>
-    <div class="card">${mealsList('q','tag')}</div>
-  </div></div>`;
-  if(screen==='stats') return `<div class="appr-gauge"><div class="pad">
-    <div class="hdr"><span class="title">Statistik</span><span class="icon-btn">⚙︎</span></div>
-    <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--q-soft); margin:2px 0 14px;">${WEEK.range}</p>
-    <div class="stat-tiles">
-      <div class="card"><div class="stat-big" style="color:var(--q-kcal)">${WEEK.avg.toLocaleString('de-DE')}</div><div class="stat-lbl">Ø kcal/Tag</div></div>
-      <div class="card"><div class="stat-big">${WEEK.target.toLocaleString('de-DE')}</div><div class="stat-lbl">Ziel kcal/Tag</div></div>
-    </div>
-    <div class="rem-title">Ø Restliche Makros/Tag</div>
-    ${remRow(remItems.slice(1))}
-    <div class="section-title">Mikronährstoffe</div>
-    <div class="card"><div class="micro-grid">${microGrid('q','gradientdot')}</div></div>
-  </div></div>`;
-  return `<div class="appr-gauge"><div class="pad">
-    <div class="hdr"><span class="title">Supps</span><span class="icon-btn">＋</span></div>
-    <div class="section-title" style="margin-top:16px;">Meine Liste</div>
-    <div class="card">${suppsList('gauge','barleft')}</div>
-  </div></div>`;
+  const arcs = [['KCAL',REMAIN.kcal,'kcal übrig','var(--q-kcal)',ratioOf('kcal')],['P',REMAIN.p,'g Protein übrig','var(--q-protein)',ratioOf('p')],
+    ['C',REMAIN.c,'g Carbs übrig','var(--q-carbs)',ratioOf('c')],['F',REMAIN.f,'g Fett übrig','var(--q-fat)',ratioOf('f')]];
+  const arcHtml = `<div class="card"><div class="arc-row">${arcs.map(([ab,v,l,c,r])=>`<div class="arc-cell">${arcSvg(r,c)}<div class="arc-num" style="color:${c}">${v}${ab==='KCAL'?'':'g'}</div><div class="arc-lbl">${l}</div></div>`).join('')}</div></div>`;
+  if(screen==='sheet') return `<div class="appr-gauge">${sheetMock('Heute')}</div>`;
+  if(screen==='today') return `<div class="appr-gauge"><div class="pad"><div class="hdr"><span class="title">Heute</span><span class="icon-btn">＋</span></div>
+    <div class="section-title">Noch übrig</div>${arcHtml}
+    <div class="section-title">Mahlzeiten</div><div class="card">${mealsList('var(--q-kcal)','var(--q-protein)','var(--q-carbs)','var(--q-fat)','tagbar')}</div></div></div>`;
+  if(screen==='stats') return `<div class="appr-gauge"><div class="pad"><div class="hdr"><span class="title">Statistik</span><span class="icon-btn">⚙︎</span></div>
+    <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--q-soft); margin:2px 0 14px;">${WEEK.range}</p>
+    <div class="stat-tiles"><div class="card"><div class="stat-big" style="color:var(--q-kcal)">${WEEK.avg.toLocaleString('de-DE')}</div><div class="stat-lbl">Ø kcal/Tag</div></div>
+      <div class="card"><div class="stat-big">${WEEK.target.toLocaleString('de-DE')}</div><div class="stat-lbl">Ziel kcal/Tag</div></div></div>
+    <div class="section-title">Ø Rest/Tag</div>${arcHtml}
+    <div class="section-title">Mikronährstoffe</div><div class="card"><div class="micro-grid">${microLinear()}</div></div></div></div>`;
+  return `<div class="appr-gauge"><div class="pad"><div class="hdr"><span class="title">Supps</span><span class="icon-btn">＋</span></div>
+    <div class="section-title">Meine Liste</div><div class="card">${suppsList('barleft')}</div></div></div>`;
 }
 
-function renderBrutal(screen){
-  const remGrid = (items)=>`<div class="rem-grid">${items.map(([v,unit,lbl,cur,tgt,c])=>`
-    <div class="block rem-item" style="background:${c}"><div class="num">${v}<span class="unit">${unit}</span></div><div class="lbl">${lbl}</div><div class="sub">${cur} / ${tgt}</div></div>`).join('')}</div>`;
-  const remItems = [
-    [REMAIN.kcal,'','kcal übrig',CONSUMED.kcal,TARGET.kcal,'var(--b-blue)'],
-    [REMAIN.p,'g','Protein übrig',CONSUMED.p,TARGET.p,'#ff0f4c'],
-    [REMAIN.c,'g','Carbs übrig',CONSUMED.c,TARGET.c,'var(--b-green)'],
-    [REMAIN.f,'g','Fett übrig',CONSUMED.f,TARGET.f,'#c98a00'],
-  ];
-  if(screen==='today') return `<div class="appr-brutal"><div class="pad">
-    <div class="hdr"><span class="title">Heute</span><span class="icon-btn">＋</span></div>
-    <div class="rem-title">Noch übrig</div>
-    ${remGrid(remItems)}
-    <div class="section-title">Mahlzeiten</div>
-    <div class="block" style="padding:6px;">${mealsList('brutal','outline')}</div>
-  </div></div>`;
-  if(screen==='stats') return `<div class="appr-brutal"><div class="pad">
-    <div class="hdr"><span class="title">Statistik</span><span class="icon-btn">⚙︎</span></div>
-    <p style="text-align:center; font-weight:800; font-size:11.5px; margin:6px 0 14px; text-transform:uppercase;">${WEEK.range}</p>
-    <div class="stat-tiles">
-      <div class="block" style="background:var(--b-blue); color:#fff;"><div class="stat-big">${WEEK.avg.toLocaleString('de-DE')}</div><div class="stat-lbl">Ø kcal/Tag</div></div>
-      <div class="block"><div class="stat-big">${WEEK.target.toLocaleString('de-DE')}</div><div class="stat-lbl">Ziel kcal</div></div>
-    </div>
-    <div class="rem-title">Ø Restliche Makros/Tag</div>
-    ${remGrid(remItems.slice(1))}
-    <div class="section-title">Mikronährstoffe</div>
-    <div class="micro-grid">${microGrid('brutal','flatbar')}</div>
-  </div></div>`;
-  return `<div class="appr-brutal"><div class="pad">
-    <div class="hdr"><span class="title">Supps</span><span class="icon-btn">＋</span></div>
-    <div class="section-title" style="margin-top:16px;">Meine Liste</div>
-    <div class="block" style="padding:6px;">${suppsList('brutal','icon')}</div>
-  </div></div>`;
-}
-
+// ============================== 4) DARK ==============================
 function renderDark(screen){
-  const remRow = (items)=>`<div class="glass" style="padding:12px 8px;"><div class="rem-row">${items.map(([v,l,c])=>`
-    <div class="rem-item" style="background:color-mix(in srgb, ${c} 14%, transparent); border:1px solid color-mix(in srgb, ${c} 35%, transparent);"><div class="num" style="color:${c}">${v}</div><div class="lbl">${l}</div></div>`).join('')}</div></div>`;
-  const remItems4 = [[REMAIN.kcal,'kcal','var(--d-kcal)'],[REMAIN.p,'g Protein','var(--d-protein)'],[REMAIN.c,'g Carbs','var(--d-carbs)'],[REMAIN.f,'g Fett','var(--d-fat)']];
-  if(screen==='today') return `<div class="appr-dark"><div class="pad">
-    <div class="hdr"><span class="title">Heute</span><span class="icon-btn">＋</span></div>
-    <div class="rem-title">Noch übrig</div>
-    ${remRow(remItems4)}
-    <div class="section-title">Mahlzeiten</div>
-    ${mealsList('d','plain')}
-  </div></div>`;
-  if(screen==='stats') return `<div class="appr-dark"><div class="pad">
-    <div class="hdr"><span class="title">Statistik</span><span class="icon-btn">⚙︎</span></div>
-    <p style="text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--d-faint); margin:4px 0 14px;">${WEEK.range}</p>
-    <div class="stat-tiles">
-      <div class="glass"><div class="stat-big" style="color:var(--d-kcal)">${WEEK.avg.toLocaleString('de-DE')}</div><div class="stat-lbl">Ø kcal/Tag</div></div>
-      <div class="glass"><div class="stat-big">${WEEK.target.toLocaleString('de-DE')}</div><div class="stat-lbl">Ziel kcal/Tag</div></div>
-    </div>
-    <div class="rem-title">Ø Restliche Makros/Tag</div>
-    ${remRow(remItems4.slice(1))}
-    <div class="section-title">Mikronährstoffe</div>
-    <div class="glass"><div class="micro-grid">${microGrid('d','gradientdot')}</div></div>
-  </div></div>`;
-  return `<div class="appr-dark"><div class="pad">
-    <div class="hdr"><span class="title">Supps</span><span class="icon-btn">＋</span></div>
-    <div class="section-title" style="margin-top:16px;">Meine Liste</div>
-    ${suppsList('dark','icon')}
-  </div></div>`;
+  const meters = [['KCAL',REMAIN.kcal,'kcal übrig','var(--d-kcal)',ratioOf('kcal')],['P',REMAIN.p,'g Protein','var(--d-protein)',ratioOf('p')],
+    ['C',REMAIN.c,'g Carbs','var(--d-carbs)',ratioOf('c')],['F',REMAIN.f,'g Fett','var(--d-fat)',ratioOf('f')]];
+  const meterHtml = `<div class="glass"><div class="meter-row">${meters.map(([ab,v,l,c,r])=>`<div class="meter-cell">
+    <div class="meter-track">${[0,25,50,75,100].map(t=>`<div class="meter-tick" style="bottom:${t}%"></div>`).join('')}
+      <div class="meter-marker" style="bottom:${clampPct(r,1.3)}%; background:${c}; box-shadow:0 0 8px 1px ${c};"></div></div>
+    <div class="meter-num" style="color:${c}">${v}${ab==='KCAL'?'':'g'}</div><div class="meter-lbl">${l}</div></div>`).join('')}</div></div>`;
+  if(screen==='sheet') return `<div class="appr-dark">${sheetMock('Heute')}</div>`;
+  if(screen==='today') return `<div class="appr-dark"><div class="pad"><div class="hdr"><span class="title">Heute</span><span class="icon-btn">＋</span></div>
+    <div class="section-title">Noch übrig</div>${meterHtml}
+    <div class="section-title">Mahlzeiten</div>${mealsList('var(--d-kcal)','var(--d-protein)','var(--d-carbs)','var(--d-fat)','plain')}</div></div>`;
+  if(screen==='stats') return `<div class="appr-dark"><div class="pad"><div class="hdr"><span class="title">Statistik</span><span class="icon-btn">⚙︎</span></div>
+    <p style="text-align:center; font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--d-faint); margin:4px 0 14px;">${WEEK.range}</p>
+    <div class="stat-tiles"><div class="glass"><div class="stat-big" style="color:var(--d-kcal)">${WEEK.avg.toLocaleString('de-DE')}</div><div class="stat-lbl">Ø kcal/Tag</div></div>
+      <div class="glass"><div class="stat-big">${WEEK.target.toLocaleString('de-DE')}</div><div class="stat-lbl">Ziel kcal/Tag</div></div></div>
+    <div class="section-title">Ø Rest/Tag</div>${meterHtml}
+    <div class="section-title">Mikronährstoffe</div><div class="glass" style="padding:14px;"><div class="micro-grid">${microLinear()}</div></div></div></div>`;
+  return `<div class="appr-dark"><div class="pad"><div class="hdr"><span class="title">Supps</span><span class="icon-btn">＋</span></div>
+    <div class="section-title">Meine Liste</div>${suppsList('icon','#ffcf3d')}</div></div>`;
 }
 
+// ============================== 5) SPORT ==============================
+function flipCell(ab,val,unit,color,ratio){
+  const digits = String(val).split('');
+  return `<div class="flip-cell"><div class="flip-digits">${digits.map(d=>`<div class="flip-digit">${d}</div>`).join('')}</div>
+    <div class="flip-unit">${unit}</div><div class="flip-rail"><div class="flip-rail-fill" style="width:${clampPct(ratio,1.3)}%; background:${color};"></div></div></div>`;
+}
 function renderSport(screen){
-  const remBlock = (items)=>`<div class="rem-row">${items.map(([v,unit,lbl,ratio,c])=>`
-    <div class="rem-item"><div><div class="num" style="color:${c}">${v}</div><div class="unit">${unit}</div></div>
-      <div><div class="fuel">${Array.from({length:10}).map((_,i)=>`<span class="${i < Math.round(ratio/10) ? 'on':''}" style="--seg-color:${c}"></span>`).join('')}</div><div class="rem-lbl">${lbl}</div></div></div>`).join('')}`;
-  const items = [
-    [REMAIN.kcal,'kcal','Kalorien übrig',pct(CONSUMED.kcal/TARGET.kcal),'var(--s-kcal)'],
-    [REMAIN.p,'g','Protein übrig',pct(CONSUMED.p/TARGET.p),'var(--s-protein)'],
-    [REMAIN.c,'g','Carbs übrig',pct(CONSUMED.c/TARGET.c),'var(--s-carbs)'],
-    [REMAIN.f,'g','Fett übrig — im Blick behalten',pct(CONSUMED.f/TARGET.f),'var(--s-fat)'],
-  ];
-  if(screen==='today') return `<div class="appr-sport"><div class="pad">
-    <div class="hdr"><span class="title">Heute</span><span class="icon-btn">＋</span></div>
-    <div class="rem-title">Noch übrig</div>
-    <div class="panel-box" style="padding:6px 10px;">${remBlock(items)}</div>
-    <div class="section-title">Mahlzeiten</div>
-    ${mealsList('s','tag')}
-  </div></div>`;
-  if(screen==='stats') return `<div class="appr-sport"><div class="pad">
-    <div class="hdr"><span class="title">Statistik</span><span class="icon-btn">⚙︎</span></div>
-    <p style="text-align:center; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:13px; color:var(--s-soft); margin:2px 0 14px; text-transform:uppercase;">${WEEK.range}</p>
-    <div class="stat-tiles">
-      <div class="panel-box"><div class="stat-big" style="color:var(--s-kcal)">${WEEK.avg.toLocaleString('de-DE')}</div><div class="stat-lbl">Ø kcal/Tag</div></div>
-      <div class="panel-box"><div class="stat-big">${WEEK.target.toLocaleString('de-DE')}</div><div class="stat-lbl">Ziel kcal/Tag</div></div>
-    </div>
-    <div class="rem-title">Ø Restliche Makros/Tag</div>
-    <div class="panel-box" style="padding:6px 10px;">${remBlock(items.slice(1))}</div>
-    <div class="section-title">Mikronährstoffe</div>
-    <div class="panel-box"><div class="micro-grid">${microGrid('s','condensed')}</div></div>
-  </div></div>`;
-  return `<div class="appr-sport"><div class="pad">
-    <div class="hdr"><span class="title">Supps</span><span class="icon-btn">＋</span></div>
-    <div class="section-title" style="margin-top:16px;">Meine Liste</div>
-    ${suppsList('sport','barleft')}
-  </div></div>`;
+  const items = [['KCAL',REMAIN.kcal,'KCAL ÜBRIG','var(--s-kcal)',ratioOf('kcal')],['P',REMAIN.p,'G PROTEIN','var(--s-protein)',ratioOf('p')],
+    ['C',REMAIN.c,'G CARBS','var(--s-carbs)',ratioOf('c')],['F',REMAIN.f,'G FETT','var(--s-fat)',ratioOf('f')]];
+  const flipHtml = `<div class="flip-row">${items.map(([ab,v,u,c,r])=>flipCell(ab,v,u,c,r)).join('')}</div>`;
+  if(screen==='sheet') return `<div class="appr-sport">${sheetMock('Heute')}</div>`;
+  if(screen==='today') return `<div class="appr-sport"><div class="pad"><div class="hdr"><span class="title">Heute</span><span class="icon-btn">＋</span></div>
+    <div class="section-title">Noch übrig</div>${flipHtml}
+    <div class="section-title">Mahlzeiten</div>${mealsList('var(--s-kcal)','var(--s-protein)','var(--s-carbs)','var(--s-fat)','tagbar')}</div></div>`;
+  if(screen==='stats') return `<div class="appr-sport"><div class="pad"><div class="hdr"><span class="title">Statistik</span><span class="icon-btn">⚙︎</span></div>
+    <p style="text-align:center; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:12.5px; color:var(--s-soft); margin:2px 0 14px; text-transform:uppercase;">${WEEK.range}</p>
+    <div class="stat-tiles"><div class="panel-box"><div class="stat-big" style="color:var(--s-kcal)">${WEEK.avg.toLocaleString('de-DE')}</div><div class="stat-lbl">Ø kcal/Tag</div></div>
+      <div class="panel-box"><div class="stat-big">${WEEK.target.toLocaleString('de-DE')}</div><div class="stat-lbl">Ziel kcal/Tag</div></div></div>
+    <div class="section-title">Ø Rest/Tag</div>${flipHtml}
+    <div class="section-title">Mikronährstoffe</div><div class="panel-box"><div class="micro-grid">${microFlat()}</div></div></div></div>`;
+  return `<div class="appr-sport"><div class="pad"><div class="hdr"><span class="title">Supps</span><span class="icon-btn">＋</span></div>
+    <div class="section-title">Meine Liste</div>${suppsList('barleft')}</div></div>`;
 }
 
-const RENDERERS = {glass:renderGlass, gauge:renderGauge, brutal:renderBrutal, dark:renderDark, sport:renderSport};
+// ============================== 6) LEDGER ==============================
+function ledgerRows(){
+  const rows = [['PROTEIN',REMAIN.p,'g Rest','var(--l-protein)',ratioOf('p')],['CARBS',REMAIN.c,'g Rest','var(--l-carbs)',ratioOf('c')],
+    ['FETT',REMAIN.f,'g Rest','var(--l-fat)',ratioOf('f')],['KCAL',REMAIN.kcal,'Rest','var(--l-kcal)',ratioOf('kcal')]];
+  return rows.map(([lbl,v,u,c,r])=>`<div class="l-row"><span class="l-label">${lbl}</span><span class="l-leader"></span><span class="l-value" style="color:${c}">${v} ${u}</span></div>
+    <div class="l-rule"><div class="l-rule-ink" style="width:${clampPct(r,1.3)}%; background:${c};"></div></div>`).join('');
+}
+function renderLedger(screen){
+  if(screen==='sheet') return `<div class="appr-ledger">${sheetMock('Heute')}</div>`;
+  if(screen==='today') return `<div class="appr-ledger"><div class="pad"><div class="hdr"><span class="title">Heute</span><span class="icon-btn">＋</span></div>
+    <div class="section-title">Noch übrig</div>${ledgerRows()}
+    <div class="section-title" style="margin-top:20px;">Mahlzeiten</div>${mealsList('var(--l-kcal)','var(--l-protein)','var(--l-carbs)','var(--l-fat)','ledger')}</div></div>`;
+  if(screen==='stats') return `<div class="appr-ledger"><div class="pad"><div class="hdr"><span class="title">Statistik</span><span class="icon-btn">⚙︎</span></div>
+    <p style="text-align:center; font-size:11px; color:var(--l-faint); margin:4px 0 12px; font-style:italic;">${WEEK.range}</p>
+    <div class="stat-tiles"><div><div class="stat-big" style="color:var(--l-kcal)">${WEEK.avg.toLocaleString('de-DE')}</div><div class="stat-lbl">Ø kcal/Tag</div></div>
+      <div><div class="stat-big">${WEEK.target.toLocaleString('de-DE')}</div><div class="stat-lbl">Ziel kcal</div></div></div>
+    <div class="section-title">Ø Rest/Tag</div>${ledgerRows()}
+    <div class="section-title">Mikronährstoffe</div><div class="micro-grid">${microLedger()}</div></div></div>`;
+  return `<div class="appr-ledger"><div class="pad"><div class="hdr"><span class="title">Supps</span><span class="icon-btn">＋</span></div>
+    <div class="section-title">Meine Liste</div>${suppsList('ledger')}</div></div>`;
+}
+
+// ============================== 7) BOTANICAL ==============================
+function renderBotanical(screen){
+  const blobs = [['KCAL',REMAIN.kcal,'kcal übrig','var(--o-kcal)',ratioOf('kcal')],['P',REMAIN.p,'g Protein','var(--o-protein)',ratioOf('p')],
+    ['C',REMAIN.c,'g Carbs','var(--o-carbs)',ratioOf('c')],['F',REMAIN.f,'g Fett','var(--o-fat)',ratioOf('f')]];
+  const blobHtml = `<div class="card" style="padding:12px 4px;"><div class="blob-row">${blobs.map(([ab,v,l,c,r])=>`<div class="blob-cell">
+      <div class="blob-shape" style="--c:${c}"><div class="blob-fill" style="height:${Math.min(100,r*100)}%"></div></div>
+      <div class="blob-num" style="color:${c}">${v}${ab==='KCAL'?'':'g'}</div><span class="blob-lbl">${l}</span></div>`).join('')}</div></div>`;
+  if(screen==='sheet') return `<div class="appr-botanical">${sheetMock('Heute')}</div>`;
+  if(screen==='today') return `<div class="appr-botanical"><div class="pad"><div class="hdr"><span class="title">Heute</span><span class="icon-btn">＋</span></div>
+    <div class="section-title">Noch übrig</div>${blobHtml}
+    <div class="section-title">Mahlzeiten</div>${mealsList('var(--o-kcal)','var(--o-protein)','var(--o-carbs)','var(--o-fat)','plain')}</div></div>`;
+  if(screen==='stats') return `<div class="appr-botanical"><div class="pad"><div class="hdr"><span class="title">Statistik</span><span class="icon-btn">⚙︎</span></div>
+    <p style="text-align:center; font-family:'Quicksand',sans-serif; font-size:11px; color:var(--o-soft); margin:4px 0 14px; font-weight:600;">${WEEK.range}</p>
+    <div class="stat-tiles"><div class="card"><div class="stat-big" style="color:var(--o-kcal)">${WEEK.avg.toLocaleString('de-DE')}</div><div class="stat-lbl">Ø kcal/Tag</div></div>
+      <div class="card"><div class="stat-big">${WEEK.target.toLocaleString('de-DE')}</div><div class="stat-lbl">Ziel kcal/Tag</div></div></div>
+    <div class="section-title">Ø Rest/Tag</div>${blobHtml}
+    <div class="section-title">Mikronährstoffe</div><div class="card" style="padding:14px;"><div class="micro-grid">${microLinear()}</div></div></div></div>`;
+  return `<div class="appr-botanical"><div class="pad"><div class="hdr"><span class="title">Supps</span><span class="icon-btn">＋</span></div>
+    <div class="section-title">Meine Liste</div>${suppsList('icon','var(--o-fat)')}</div></div>`;
+}
+
+// ============================== 8) LAB ==============================
+function rulerBlock(lbl,val,unit,color,ratio,target){
+  const usedPct = clampPct(ratio,1); const remainPct = clampPct((target-val*0+ (1-ratio)),1); // not used directly
+  const consumedPct = Math.max(0,Math.min(100,ratio*100/1.3));
+  const fullPct = Math.min(100, 100/1.3);
+  const ticks = [];
+  for(let i=0;i<=20;i++){ const left = i*5; ticks.push(`<div class="ruler-tick ${i%5===0?'major':''}" style="left:${left}%; height:${i%5===0?'14px':'7px'};"></div>`); }
+  return `<div class="ruler-block"><span class="ruler-lbl">${lbl}</span><div class="ruler">${ticks.join('')}
+    <div class="ruler-used" style="left:0; width:${consumedPct}%;"></div>
+    <div class="ruler-remain" style="left:${consumedPct}%; width:${Math.max(0,fullPct-consumedPct)}%; background:${color};"></div>
+    <span class="ruler-tag" style="left:${Math.min(94,consumedPct + (fullPct-consumedPct)/2)}%; color:${color}; border-color:${color};">${val}${unit}</span>
+  </div></div>`;
+}
+function renderLab(screen){
+  const rulers = rulerBlock('KCAL ÜBRIG',REMAIN.kcal,'','var(--x-kcal)',ratioOf('kcal'),TARGET.kcal) +
+    rulerBlock('PROTEIN ÜBRIG',REMAIN.p,'g','var(--x-protein)',ratioOf('p'),TARGET.p) +
+    rulerBlock('CARBS ÜBRIG',REMAIN.c,'g','var(--x-carbs)',ratioOf('c'),TARGET.c) +
+    rulerBlock('FETT ÜBRIG',REMAIN.f,'g','var(--x-fat)',ratioOf('f'),TARGET.f);
+  if(screen==='sheet') return `<div class="appr-lab">${sheetMock('Heute')}</div>`;
+  if(screen==='today') return `<div class="appr-lab"><div class="pad"><div class="hdr"><span class="title">HEUTE</span><span class="icon-btn">＋</span></div>
+    <div class="section-title">Kalibrierung / Rest</div><div class="card">${rulers}</div>
+    <div class="section-title">Mahlzeiten</div><div class="card">${mealsList('var(--x-kcal)','var(--x-protein)','var(--x-carbs)','var(--x-fat)','ledger').replace(/badge"/g,'badge" style="border-color:currentColor;"')}</div></div></div>`;
+  if(screen==='stats') return `<div class="appr-lab"><div class="pad"><div class="hdr"><span class="title">STATISTIK</span><span class="icon-btn">⚙︎</span></div>
+    <p style="text-align:center; font-family:'Space Mono',monospace; font-size:10px; color:var(--x-faint); margin:4px 0 14px;">${WEEK.range}</p>
+    <div class="stat-tiles"><div class="card"><div class="stat-big" style="color:var(--x-kcal)">${WEEK.avg.toLocaleString('de-DE')}</div><div class="stat-lbl">Ø KCAL/TAG</div></div>
+      <div class="card"><div class="stat-big">${WEEK.target.toLocaleString('de-DE')}</div><div class="stat-lbl">ZIEL KCAL</div></div></div>
+    <div class="section-title">Kalibrierung / Rest</div><div class="card">${rulers}</div>
+    <div class="section-title">Mikronährstoffe</div><div class="card"><div class="micro-grid">${microFlat()}</div></div></div></div>`;
+  return `<div class="appr-lab"><div class="pad"><div class="hdr"><span class="title">SUPPS</span><span class="icon-btn">＋</span></div>
+    <div class="section-title">Meine Liste</div><div class="card">${suppsList('ledger')}</div></div></div>`;
+}
+
+// ============================== 9) BIG NUMBER ==============================
+function renderBig(screen){
+  const strip = `<div class="strip"><div class="strip-item"><div class="strip-num" style="color:var(--n-kcal)">${REMAIN.kcal}</div><div class="strip-lbl">kcal übrig</div></div>
+    <div class="strip-item"><div class="strip-num" style="color:var(--n-protein)">${REMAIN.p}g</div><div class="strip-lbl">Protein übrig</div></div>
+    <div class="strip-item"><div class="strip-num" style="color:var(--n-carbs)">${REMAIN.c}g</div><div class="strip-lbl">Carbs übrig</div></div></div>`;
+  const hero = `<div class="hero"><div class="hero-num" style="color:var(--n-fat)">${REMAIN.f}<span class="hero-unit">g</span></div>
+    <div class="hero-lbl">Fett übrig heute — im Blick behalten</div>
+    <div class="hero-rule"><div class="hero-rule-fill" style="width:${clampPct(ratioOf('f'),1)}%; background:var(--n-fat);"></div></div></div>${strip}`;
+  if(screen==='sheet') return `<div class="appr-big">${sheetMock('Heute')}</div>`;
+  if(screen==='today') return `<div class="appr-big"><div class="pad"><div class="hdr"><span class="title">Heute</span><span class="icon-btn">＋</span></div>
+    ${hero}<div class="section-title">Mahlzeiten</div>${mealsList('var(--n-kcal)','var(--n-protein)','var(--n-carbs)','var(--n-fat)','plainline')}</div></div>`;
+  if(screen==='stats') return `<div class="appr-big"><div class="pad"><div class="hdr"><span class="title">Statistik</span><span class="icon-btn">⚙︎</span></div>
+    <p style="text-align:center; font-size:11px; color:var(--n-soft); margin:2px 0 6px;">${WEEK.range}</p>
+    <div class="weekhero"><div class="hero-num" style="font-size:52px; color:var(--n-kcal);">${WEEK.avg.toLocaleString('de-DE')}<span class="hero-unit" style="font-size:16px;">Ø kcal</span></div>
+      <div class="hero-lbl">Ziel ${WEEK.target.toLocaleString('de-DE')} kcal/Tag · ${WEEK.target-WEEK.avg} darunter</div></div>
+    ${hero}<div class="section-title">Mikronährstoffe</div><div class="micro-grid">${microLinear()}</div></div></div>`;
+  return `<div class="appr-big"><div class="pad"><div class="hdr"><span class="title">Supps</span><span class="icon-btn">＋</span></div>
+    <div class="section-title">Meine Liste</div>${suppsList('icon','var(--n-fat)')}</div></div>`;
+}
+
+const RENDERERS = {glass:renderGlass, gauge:renderGauge, dark:renderDark, sport:renderSport, ledger:renderLedger, botanical:renderBotanical, lab:renderLab, big:renderBig};
 
 let currentApproach = APPROACHES[0].id;
 let currentScreen = 'today';
+let currentTheme = 'light';
 
 function renderRail(){
   const rail = document.getElementById('rail');
   rail.innerHTML = APPROACHES.map(a=>`
     <button class="a-card" data-a="${a.id}" aria-pressed="${a.id===currentApproach}" style="--dot1:${a.dot1}">
-      <span class="a-num">${a.num}</span>
-      <span class="a-name">${a.name}</span>
-      <span class="a-pitch">${a.pitch}</span>
+      <span class="a-num">${a.num}</span><span class="a-tagchip">${a.chip}</span>
+      <span class="a-name">${a.name}</span><span class="a-pitch">${a.pitch}</span>
       <span class="a-dots">${a.dots.map(c=>`<span style="background:${c}"></span>`).join('')}</span>
-    </button>
-  `).join('');
-  rail.querySelectorAll('.a-card').forEach(btn=>{
-    btn.addEventListener('click', ()=>{ currentApproach = btn.dataset.a; update(); });
-  });
+    </button>`).join('');
+  rail.querySelectorAll('.a-card').forEach(btn=>btn.addEventListener('click', ()=>{ currentApproach = btn.dataset.a; update(); }));
 }
-
 function renderBrief(){
   const a = APPROACHES.find(x=>x.id===currentApproach);
-  document.getElementById('brief').innerHTML = `
-    <span class="tag">${a.tag}</span>
-    <h2>${a.name}</h2>
-    <p>${a.body}</p>
-    <ul>${a.points.map(p=>`<li>${p}</li>`).join('')}</ul>
-    <div class="swatches">${a.dots.map(c=>`<span style="background:${c}"></span>`).join('')}</div>
-  `;
+  document.getElementById('brief').innerHTML = `<span class="tag">${a.tag}</span><h2>${a.name}</h2><p>${a.body}</p>
+    <div class="successor">${a.successor}</div><ul>${a.points.map(p=>`<li>${p}</li>`).join('')}</ul>
+    <div class="swatches">${a.dots.map(c=>`<span style="background:${c}"></span>`).join('')}</div>`;
 }
-
 function renderPhone(){
-  document.getElementById('phoneInner').innerHTML = RENDERERS[currentApproach](currentScreen);
+  const html = RENDERERS[currentApproach](currentScreen);
+  const el = document.getElementById('phoneInner');
+  el.innerHTML = html;
+  const root = el.querySelector('[class^="appr-"]');
+  if(root) root.setAttribute('data-theme', currentTheme);
 }
-
-function update(){
-  renderRail();
-  renderBrief();
-  renderPhone();
-}
+function update(){ renderRail(); renderBrief(); renderPhone(); }
 
 document.getElementById('screenTabs').addEventListener('click', (e)=>{
-  const btn = e.target.closest('button[data-s]');
-  if(!btn) return;
+  const btn = e.target.closest('button[data-s]'); if(!btn) return;
   currentScreen = btn.dataset.s;
   document.querySelectorAll('#screenTabs button').forEach(b=>b.setAttribute('aria-pressed', String(b===btn)));
+  renderPhone();
+});
+document.getElementById('themeToggle').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-t]'); if(!btn) return;
+  currentTheme = btn.dataset.t;
+  document.querySelectorAll('#themeToggle button').forEach(b=>b.setAttribute('aria-pressed', String(b===btn)));
   renderPhone();
 });
 
