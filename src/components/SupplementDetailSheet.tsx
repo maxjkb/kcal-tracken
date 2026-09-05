@@ -132,14 +132,24 @@ export function SupplementDetailSheet(props: SupplementDetailSheetProps) {
                 <EditIcon />
               </button>
             ) : props.recommendation.kind === 'consistency' ? (
-              // Already on the list — the same non-interactive pill the card
-              // itself shows, not an "add" action that would only duplicate it.
-              <span className="shrink-0 rounded-full bg-section-12 px-3 py-1.5 text-xs font-semibold text-section">
-                Schon auf der Liste
+              // Already on the list — a marker, not an "add" action that would
+              // only duplicate it. Icon rather than the card's old standing
+              // text pill (see SupplementsPage.tsx's SuggestionsTab for the
+              // full reasoning); the accessible name carries the wording.
+              <span
+                role="img"
+                aria-label="Schon auf der Liste"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-section-12 text-sm font-bold text-section"
+              >
+                !
               </span>
             ) : props.recommendation.kind === 'no_longer_needed' ? (
-              <span className="shrink-0 rounded-full bg-danger/12 px-3 py-1.5 text-xs font-semibold text-danger">
-                Nicht mehr notwendig
+              <span
+                role="img"
+                aria-label="Nicht mehr notwendig"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/12 text-sm font-bold text-danger"
+              >
+                !
               </span>
             ) : (
               <button

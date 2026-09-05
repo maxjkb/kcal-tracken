@@ -20,6 +20,7 @@ import {
 import { generateAdvisorRun } from '../lib/supplementAdvisor'
 import { GeminiError } from '../lib/gemini'
 import { getApiKey } from '../lib/settings'
+import { dismissalKey, dismissHintForToday, isHintDismissedToday } from '../lib/dismissedSupplementHints'
 import { SupplementChecklistRow } from '../components/SupplementChecklist'
 import { SupplementFormSheet } from '../components/SupplementFormSheet'
 import { SupplementDetailSheet } from '../components/SupplementDetailSheet'
@@ -236,6 +237,11 @@ function SuggestionsTab() {
 
   const [retrying, setRetrying] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Bumped after a dismiss so the component re-renders — dismissal state
+  // itself lives in localStorage (dismissedSupplementHints.ts), read fresh
+  // on every render, not in React state, since it also has to survive a
+  // page reload for the rest of the day.
+  const [dismissTick, setDismissTick] = useState(0)
   // Opens the same unified detail sheet "Meine Liste" rows use (Dosierung/
   // Wirkung/Bedarf + a KI-Chat button inside) — additional to the card, not
   // a replacement for it: the card's own inline reasoning/effects text and
@@ -299,9 +305,17 @@ function SuggestionsTab() {
       .map((my) => ((catalog ?? []).find((c) => c.id === my.supplementId)?.name ?? '').trim().toLowerCase() || undefined)
       .filter((name): name is string => Boolean(name)),
   )
-  const suggestions = (run?.suggestions ?? []).filter(
-    (s) => s.kind !== 'new' || !myNames.has(s.supplementName.trim().toLowerCase()),
-  )
+  // Recomputed on every render — `dismissTick` (bumped after a dismiss) is
+  // this filter's only trigger to re-read localStorage's current state.
+  void dismissTick
+  const suggestions = (run?.suggestions ?? [])
+    .filter((s) => s.kind !== 'new' || !myNames.has(s.supplementName.trim().toLowerCase()))
+    .filter((s) => !isHintDismissedToday(dismissalKey(s.kind, s.supplementName)))
+
+  function handleDismiss(s: SupplementRecommendation) {
+    dismissHintForToday(dismissalKey(s.kind, s.supplementName))
+    setDismissTick((t) => t + 1)
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -358,15 +372,34 @@ function SuggestionsTab() {
                   no "-" state to toggle back to here: accepting a suggestion is
                   one-directional, and the card itself disappears the moment it's
                   added (see the myNames filter above), so there's never a moment
-                  where a "-" would have anything to remove. */}
-              {isConsistency ? (
-                <span className="shrink-0 rounded-full bg-section-12 px-3 py-1.5 text-xs font-semibold text-section">
-                  Schon auf der Liste
-                </span>
-              ) : isNoLongerNeeded ? (
-                <span className="shrink-0 rounded-full bg-danger/12 px-3 py-1.5 text-xs font-semibold text-danger">
-                  Nicht mehr notwendig
-                </span>
+                  where a "-" would have anything to remove.
+                  Both "on the list" cases got a permanent text pill and no way
+                  to get rid of them — a marker (not an action, unlike "+") is
+                  now a compact icon instead of a standing label, and a
+                  dedicated dismiss button ends the reappearing for the rest of
+                  today (dismissedSupplementHints.ts); the accessible name
+                  (aria-label) carries the exact wording the pill used to show,
+                  so nothing is lost for a screen reader. */}
+              {isConsistency || isNoLongerNeeded ? (
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <span
+                    role="img"
+                    aria-label={isConsistency ? 'Schon auf der Liste' : 'Nicht mehr notwendig'}
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold ${
+                      isConsistency ? 'bg-section-12 text-section' : 'bg-danger/12 text-danger'
+                    }`}
+                  >
+                    !
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleDismiss(s)}
+                    aria-label={`Hinweis zu ${s.supplementName} für heute ausblenden`}
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-ink-faint transition hover:bg-bg hover:text-ink-soft"
+                  >
+                    <DismissIcon />
+                  </button>
+                </div>
               ) : (
                 <button
                   type="button"
@@ -440,6 +473,14 @@ function PlusIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4">
       <path strokeLinecap="round" d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
+function DismissIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+      <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
     </svg>
   )
 }
