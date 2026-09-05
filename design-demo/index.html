@@ -1,0 +1,719 @@
+<title>Fünf Richtungen</title>
+<meta name="description" content="Fünf komplett unterschiedliche visuelle Sprachen für Tracke, zum Vergleichen vor der Umsetzung.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&family=Archivo:wght@500;700;800&family=Archivo+Black&family=Sora:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600;700&family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --shell-bg:#f4f5f7; --shell-panel:#ffffff; --shell-ink:#14171c; --shell-soft:#666f7c; --shell-line:#e3e5e9;
+    --shell-accent:#3a63ff;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --shell-bg:#0d0e11; --shell-panel:#17191e; --shell-ink:#f2f3f5; --shell-soft:#9aa2ad; --shell-line:#2a2d33;
+      --shell-accent:#6f8dff;
+    }
+  }
+  :root[data-theme="dark"]{
+    --shell-bg:#0d0e11; --shell-panel:#17191e; --shell-ink:#f2f3f5; --shell-soft:#9aa2ad; --shell-line:#2a2d33;
+    --shell-accent:#6f8dff;
+  }
+  *{box-sizing:border-box;}
+  body{background:var(--shell-bg); color:var(--shell-ink); font-family:'IBM Plex Sans', system-ui, sans-serif; margin:0;}
+  .wrap{max-width:1180px; margin:0 auto; padding:28px 20px 80px;}
+  .lede{max-width:640px; margin:0 0 28px;}
+  .lede h1{font-family:'Sora',system-ui,sans-serif; font-size:28px; font-weight:700; margin:0 0 8px; letter-spacing:-0.01em;}
+  .lede p{color:var(--shell-soft); font-size:14.5px; line-height:1.55; margin:0;}
+  .lede code{background:var(--shell-line); padding:1px 6px; border-radius:6px; font-size:13px;}
+
+  .approach-rail{display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:22px;}
+  @media (max-width:920px){.approach-rail{grid-template-columns:repeat(5,220px); overflow-x:auto; padding-bottom:6px;}}
+  .a-card{text-align:left; cursor:pointer; border-radius:16px; padding:14px 14px 12px; border:1.5px solid var(--shell-line); background:var(--shell-panel); display:flex; flex-direction:column; gap:8px; transition:border-color .15s, transform .15s;}
+  .a-card:hover{transform:translateY(-1px);}
+  .a-card[aria-pressed="true"]{border-color:var(--dot1); box-shadow:0 0 0 3px color-mix(in srgb, var(--dot1) 22%, transparent);}
+  .a-num{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--shell-soft); font-weight:600;}
+  .a-name{font-family:'Sora',system-ui,sans-serif; font-size:15.5px; font-weight:700; letter-spacing:-0.01em;}
+  .a-pitch{font-size:12px; color:var(--shell-soft); line-height:1.4; min-height:32px;}
+  .a-dots{display:flex; gap:5px;}
+  .a-dots span{width:16px; height:16px; border-radius:5px; display:block;}
+
+  .stage{display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;}
+  .screen-tabs{display:flex; gap:6px; background:var(--shell-panel); border:1px solid var(--shell-line); border-radius:12px; padding:4px; margin-bottom:14px; width:max-content;}
+  .screen-tabs button{border:none; background:transparent; font:inherit; font-size:12.5px; font-weight:600; color:var(--shell-soft); padding:7px 14px; border-radius:8px; cursor:pointer; font-family:'IBM Plex Sans',sans-serif;}
+  .screen-tabs button[aria-pressed="true"]{background:var(--shell-accent); color:#fff;}
+
+  .phone-col{flex:0 0 auto;}
+  .phone-frame{width:380px; height:760px; border-radius:44px; background:#000; padding:12px; box-shadow:0 30px 60px -20px rgba(0,0,0,.35), 0 0 0 1px rgba(0,0,0,.08);}
+  .phone-inner{width:100%; height:100%; border-radius:34px; overflow:hidden; position:relative; background:#fff;}
+  .panel{position:absolute; inset:0; overflow-y:auto; -ms-overflow-style:none; scrollbar-width:none;}
+  .panel::-webkit-scrollbar{display:none;}
+  .panel[hidden]{display:none;}
+
+  .brief{flex:1 1 320px; min-width:280px; background:var(--shell-panel); border:1px solid var(--shell-line); border-radius:18px; padding:22px; position:sticky; top:20px;}
+  .brief h2{font-family:'Sora',system-ui,sans-serif; font-size:19px; margin:0 0 4px; letter-spacing:-0.01em;}
+  .brief .tag{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--shell-soft); text-transform:uppercase; letter-spacing:.06em; margin-bottom:14px; display:block;}
+  .brief p{font-size:13.5px; line-height:1.6; color:var(--shell-soft); margin:0 0 14px;}
+  .brief ul{margin:0 0 6px; padding-left:18px; font-size:13px; line-height:1.65; color:var(--shell-ink);}
+  .brief li{margin-bottom:5px;}
+  .brief .swatches{display:flex; gap:8px; margin-top:16px;}
+  .brief .swatches span{width:26px; height:26px; border-radius:8px; display:block; box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);}
+
+  /* ============ shared mini components reused inside every language ============ */
+  .hdr{display:flex; align-items:center; justify-content:space-between;}
+  .badges{display:flex; gap:6px; flex-wrap:wrap;}
+
+  /* =========================================================================
+     1) VIVID GLASS — maximalist Liquid Glass: saturated gradient ground,
+     heavy blur, bright multi-hue accents, dark+light materials stacked.
+     ========================================================================= */
+  .appr-glass{ --g-protein:#ff375f; --g-carbs:#34c759; --g-fat:#ffb703; --g-kcal:#0a84ff; --g-ink:#0d1117; --g-soft:#48566b; --g-faint:#7c8aa0;
+    font-family:'IBM Plex Sans', system-ui, sans-serif; color:var(--g-ink); height:100%;
+    background:
+      radial-gradient(circle at 12% -6%, #93c5fd88, transparent 55%),
+      radial-gradient(circle at 108% 18%, #f9a8d488, transparent 50%),
+      radial-gradient(circle at -6% 62%, #c4b5fd88, transparent 50%),
+      radial-gradient(circle at 100% 96%, #86efac77, transparent 45%),
+      linear-gradient(175deg,#dbeafe 0%,#eef1fd 38%,#fdf0f8 75%,#fff7e6 100%);
+  }
+  .appr-glass .pad{padding:20px 18px 30px;}
+  .appr-glass .hdr{margin-bottom:16px;}
+  .appr-glass .title{font-family:'Manrope',sans-serif; font-weight:800; font-size:26px; letter-spacing:-0.02em;}
+  .appr-glass .icon-btn{width:34px; height:34px; border-radius:12px; background:rgba(255,255,255,.55); backdrop-filter:blur(16px) saturate(160%); border:1px solid rgba(255,255,255,.7); display:flex; align-items:center; justify-content:center; font-size:15px;}
+  .appr-glass .glass{background:rgba(255,255,255,.42); backdrop-filter:blur(24px) saturate(180%); -webkit-backdrop-filter:blur(24px) saturate(180%); border:1px solid rgba(255,255,255,.65); border-radius:26px; box-shadow:0 8px 30px -12px rgba(20,30,60,.25), inset 0 1px 0 rgba(255,255,255,.8);}
+  .appr-glass .glass-dark{background:rgba(20,24,38,.62); backdrop-filter:blur(24px) saturate(160%); border:1px solid rgba(255,255,255,.14); color:#f2f4fb; border-radius:26px; box-shadow:0 10px 30px -10px rgba(0,0,0,.4);}
+  .appr-glass .rem-title{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--g-faint); padding:16px 18px 0;}
+  .appr-glass .rem-row{display:grid; grid-template-columns:repeat(4,1fr); gap:9px; padding:12px 16px 16px;}
+  .appr-glass .rem-item{border-radius:18px; padding:12px 6px; text-align:center; background:rgba(255,255,255,.5); border:1px solid rgba(255,255,255,.7);}
+  .appr-glass .rem-item .dot{width:9px; height:9px; border-radius:99px; margin:0 auto 7px;}
+  .appr-glass .rem-item .num{font-family:'Manrope',sans-serif; font-weight:800; font-size:18px; line-height:1;}
+  .appr-glass .rem-item .lbl{font-size:9.5px; color:var(--g-soft); margin-top:4px; font-weight:600;}
+  .appr-glass .section-title{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--g-soft); margin:20px 2px 10px;}
+  .appr-glass .meal{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px;}
+  .appr-glass .meal-emoji{width:36px; height:36px; border-radius:12px; background:rgba(255,255,255,.55); display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0;}
+  .appr-glass .meal-name{font-weight:700; font-size:14px;}
+  .appr-glass .badge{font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:99px; color:#fff;}
+  .appr-glass .stat-tiles{display:grid; grid-template-columns:1.1fr 1fr; gap:10px; margin:0 18px 4px;}
+  .appr-glass .stat-tiles .glass{padding:14px;}
+  .appr-glass .stat-big{font-family:'Manrope',sans-serif; font-weight:800; font-size:24px;}
+  .appr-glass .stat-lbl{font-size:10.5px; color:var(--g-soft); font-weight:600; margin-top:2px;}
+  .appr-glass .micro-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px 16px; padding:14px 4px 4px;}
+  .appr-glass .micro-track{height:8px; border-radius:99px; background:rgba(0,0,0,.06); position:relative; margin:6px 0 5px;}
+  .appr-glass .micro-fill{position:absolute; inset:0; border-radius:99px;}
+  .appr-glass .micro-dot{position:absolute; top:50%; width:12px; height:12px; border-radius:99px; transform:translate(-50%,-50%); border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.25);}
+  .appr-glass .micro-ab{font-size:11px; font-weight:800;}
+  .appr-glass .micro-name{font-size:9.5px; color:var(--g-faint); font-weight:600;}
+  .appr-glass .supp{display:flex; align-items:center; gap:12px; padding:13px 14px; margin-bottom:9px;}
+  .appr-glass .supp-ic{width:38px; height:38px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; color:#fff;}
+  .appr-glass .supp-name{font-weight:700; font-size:13.5px;}
+  .appr-glass .supp-dose{font-size:11px; color:var(--g-soft); margin-top:1px;}
+  .appr-glass .warn{margin-left:auto; width:20px; height:20px; border-radius:99px; background:#ff9500; color:#fff; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+
+  /* =========================================================================
+     2) MICRO GAUGE — the Mikronährstoffe gauge-track language, extended to
+     every metric in the app. Cool neutral ground, identity colours carry
+     all the meaning, gauges everywhere instead of rings or percentages.
+     ========================================================================= */
+  .appr-gauge{ --q-bg:#eef0f4; --q-surface:#ffffff; --q-ink:#12151b; --q-soft:#5b6472; --q-faint:#8b93a1; --q-line:#dde1e8;
+    --q-protein:#ff375f; --q-carbs:#2fae63; --q-fat:#d98d00; --q-kcal:#2f6bff;
+    background:var(--q-bg); color:var(--q-ink); height:100%; font-family:'IBM Plex Sans',sans-serif;
+  }
+  .appr-gauge .pad{padding:20px 18px 30px;}
+  .appr-gauge .title{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:22px; letter-spacing:-0.01em;}
+  .appr-gauge .icon-btn{width:32px; height:32px; border-radius:10px; background:var(--q-surface); border:1px solid var(--q-line); display:flex; align-items:center; justify-content:center; font-size:14px;}
+  .appr-gauge .card{background:var(--q-surface); border:1px solid var(--q-line); border-radius:16px;}
+  .appr-gauge .rem-title{font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--q-faint); margin:18px 0 10px;}
+  .appr-gauge .rem-list{display:flex; flex-direction:column; gap:12px;}
+  .appr-gauge .rem-row{display:grid; grid-template-columns:34px 1fr 56px; align-items:center; gap:10px; padding:11px 14px;}
+  .appr-gauge .rem-ab{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:12px;}
+  .appr-gauge .g-track{height:7px; border-radius:99px; background:var(--q-line); position:relative;}
+  .appr-gauge .g-fill{position:absolute; inset:0; border-radius:99px;}
+  .appr-gauge .g-dot{position:absolute; top:50%; width:11px; height:11px; border-radius:99px; transform:translate(-50%,-50%); border:2px solid var(--q-surface); box-shadow:0 0 0 1px rgba(0,0,0,.1);}
+  .appr-gauge .g-num{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:13px; text-align:right;}
+  .appr-gauge .g-sub{font-size:8.5px; color:var(--q-faint); text-align:right; font-weight:500;}
+  .appr-gauge .section-title{font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--q-faint); margin:22px 0 10px;}
+  .appr-gauge .meal{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px;}
+  .appr-gauge .meal-tag{width:6px; align-self:stretch; border-radius:4px; flex-shrink:0;}
+  .appr-gauge .meal-name{font-weight:600; font-size:13.5px;}
+  .appr-gauge .badge{font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:600; padding:2px 7px; border-radius:6px;}
+  .appr-gauge .stat-tiles{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:4px;}
+  .appr-gauge .stat-tiles .card{padding:14px;}
+  .appr-gauge .stat-big{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:22px;}
+  .appr-gauge .stat-lbl{font-size:10px; color:var(--q-faint); margin-top:3px; font-weight:500;}
+  .appr-gauge .micro-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px 18px; padding:16px;}
+  .appr-gauge .micro-ab{font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700;}
+  .appr-gauge .micro-name{font-size:9.5px; color:var(--q-faint);}
+  .appr-gauge .supp{display:flex; align-items:center; gap:12px; padding:13px 14px; margin-bottom:9px;}
+  .appr-gauge .supp-ic{width:8px; align-self:stretch; border-radius:5px; flex-shrink:0;}
+  .appr-gauge .supp-name{font-weight:600; font-size:13.5px;}
+  .appr-gauge .supp-dose{font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--q-faint); margin-top:2px;}
+  .appr-gauge .warn{margin-left:auto; width:18px; height:18px; border-radius:6px; background:#d98d00; color:#fff; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center;}
+
+  /* =========================================================================
+     3) BOLD BLOCKS — flat, high-contrast, hard edges + hard offset shadows.
+     No blur anywhere. Colour is structural, not decorative.
+     ========================================================================= */
+  .appr-brutal{ --b-red:#ff2d3a; --b-blue:#0d5eff; --b-yellow:#ffcf00; --b-green:#12b76a; --b-ink:#0a0a0a;
+    background:#fbfbf8; color:var(--b-ink); height:100%; font-family:'Archivo',sans-serif;
+  }
+  .appr-brutal .pad{padding:18px 16px 28px;}
+  .appr-brutal .title{font-family:'Archivo Black',sans-serif; font-size:26px; text-transform:uppercase;}
+  .appr-brutal .icon-btn{width:34px; height:34px; border-radius:0; background:#fff; border:2.5px solid var(--b-ink); display:flex; align-items:center; justify-content:center; font-size:14px;}
+  .appr-brutal .block{border:2.5px solid var(--b-ink); border-radius:0; box-shadow:5px 5px 0 var(--b-ink); background:#fff;}
+  .appr-brutal .rem-title{font-family:'Archivo Black',sans-serif; font-size:12px; text-transform:uppercase; letter-spacing:.02em; margin:20px 0 10px;}
+  .appr-brutal .rem-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .appr-brutal .rem-item{padding:14px; color:#fff;}
+  .appr-brutal .rem-item .num{font-family:'Archivo Black',sans-serif; font-size:30px; line-height:1;}
+  .appr-brutal .rem-item .unit{font-size:13px; font-weight:800;}
+  .appr-brutal .rem-item .lbl{font-size:11px; font-weight:700; text-transform:uppercase; margin-top:6px;}
+  .appr-brutal .rem-item .sub{font-size:10.5px; opacity:.85; margin-top:2px; font-weight:600;}
+  .appr-brutal .section-title{font-family:'Archivo Black',sans-serif; font-size:13px; text-transform:uppercase; margin:22px 0 10px;}
+  .appr-brutal .meal{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:10px;}
+  .appr-brutal .meal-emoji{width:34px; height:34px; border:2px solid var(--b-ink); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; background:#fff;}
+  .appr-brutal .meal-name{font-weight:800; font-size:14px; text-transform:uppercase; letter-spacing:-0.01em;}
+  .appr-brutal .badge{font-size:10.5px; font-weight:800; padding:2px 7px; border:2px solid var(--b-ink); color:var(--b-ink); background:#fff;}
+  .appr-brutal .stat-tiles{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:4px;}
+  .appr-brutal .stat-tiles .block{padding:14px;}
+  .appr-brutal .stat-big{font-family:'Archivo Black',sans-serif; font-size:24px;}
+  .appr-brutal .stat-lbl{font-size:10.5px; font-weight:700; text-transform:uppercase; margin-top:3px;}
+  .appr-brutal .micro-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;}
+  .appr-brutal .micro-cell{border:2px solid var(--b-ink); padding:9px 10px;}
+  .appr-brutal .micro-ab{font-family:'Archivo Black',sans-serif; font-size:12px;}
+  .appr-brutal .micro-track{height:8px; background:#efefe9; border:1.5px solid var(--b-ink); position:relative; margin:6px 0 4px;}
+  .appr-brutal .micro-fill{position:absolute; inset:0;}
+  .appr-brutal .micro-name{font-size:9px; font-weight:700; text-transform:uppercase;}
+  .appr-brutal .supp{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:10px;}
+  .appr-brutal .supp-ic{width:36px; height:36px; border:2px solid var(--b-ink); display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;}
+  .appr-brutal .supp-name{font-weight:800; font-size:13.5px; text-transform:uppercase;}
+  .appr-brutal .supp-dose{font-size:11px; font-weight:600; margin-top:2px;}
+  .appr-brutal .warn{margin-left:auto; width:22px; height:22px; background:var(--b-yellow); border:2px solid var(--b-ink); color:var(--b-ink); font-size:12px; font-weight:900; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+
+  /* =========================================================================
+     4) DARK STUDIO — near-black canvas, glass panels with a visible highlight
+     rim, several neon accents at once (not one lone pop).
+     ========================================================================= */
+  .appr-dark{ --d-bg:#0a0b0f; --d-panel:rgba(255,255,255,.05); --d-ink:#f4f5f8; --d-soft:#9aa1af; --d-faint:#666e7c; --d-line:rgba(255,255,255,.1);
+    --d-protein:#ff4d7d; --d-carbs:#38e07a; --d-fat:#ffcf3d; --d-kcal:#3ea9ff;
+    background:
+      radial-gradient(circle at 15% 0%, #1c2440 0%, transparent 45%),
+      radial-gradient(circle at 100% 30%, #2a1638 0%, transparent 50%),
+      var(--d-bg);
+    color:var(--d-ink); height:100%; font-family:'IBM Plex Sans',sans-serif;
+  }
+  .appr-dark .pad{padding:20px 18px 30px;}
+  .appr-dark .title{font-family:'Sora',sans-serif; font-weight:700; font-size:24px; letter-spacing:-0.01em;}
+  .appr-dark .icon-btn{width:33px; height:33px; border-radius:11px; background:var(--d-panel); border:1px solid var(--d-line); display:flex; align-items:center; justify-content:center; font-size:14px; backdrop-filter:blur(10px);}
+  .appr-dark .glass{background:var(--d-panel); backdrop-filter:blur(18px); border:1px solid var(--d-line); border-radius:22px; box-shadow:inset 0 1px 0 rgba(255,255,255,.08);}
+  .appr-dark .rem-title{font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--d-faint); margin:18px 2px 10px;}
+  .appr-dark .rem-row{display:grid; grid-template-columns:repeat(4,1fr); gap:9px;}
+  .appr-dark .rem-item{border-radius:16px; padding:12px 5px; text-align:center;}
+  .appr-dark .rem-item .num{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:17px;}
+  .appr-dark .rem-item .lbl{font-size:9px; color:var(--d-soft); margin-top:4px; font-weight:600;}
+  .appr-dark .section-title{font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--d-faint); margin:22px 2px 10px;}
+  .appr-dark .meal{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px;}
+  .appr-dark .meal-emoji{width:36px; height:36px; border-radius:12px; background:rgba(255,255,255,.06); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; border:1px solid var(--d-line);}
+  .appr-dark .meal-name{font-weight:600; font-size:13.5px;}
+  .appr-dark .badge{font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; padding:2px 7px; border-radius:7px;}
+  .appr-dark .stat-tiles{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:4px;}
+  .appr-dark .stat-tiles .glass{padding:14px;}
+  .appr-dark .stat-big{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:21px;}
+  .appr-dark .stat-lbl{font-size:10px; color:var(--d-faint); margin-top:3px;}
+  .appr-dark .micro-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px 16px; padding:15px;}
+  .appr-dark .micro-track{height:6px; border-radius:99px; background:rgba(255,255,255,.08); position:relative; margin:6px 0 5px;}
+  .appr-dark .micro-fill{position:absolute; inset:0; border-radius:99px; filter:brightness(1.15);}
+  .appr-dark .micro-dot{position:absolute; top:50%; width:10px; height:10px; border-radius:99px; transform:translate(-50%,-50%); border:2px solid #0a0b0f; box-shadow:0 0 8px 1px currentColor;}
+  .appr-dark .micro-ab{font-size:11px; font-weight:700;}
+  .appr-dark .micro-name{font-size:9px; color:var(--d-faint);}
+  .appr-dark .supp{display:flex; align-items:center; gap:12px; padding:13px 14px; margin-bottom:9px;}
+  .appr-dark .supp-ic{width:38px; height:38px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; border:1px solid var(--d-line);}
+  .appr-dark .supp-name{font-weight:600; font-size:13.5px;}
+  .appr-dark .supp-dose{font-size:11px; color:var(--d-faint); margin-top:1px;}
+  .appr-dark .warn{margin-left:auto; width:19px; height:19px; border-radius:99px; background:#ffcf3d; color:#1a1400; font-size:10.5px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 0 8px 1px #ffcf3d66;}
+
+  /* =========================================================================
+     5) DATA SPORT — scoreboard/coach aesthetic. Condensed display type, huge
+     numerals, segmented fuel-gauge bars, minimal decoration.
+     ========================================================================= */
+  .appr-sport{ --s-bg:#111316; --s-panel:#1b1e23; --s-ink:#f7f8fa; --s-soft:#9099a6; --s-line:#2b2f36; --s-accent:#ff5a1f;
+    --s-protein:#ff4f6e; --s-carbs:#3ddc84; --s-fat:#ffb020; --s-kcal:#ff5a1f;
+    background:var(--s-bg); color:var(--s-ink); height:100%; font-family:'Barlow',sans-serif;
+  }
+  .appr-sport .pad{padding:18px 16px 28px;}
+  .appr-sport .title{font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:30px; text-transform:uppercase; letter-spacing:.01em;}
+  .appr-sport .icon-btn{width:32px; height:32px; border-radius:8px; background:var(--s-panel); border:1px solid var(--s-line); display:flex; align-items:center; justify-content:center; font-size:14px;}
+  .appr-sport .panel-box{background:var(--s-panel); border:1px solid var(--s-line); border-radius:12px;}
+  .appr-sport .rem-title{font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--s-soft); margin:20px 0 10px;}
+  .appr-sport .rem-row{display:flex; flex-direction:column; gap:10px;}
+  .appr-sport .rem-item{display:grid; grid-template-columns:64px 1fr; align-items:center; gap:12px; padding:10px 14px;}
+  .appr-sport .rem-item .num{font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:30px; line-height:1;}
+  .appr-sport .rem-item .unit{font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:600; color:var(--s-soft);}
+  .appr-sport .fuel{height:10px; border-radius:3px; background:#2b2f36; display:flex; gap:2px; overflow:hidden;}
+  .appr-sport .fuel span{display:block; height:100%; flex:1; background:#33373f;}
+  .appr-sport .fuel span.on{background:var(--seg-color, var(--s-accent));}
+  .appr-sport .rem-lbl{font-size:10.5px; color:var(--s-soft); font-weight:600; text-transform:uppercase; letter-spacing:.03em; margin-top:5px;}
+  .appr-sport .section-title{font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--s-soft); margin:22px 0 10px;}
+  .appr-sport .meal{display:flex; align-items:center; gap:12px; padding:11px 14px; margin-bottom:8px; border-left:3px solid var(--s-accent);}
+  .appr-sport .meal-name{font-weight:600; font-size:14px;}
+  .appr-sport .badge{font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700; padding:1px 7px; border-radius:4px; color:#fff;}
+  .appr-sport .stat-tiles{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:4px;}
+  .appr-sport .stat-tiles .panel-box{padding:14px;}
+  .appr-sport .stat-big{font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:28px;}
+  .appr-sport .stat-lbl{font-size:10.5px; color:var(--s-soft); margin-top:2px; text-transform:uppercase; font-weight:600; letter-spacing:.02em;}
+  .appr-sport .micro-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; padding:14px;}
+  .appr-sport .micro-ab{font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700;}
+  .appr-sport .micro-name{font-size:9.5px; color:var(--s-soft); text-transform:uppercase;}
+  .appr-sport .supp{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:9px; border-left:3px solid transparent;}
+  .appr-sport .supp-name{font-weight:600; font-size:13.5px;}
+  .appr-sport .supp-dose{font-size:11px; color:var(--s-soft); margin-top:1px; text-transform:uppercase; letter-spacing:.02em;}
+  .appr-sport .warn{margin-left:auto; width:19px; height:19px; border-radius:4px; background:var(--s-accent); color:#fff; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+</style>
+
+<div class="wrap">
+  <div class="lede">
+    <h1>Fünf Richtungen für Tracke</h1>
+    <p>Gleiche Inhalte (heutiger Tag, Wochen-Statistik, Supps), fünf komplett unterschiedliche visuelle Sprachen. Auf Karte tippen zum Wechseln, oben rechts zwischen <code>Heute</code> / <code>Statistik</code> / <code>Supps</code> wechseln. Noch nichts davon ist live — erst eine Richtung wählen, dann setze ich sie auf allen Hauptseiten um.</p>
+  </div>
+
+  <div class="approach-rail" id="rail"></div>
+
+  <div class="stage">
+    <div class="phone-col">
+      <div class="screen-tabs" id="screenTabs">
+        <button data-s="today" aria-pressed="true">Heute</button>
+        <button data-s="stats" aria-pressed="false">Statistik</button>
+        <button data-s="supps" aria-pressed="false">Supps</button>
+      </div>
+      <div class="phone-frame">
+        <div class="phone-inner" id="phoneInner"></div>
+      </div>
+    </div>
+
+    <div class="brief" id="brief"></div>
+  </div>
+</div>
+
+<script>
+const APPROACHES = [
+  {
+    id:'glass', num:'01', name:'Vivid Glass', dot1:'#0a84ff',
+    pitch:'Liquid Glass ganz nach vorne — kräftiger, bunter Grund statt Weiß/Schwarz.',
+    dots:['#0a84ff','#ff375f','#34c759','#ffb703','#c4b5fd'],
+    tag:'Maximaler Liquid-Glass-Effekt',
+    body:'Der größte Kritikpunkt war, dass der Glas-Effekt im aktuellen Weiß/Schwarz fast untergeht. Hier trägt ein kräftiger, mehrfarbiger Verlauf den ganzen Screen — helle und dunkle Glas-Flächen liegen übereinander gestapelt, dahinter schimmert Farbe durch. Genau die Kombi aus hell/dunkel + knallig, die du gut findest.',
+    points:[
+      'Restliche Makros als vier Glas-Kacheln mit großer Zahl statt Ring',
+      'Farbe kommt vom Hintergrund selbst, nicht nur von Akzenten',
+      'Dunkle Glas-Fläche für den Wochenwert, helle für Details — Materialgewicht als Hierarchie',
+    ],
+  },
+  {
+    id:'gauge', num:'02', name:'Micro Gauge', dot1:'#2f6bff',
+    pitch:'Die Mikronährstoff-Balken, die du am liebsten magst — auf die ganze App ausgeweitet.',
+    dots:['#2f6bff','#ff375f','#2fae63','#d98d00','#5b6472'],
+    tag:'Ausgehend von der Mikros-Optik',
+    body:'Du hast gesagt: die Design-Sprache der Mikronährstoffe ist dir am liebsten. Diese Richtung nimmt genau diese Balken-mit-Marker-Logik und macht sie zum Grundprinzip der ganzen App — auch Makros, auch Kalorienbilanz laufen als farbcodierte Strecke statt als Ring. Kühles, neutrales Grau-Blau statt Creme, damit die Farben der Marker die ganze Wirkung tragen.',
+    points:[
+      'Restliche Makros: gleiche Strecke+Marker wie Mikros, mit fetter Zahl rechts',
+      'Eine Farbe pro Nährwert, konsequent überall wiederverwendet',
+      'Ruhigster der fünf Ansätze — Kontrast kommt von Farbe, nicht von Lautstärke',
+    ],
+  },
+  {
+    id:'brutal', num:'03', name:'Bold Blocks', dot1:'#0d5eff',
+    pitch:'Flache, knallige Farbflächen, harte Kanten, dicke Konturen. Maximaler Kontrast.',
+    dots:['#ff2d3a','#0d5eff','#ffcf00','#12b76a','#0a0a0a'],
+    tag:'Höchster Kontrast, kein Verlauf',
+    body:'Die direkteste Antwort auf „Einheitsbrei": keine Verläufe, kein Weichzeichnen — volle Farbflächen mit dicker schwarzer Kontur und hartem Versatz-Schatten. Zahlen stehen riesig und ohne Ring direkt auf der Farbe. Nicht jedermanns Sache, aber es ist unmöglich, das mit dem aktuellen Look zu verwechseln.',
+    points:[
+      'Restliche Makros: vier farbige Blöcke, riesige Zahl, kein Diagramm-Element',
+      'Jede Karte hat eine sichtbare Kontur + Schatten statt Weichzeichner-Tiefe',
+      'Großbuchstaben, breite Displayschrift für Überschriften',
+    ],
+  },
+  {
+    id:'dark', num:'04', name:'Dark Studio', dot1:'#3ea9ff',
+    pitch:'Fast-schwarzer Grund, Glas-Flächen mit sichtbarem Rand, mehrere Neonfarben gleichzeitig.',
+    dots:['#3ea9ff','#ff4d7d','#38e07a','#ffcf3d','#0a0b0f'],
+    tag:'Liquid Glass auf dunklem Grund',
+    body:'Glas wirkt auf dunklem Grund am stärksten — der helle Rand jeder Fläche fängt sichtbar "Licht" ein. Statt einem einzelnen Neon-Akzent (das übliche KI-Design-Klischee) laufen hier mehrere kräftige Farben parallel, je Nährwert eine eigene, mit leichtem Leuchten. Dunkel als Basis, nicht nur als Modus.',
+    points:[
+      'Restliche Makros als vier Glas-Kacheln auf Schwarz, Zahl leuchtet in Nährwert-Farbe',
+      'Warnhinweise bei Supps leuchten dezent statt grauer Fließtext',
+      'Wirkt am ehesten wie eine eigenständige App, nicht wie ein Dark-Mode-Toggle',
+    ],
+  },
+  {
+    id:'sport', num:'05', name:'Data Sport', dot1:'#ff5a1f',
+    pitch:'Scoreboard-Optik: riesige Zahlen zuerst, Coach-Charakter statt Wellness-Look.',
+    dots:['#ff5a1f','#ff4f6e','#3ddc84','#ffb020','#f7f8fa'],
+    tag:'Zahlen zuerst, wie ein Trainer-Display',
+    body:'Direkte Antwort auf „ich will absolute Zahlen sehen, nicht nur Ringe". Restliche Makros stehen riesig, kondensiert, wie eine Stadion-Anzeige — daneben ein Tank-Balken in Segmenten statt Prozent-Ring. Passt zum geplanten Coach-Chat: die App liest sich wie ein Trainer-Dashboard, nicht wie ein Wellness-Tagebuch.',
+    points:[
+      'Restliche Makros: große kondensierte Zahl + Segment-Tankanzeige, kein Kreis',
+      'Ein kräftiger Signalton (Orange) statt vieler gleichrangiger Akzente',
+      'Am dunkelsten und ruhigsten in der Fläche, am lautesten in der Typografie',
+    ],
+  },
+];
+
+const SCREENS = ['today','stats','supps'];
+
+// ---- shared demo data (grounded in the real app / real screenshot) ----
+const MEALS = [
+  {emoji:'🌅', name:'Haferflocken mit Beeren', kcal:380, p:14, c:58, f:9},
+  {emoji:'☀️', name:'Hähnchen mit Reis', kcal:620, p:45, c:65, f:18},
+  {emoji:'🌙', name:'Lachs mit Ofengemüse', kcal:540, p:38, c:22, f:28},
+  {emoji:'🍏', name:'Magerquark mit Nüssen', kcal:210, p:22, c:9, f:11},
+];
+const TARGET = {kcal:2750, p:150, c:310, f:80};
+const CONSUMED = MEALS.reduce((a,m)=>({kcal:a.kcal+m.kcal, p:a.p+m.p, c:a.c+m.c, f:a.f+m.f}), {kcal:0,p:0,c:0,f:0});
+const REMAIN = {kcal:TARGET.kcal-CONSUMED.kcal, p:TARGET.p-CONSUMED.p, c:TARGET.c-CONSUMED.c, f:TARGET.f-CONSUMED.f};
+
+const MICROS = [
+  {ab:'D', name:'Vitamin D', ratio:0.30, hue:'#ff9500'},
+  {ab:'B12', name:'Vitamin B12', ratio:0.90, hue:'#af52de'},
+  {ab:'B9', name:'Folat', ratio:0.60, hue:'#6a977f'},
+  {ab:'C', name:'Vitamin C', ratio:1.00, hue:'#b26800'},
+  {ab:'Ca', name:'Calcium', ratio:0.55, hue:'#5a748a'},
+  {ab:'Fe', name:'Eisen', ratio:0.35, hue:'#ff3b30'},
+  {ab:'Mg', name:'Magnesium', ratio:0.65, hue:'#4757b4'},
+  {ab:'Zn', name:'Zink', ratio:0.85, hue:'#4385a9'},
+  {ab:'K', name:'Kalium', ratio:0.50, hue:'#97826e'},
+  {ab:'I', name:'Jod', ratio:1.30, hue:'#4caad4'},
+];
+
+const SUPPS = [
+  {name:'Vitamin D3', dose:'2.000 IE · morgens', icon:'☀️', warn:null},
+  {name:'Omega-3', dose:'1g EPA/DHA · Abendessen', icon:'🐟', warn:'Nicht mehr notwendig'},
+  {name:'Magnesium Bisglycinat', dose:'300mg · abends', icon:'💊', warn:null},
+  {name:'Kreatin Monohydrat', dose:'5g · täglich', icon:'⚡', warn:'Schon auf der Liste'},
+];
+
+const WEEK = {avg:2139, target:2759, range:'31.08. – 06.09.2026'};
+
+function pct(r){ return Math.max(0, Math.min(100, (r/1.5)*100)); }
+function macroColorVars(prefix){
+  return {kcal:`var(--${prefix}-kcal)`, p:`var(--${prefix}-protein)`, c:`var(--${prefix}-carbs)`, f:`var(--${prefix}-fat)`};
+}
+
+function microGrid(prefix, style){
+  // style: 'gradientdot' (glass/gauge/dark) | 'flatbar' (brutal) | 'condensed' (sport)
+  return MICROS.map(m=>{
+    if(style==='flatbar'){
+      return `<div class="micro-cell">
+        <span class="micro-ab" style="color:${m.hue}">${m.ab}</span>
+        <div class="micro-track"><div class="micro-fill" style="width:${pct(m.ratio)}%; background:${m.hue};"></div></div>
+        <span class="micro-name">${m.name}</span>
+      </div>`;
+    }
+    if(style==='condensed'){
+      return `<div>
+        <span class="micro-ab" style="color:${m.hue}">${m.ab}</span>
+        <div class="fuel" style="margin:6px 0 4px;">${Array.from({length:8}).map((_,i)=>`<span class="${i < Math.round(pct(m.ratio)/12.5) ? 'on':''}" style="--seg-color:${m.hue}"></span>`).join('')}</div>
+        <span class="micro-name">${m.name}</span>
+      </div>`;
+    }
+    return `<div>
+      <span class="micro-ab" style="color:${m.hue}">${m.ab}</span>
+      <div class="micro-track">
+        <div class="micro-fill" style="background:linear-gradient(to right, color-mix(in srgb, ${m.hue} 15%, transparent), ${m.hue});"></div>
+        <span class="micro-dot" style="left:${pct(m.ratio)}%; background:${m.hue}; color:${m.hue};"></span>
+      </div>
+      <span class="micro-name">${m.name}</span>
+    </div>`;
+  }).join('');
+}
+
+function mealsList(prefix, style){
+  return MEALS.map(m=>{
+    const badgeStyle = (c)=> style==='outline' ? `border:2px solid var(--b-ink); color:var(--b-ink);` : `background:${c}; color:#fff;`;
+    const kcalC = `var(--${prefix}-kcal)`, pC=`var(--${prefix}-protein)`, cC=`var(--${prefix}-carbs)`, fC=`var(--${prefix}-fat)`;
+    if(style==='tag'){
+      return `<div class="meal" style="border-left-color:${kcalC}">
+        <div style="flex:1">
+          <div class="meal-name">${m.name}</div>
+          <div class="badges" style="margin-top:6px">
+            <span class="badge" style="background:${kcalC}">${m.kcal} kcal</span>
+            <span class="badge" style="background:${pC}">${m.p}g P</span>
+            <span class="badge" style="background:${cC}">${m.c}g C</span>
+            <span class="badge" style="background:${fC}">${m.f}g F</span>
+          </div>
+        </div>
+      </div>`;
+    }
+    if(style==='outline'){
+      return `<div class="meal">
+        <div class="meal-emoji">${m.emoji}</div>
+        <div style="flex:1">
+          <div class="meal-name">${m.name}</div>
+          <div class="badges" style="margin-top:6px">
+            <span class="badge">${m.kcal} kcal</span>
+            <span class="badge">${m.p}g P</span>
+            <span class="badge">${m.c}g C</span>
+            <span class="badge">${m.f}g F</span>
+          </div>
+        </div>
+      </div>`;
+    }
+    return `<div class="meal">
+      <div class="meal-emoji">${m.emoji}</div>
+      <div style="flex:1">
+        <div class="meal-name">${m.name}</div>
+        <div class="badges" style="margin-top:6px">
+          <span class="badge" style="background:${kcalC}">${m.kcal} kcal</span>
+          <span class="badge" style="background:${pC}">${m.p}g P</span>
+          <span class="badge" style="background:${cC}">${m.c}g C</span>
+          <span class="badge" style="background:${fC}">${m.f}g F</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function suppsList(prefix, style){
+  return SUPPS.map(s=>{
+    if(style==='barleft'){
+      const color = s.warn ? 'var(--q-fat, var(--s-accent))' : 'transparent';
+      return `<div class="supp" style="${prefix==='sport' ? `border-left-color:${s.warn? 'var(--s-accent)':'transparent'}` : ''}">
+        ${prefix==='gauge' ? `<div class="supp-ic" style="background:${s.warn?'#d98d00':'#2f6bff'}"></div>` : ''}
+        <div style="flex:1">
+          <div class="supp-name">${s.name}</div>
+          <div class="supp-dose">${s.dose}</div>
+        </div>
+        ${s.warn ? `<span class="warn" role="img" aria-label="${s.warn}">!</span>` : ''}
+      </div>`;
+    }
+    return `<div class="supp">
+      <div class="supp-ic" style="${prefix==='brutal' ? 'background:#fff' : `background:${s.warn?'#ff9500':'#0a84ff'}`}">${s.icon}</div>
+      <div style="flex:1">
+        <div class="supp-name">${s.name}</div>
+        <div class="supp-dose">${s.dose}</div>
+      </div>
+      ${s.warn ? `<span class="warn" role="img" aria-label="${s.warn}">!</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ---------- per-approach screen renderers ----------
+function renderGlass(screen){
+  if(screen==='today') return `<div class="appr-glass"><div class="pad">
+    <div class="hdr"><span class="title">Heute</span><span class="icon-btn">＋</span></div>
+    <div class="rem-title">Noch übrig heute</div>
+    <div class="rem-row">
+      ${[['kcal',REMAIN.kcal,'kcal','var(--g-kcal)'],['p',REMAIN.p,'g Protein','var(--g-protein)'],['c',REMAIN.c,'g Carbs','var(--g-carbs)'],['f',REMAIN.f,'g Fett','var(--g-fat)']]
+        .map(([k,v,l,c])=>`<div class="rem-item"><span class="dot" style="background:${c}"></span><div class="num">${v}</div><div class="lbl">${l}</div></div>`).join('')}
+    </div>
+    <div class="section-title">Mahlzeiten</div>
+    <div class="glass" style="padding:2px 2px; margin-bottom:2px;">${mealsList('g','plain')}</div>
+  </div></div>`;
+  if(screen==='stats') return `<div class="appr-glass"><div class="pad">
+    <div class="hdr"><span class="title">Statistik</span><span class="icon-btn">⚙︎</span></div>
+    <p style="text-align:center; font-size:12px; color:var(--g-soft); font-weight:600; margin:4px 0 14px;">${WEEK.range}</p>
+    <div class="stat-tiles">
+      <div class="glass"><div class="stat-big" style="color:var(--g-kcal)">${WEEK.avg.toLocaleString('de-DE')}</div><div class="stat-lbl">Ø kcal/Tag · Ziel ${WEEK.target.toLocaleString('de-DE')}</div></div>
+      <div class="glass-dark"><div class="stat-big">${TARGET.kcal-WEEK.avg}</div><div class="stat-lbl" style="color:#c7ccdb">kcal unter Ziel</div></div>
+    </div>
+    <div class="rem-title">Ø Restliche Makros/Tag</div>
+    <div class="rem-row">
+      ${[['p',REMAIN.p,'g Protein','var(--g-protein)'],['c',REMAIN.c,'g Carbs','var(--g-carbs)'],['f',REMAIN.f,'g Fett','var(--g-fat)'],['kcal',REMAIN.kcal,'kcal','var(--g-kcal)']]
+        .map(([k,v,l,c])=>`<div class="rem-item"><span class="dot" style="background:${c}"></span><div class="num">${v}</div><div class="lbl">${l}</div></div>`).join('')}
+    </div>
+    <div class="section-title">Mikronährstoffe</div>
+    <div class="glass"><div class="micro-grid">${microGrid('g','gradientdot')}</div></div>
+  </div></div>`;
+  return `<div class="appr-glass"><div class="pad">
+    <div class="hdr"><span class="title">Supps</span><span class="icon-btn">＋</span></div>
+    <div class="section-title" style="margin-top:16px;">Meine Liste</div>
+    ${suppsList('glass','icon')}
+  </div></div>`;
+}
+
+function renderGauge(screen){
+  const remRow = (items)=>`<div class="card"><div class="rem-list">${items.map(([ab,v,unit,c,ratio])=>`
+    <div class="rem-row">
+      <span class="rem-ab" style="color:${c}">${ab}</span>
+      <div class="g-track"><div class="g-fill" style="width:${ratio}%; background:${c}"></div></div>
+      <div><div class="g-num">${v}</div><div class="g-sub">${unit}</div></div>
+    </div>`).join('')}</div></div>`;
+  const remItems = [
+    ['KCAL',REMAIN.kcal,'übrig','var(--q-kcal)', pct(CONSUMED.kcal/TARGET.kcal)],
+    ['P',REMAIN.p,'g übrig','var(--q-protein)', pct(CONSUMED.p/TARGET.p)],
+    ['C',REMAIN.c,'g übrig','var(--q-carbs)', pct(CONSUMED.c/TARGET.c)],
+    ['F',REMAIN.f,'g übrig','var(--q-fat)', pct(CONSUMED.f/TARGET.f)],
+  ];
+  if(screen==='today') return `<div class="appr-gauge"><div class="pad">
+    <div class="hdr"><span class="title">Heute</span><span class="icon-btn">＋</span></div>
+    <div class="rem-title">Noch übrig</div>
+    ${remRow(remItems)}
+    <div class="section-title">Mahlzeiten</div>
+    <div class="card">${mealsList('q','tag')}</div>
+  </div></div>`;
+  if(screen==='stats') return `<div class="appr-gauge"><div class="pad">
+    <div class="hdr"><span class="title">Statistik</span><span class="icon-btn">⚙︎</span></div>
+    <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--q-soft); margin:2px 0 14px;">${WEEK.range}</p>
+    <div class="stat-tiles">
+      <div class="card"><div class="stat-big" style="color:var(--q-kcal)">${WEEK.avg.toLocaleString('de-DE')}</div><div class="stat-lbl">Ø kcal/Tag</div></div>
+      <div class="card"><div class="stat-big">${WEEK.target.toLocaleString('de-DE')}</div><div class="stat-lbl">Ziel kcal/Tag</div></div>
+    </div>
+    <div class="rem-title">Ø Restliche Makros/Tag</div>
+    ${remRow(remItems.slice(1))}
+    <div class="section-title">Mikronährstoffe</div>
+    <div class="card"><div class="micro-grid">${microGrid('q','gradientdot')}</div></div>
+  </div></div>`;
+  return `<div class="appr-gauge"><div class="pad">
+    <div class="hdr"><span class="title">Supps</span><span class="icon-btn">＋</span></div>
+    <div class="section-title" style="margin-top:16px;">Meine Liste</div>
+    <div class="card">${suppsList('gauge','barleft')}</div>
+  </div></div>`;
+}
+
+function renderBrutal(screen){
+  const remGrid = (items)=>`<div class="rem-grid">${items.map(([v,unit,lbl,cur,tgt,c])=>`
+    <div class="block rem-item" style="background:${c}"><div class="num">${v}<span class="unit">${unit}</span></div><div class="lbl">${lbl}</div><div class="sub">${cur} / ${tgt}</div></div>`).join('')}</div>`;
+  const remItems = [
+    [REMAIN.kcal,'','kcal übrig',CONSUMED.kcal,TARGET.kcal,'var(--b-blue)'],
+    [REMAIN.p,'g','Protein übrig',CONSUMED.p,TARGET.p,'#ff0f4c'],
+    [REMAIN.c,'g','Carbs übrig',CONSUMED.c,TARGET.c,'var(--b-green)'],
+    [REMAIN.f,'g','Fett übrig',CONSUMED.f,TARGET.f,'#c98a00'],
+  ];
+  if(screen==='today') return `<div class="appr-brutal"><div class="pad">
+    <div class="hdr"><span class="title">Heute</span><span class="icon-btn">＋</span></div>
+    <div class="rem-title">Noch übrig</div>
+    ${remGrid(remItems)}
+    <div class="section-title">Mahlzeiten</div>
+    <div class="block" style="padding:6px;">${mealsList('brutal','outline')}</div>
+  </div></div>`;
+  if(screen==='stats') return `<div class="appr-brutal"><div class="pad">
+    <div class="hdr"><span class="title">Statistik</span><span class="icon-btn">⚙︎</span></div>
+    <p style="text-align:center; font-weight:800; font-size:11.5px; margin:6px 0 14px; text-transform:uppercase;">${WEEK.range}</p>
+    <div class="stat-tiles">
+      <div class="block" style="background:var(--b-blue); color:#fff;"><div class="stat-big">${WEEK.avg.toLocaleString('de-DE')}</div><div class="stat-lbl">Ø kcal/Tag</div></div>
+      <div class="block"><div class="stat-big">${WEEK.target.toLocaleString('de-DE')}</div><div class="stat-lbl">Ziel kcal</div></div>
+    </div>
+    <div class="rem-title">Ø Restliche Makros/Tag</div>
+    ${remGrid(remItems.slice(1))}
+    <div class="section-title">Mikronährstoffe</div>
+    <div class="micro-grid">${microGrid('brutal','flatbar')}</div>
+  </div></div>`;
+  return `<div class="appr-brutal"><div class="pad">
+    <div class="hdr"><span class="title">Supps</span><span class="icon-btn">＋</span></div>
+    <div class="section-title" style="margin-top:16px;">Meine Liste</div>
+    <div class="block" style="padding:6px;">${suppsList('brutal','icon')}</div>
+  </div></div>`;
+}
+
+function renderDark(screen){
+  const remRow = (items)=>`<div class="glass" style="padding:12px 8px;"><div class="rem-row">${items.map(([v,l,c])=>`
+    <div class="rem-item" style="background:color-mix(in srgb, ${c} 14%, transparent); border:1px solid color-mix(in srgb, ${c} 35%, transparent);"><div class="num" style="color:${c}">${v}</div><div class="lbl">${l}</div></div>`).join('')}</div></div>`;
+  const remItems4 = [[REMAIN.kcal,'kcal','var(--d-kcal)'],[REMAIN.p,'g Protein','var(--d-protein)'],[REMAIN.c,'g Carbs','var(--d-carbs)'],[REMAIN.f,'g Fett','var(--d-fat)']];
+  if(screen==='today') return `<div class="appr-dark"><div class="pad">
+    <div class="hdr"><span class="title">Heute</span><span class="icon-btn">＋</span></div>
+    <div class="rem-title">Noch übrig</div>
+    ${remRow(remItems4)}
+    <div class="section-title">Mahlzeiten</div>
+    ${mealsList('d','plain')}
+  </div></div>`;
+  if(screen==='stats') return `<div class="appr-dark"><div class="pad">
+    <div class="hdr"><span class="title">Statistik</span><span class="icon-btn">⚙︎</span></div>
+    <p style="text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--d-faint); margin:4px 0 14px;">${WEEK.range}</p>
+    <div class="stat-tiles">
+      <div class="glass"><div class="stat-big" style="color:var(--d-kcal)">${WEEK.avg.toLocaleString('de-DE')}</div><div class="stat-lbl">Ø kcal/Tag</div></div>
+      <div class="glass"><div class="stat-big">${WEEK.target.toLocaleString('de-DE')}</div><div class="stat-lbl">Ziel kcal/Tag</div></div>
+    </div>
+    <div class="rem-title">Ø Restliche Makros/Tag</div>
+    ${remRow(remItems4.slice(1))}
+    <div class="section-title">Mikronährstoffe</div>
+    <div class="glass"><div class="micro-grid">${microGrid('d','gradientdot')}</div></div>
+  </div></div>`;
+  return `<div class="appr-dark"><div class="pad">
+    <div class="hdr"><span class="title">Supps</span><span class="icon-btn">＋</span></div>
+    <div class="section-title" style="margin-top:16px;">Meine Liste</div>
+    ${suppsList('dark','icon')}
+  </div></div>`;
+}
+
+function renderSport(screen){
+  const remBlock = (items)=>`<div class="rem-row">${items.map(([v,unit,lbl,ratio,c])=>`
+    <div class="rem-item"><div><div class="num" style="color:${c}">${v}</div><div class="unit">${unit}</div></div>
+      <div><div class="fuel">${Array.from({length:10}).map((_,i)=>`<span class="${i < Math.round(ratio/10) ? 'on':''}" style="--seg-color:${c}"></span>`).join('')}</div><div class="rem-lbl">${lbl}</div></div></div>`).join('')}`;
+  const items = [
+    [REMAIN.kcal,'kcal','Kalorien übrig',pct(CONSUMED.kcal/TARGET.kcal),'var(--s-kcal)'],
+    [REMAIN.p,'g','Protein übrig',pct(CONSUMED.p/TARGET.p),'var(--s-protein)'],
+    [REMAIN.c,'g','Carbs übrig',pct(CONSUMED.c/TARGET.c),'var(--s-carbs)'],
+    [REMAIN.f,'g','Fett übrig — im Blick behalten',pct(CONSUMED.f/TARGET.f),'var(--s-fat)'],
+  ];
+  if(screen==='today') return `<div class="appr-sport"><div class="pad">
+    <div class="hdr"><span class="title">Heute</span><span class="icon-btn">＋</span></div>
+    <div class="rem-title">Noch übrig</div>
+    <div class="panel-box" style="padding:6px 10px;">${remBlock(items)}</div>
+    <div class="section-title">Mahlzeiten</div>
+    ${mealsList('s','tag')}
+  </div></div>`;
+  if(screen==='stats') return `<div class="appr-sport"><div class="pad">
+    <div class="hdr"><span class="title">Statistik</span><span class="icon-btn">⚙︎</span></div>
+    <p style="text-align:center; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:13px; color:var(--s-soft); margin:2px 0 14px; text-transform:uppercase;">${WEEK.range}</p>
+    <div class="stat-tiles">
+      <div class="panel-box"><div class="stat-big" style="color:var(--s-kcal)">${WEEK.avg.toLocaleString('de-DE')}</div><div class="stat-lbl">Ø kcal/Tag</div></div>
+      <div class="panel-box"><div class="stat-big">${WEEK.target.toLocaleString('de-DE')}</div><div class="stat-lbl">Ziel kcal/Tag</div></div>
+    </div>
+    <div class="rem-title">Ø Restliche Makros/Tag</div>
+    <div class="panel-box" style="padding:6px 10px;">${remBlock(items.slice(1))}</div>
+    <div class="section-title">Mikronährstoffe</div>
+    <div class="panel-box"><div class="micro-grid">${microGrid('s','condensed')}</div></div>
+  </div></div>`;
+  return `<div class="appr-sport"><div class="pad">
+    <div class="hdr"><span class="title">Supps</span><span class="icon-btn">＋</span></div>
+    <div class="section-title" style="margin-top:16px;">Meine Liste</div>
+    ${suppsList('sport','barleft')}
+  </div></div>`;
+}
+
+const RENDERERS = {glass:renderGlass, gauge:renderGauge, brutal:renderBrutal, dark:renderDark, sport:renderSport};
+
+let currentApproach = APPROACHES[0].id;
+let currentScreen = 'today';
+
+function renderRail(){
+  const rail = document.getElementById('rail');
+  rail.innerHTML = APPROACHES.map(a=>`
+    <button class="a-card" data-a="${a.id}" aria-pressed="${a.id===currentApproach}" style="--dot1:${a.dot1}">
+      <span class="a-num">${a.num}</span>
+      <span class="a-name">${a.name}</span>
+      <span class="a-pitch">${a.pitch}</span>
+      <span class="a-dots">${a.dots.map(c=>`<span style="background:${c}"></span>`).join('')}</span>
+    </button>
+  `).join('');
+  rail.querySelectorAll('.a-card').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ currentApproach = btn.dataset.a; update(); });
+  });
+}
+
+function renderBrief(){
+  const a = APPROACHES.find(x=>x.id===currentApproach);
+  document.getElementById('brief').innerHTML = `
+    <span class="tag">${a.tag}</span>
+    <h2>${a.name}</h2>
+    <p>${a.body}</p>
+    <ul>${a.points.map(p=>`<li>${p}</li>`).join('')}</ul>
+    <div class="swatches">${a.dots.map(c=>`<span style="background:${c}"></span>`).join('')}</div>
+  `;
+}
+
+function renderPhone(){
+  document.getElementById('phoneInner').innerHTML = RENDERERS[currentApproach](currentScreen);
+}
+
+function update(){
+  renderRail();
+  renderBrief();
+  renderPhone();
+}
+
+document.getElementById('screenTabs').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-s]');
+  if(!btn) return;
+  currentScreen = btn.dataset.s;
+  document.querySelectorAll('#screenTabs button').forEach(b=>b.setAttribute('aria-pressed', String(b===btn)));
+  renderPhone();
+});
+
+update();
+</script>
