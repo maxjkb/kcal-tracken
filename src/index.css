@@ -412,6 +412,40 @@ body {
   }
 }
 
+/* --- Shared text field (Big-Number-Redesign, point 6) ---
+   Every plain <input>/<textarea> across the app's sheets and forms
+   (RecipeEditor, SupplementFormSheet, BodyProfileSection, the settings
+   pages, MealEditor's own smaller fields, …) independently hand-rolled the
+   same `border border-line bg-bg … focus:border-accent focus:outline-none`
+   recipe — 23 near-identical copies across 8 files, each one a chance to
+   drift, which is exactly what the "sheets sehen unterschiedlich aus"
+   complaint was about. One shared class now owns the border/background/
+   focus treatment; each call site keeps its own radius, padding, width and
+   font-size utilities exactly as before — only the part that was actually
+   duplicated moved here. Background reads --color-surface rather than the
+   flatter --color-bg: a field is content sitting on a surface, the same
+   material logic every card in the app already uses. The focus state gets
+   a soft accent glow instead of a bare border-color swap — a hint of the
+   same "material responds to you" language the docked fields elsewhere
+   already have, without needing their full glass/backdrop-filter treatment
+   for what is, most of the time, a single plain input. */
+.field {
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+.field::placeholder {
+  color: var(--color-ink-faint);
+}
+.field:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+
 /* --- Big Number hero (Big-Number-Redesign) ---
    The device the chosen direction replaces rings/tiles with: the day's most
    relevant remaining value spans most of a screen in Unbounded, with a thin

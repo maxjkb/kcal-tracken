@@ -30,7 +30,7 @@ export function SettingsBackHeader({ title }: { title: string }) {
       >
         <ChevronIcon direction="left" />
       </button>
-      <h1 className="text-2xl font-bold tracking-tight text-ink">{title}</h1>
+      <h1 className="font-display text-2xl font-bold tracking-tight text-ink">{title}</h1>
     </div>
   )
 }

@@ -105,7 +105,7 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
             <NumberField
               value={profile.heightCm}
               onChange={(next: number) => update('heightCm', next)}
-              className="rounded-xl border border-line bg-bg px-2 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+              className="field rounded-xl px-2 py-2 text-sm"
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -113,7 +113,7 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
             <NumberField
               value={profile.weightKg}
               onChange={(next: number) => update('weightKg', next)}
-              className="rounded-xl border border-line bg-bg px-2 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+              className="field rounded-xl px-2 py-2 text-sm"
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -121,7 +121,7 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
             <NumberField
               value={profile.age}
               onChange={(next: number) => update('age', next)}
-              className="rounded-xl border border-line bg-bg px-2 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+              className="field rounded-xl px-2 py-2 text-sm"
             />
           </label>
         </div>
@@ -131,7 +131,7 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
           <select
             value={profile.activityLevel}
             onChange={(e) => update('activityLevel', e.target.value as ActivityLevel)}
-            className="rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+            className="field rounded-xl px-3 py-2 text-sm"
           >
             {ACTIVITY_LEVELS.map((level) => (
               <option key={level} value={level}>

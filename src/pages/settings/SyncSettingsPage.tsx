@@ -227,7 +227,7 @@ export function SyncSettingsPage() {
               onChange={(e) => setConfigText(e.target.value)}
               placeholder={'const firebaseConfig = {\n  apiKey: "…",\n  authDomain: "…",\n  projectId: "…",\n  …\n};'}
               rows={5}
-              className="w-full resize-none rounded-xl border border-line bg-bg px-3 py-2 font-mono text-xs text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+              className="field w-full resize-none rounded-xl px-3 py-2 font-mono text-xs"
             />
             <div className="mt-3 flex gap-2">
               <button
@@ -287,7 +287,7 @@ export function SyncSettingsPage() {
               value={confirmEmail}
               onChange={(e) => setConfirmEmail(e.target.value)}
               placeholder="deine@email.de"
-              className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+              className="field w-full rounded-xl px-3 py-2 text-sm"
             />
             <button
               onClick={handleConfirmEmail}
@@ -345,7 +345,7 @@ export function SyncSettingsPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="deine@email.de"
-                  className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+                  className="field w-full rounded-xl px-3 py-2 text-sm"
                 />
                 <button
                   onClick={handleSendLink}
@@ -368,7 +368,7 @@ export function SyncSettingsPage() {
                   value={pasteInput}
                   onChange={(e) => setPasteInput(e.target.value)}
                   placeholder="https://maxjkb.github.io/…"
-                  className="flex-1 rounded-xl border border-line bg-bg px-3 py-2 text-xs text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+                  className="field flex-1 rounded-xl px-3 py-2 text-xs"
                 />
                 <button
                   onClick={handlePasteLink}

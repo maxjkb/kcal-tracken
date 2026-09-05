@@ -89,7 +89,7 @@ function TipsSheetContent({ onClose }: { onClose: () => void }) {
               <BulbIcon />
             </span>
             <div>
-              <h2 className="text-lg font-semibold text-ink">Tipps für {MEAL_TYPE_LABELS[guessMealType()]}</h2>
+              <h2 className="font-display text-lg font-semibold text-ink">Tipps für {MEAL_TYPE_LABELS[guessMealType()]}</h2>
               <p className="text-xs text-ink-soft">Basierend auf dem, was heute schon gegessen wurde.</p>
             </div>
           </div>

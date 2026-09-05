@@ -63,7 +63,7 @@ function MealprepSheetContent({ recipe }: { recipe: Recipe }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold text-ink">Mealprep erstellen</h2>
+      <h2 className="font-display text-lg font-semibold text-ink">Mealprep erstellen</h2>
       <p className="text-sm text-ink-soft">
         Für welche Menge soll <span className="font-medium text-ink">{recipe.title}</span> skaliert werden? Die KI
         passt Zutatenmengen, Zubereitung, Garzeit und Lagerung darauf an — nicht per einfachem Dreisatz, sondern mit
@@ -76,7 +76,7 @@ function MealprepSheetContent({ recipe }: { recipe: Recipe }) {
         onChange={(e) => setTargetDescription(e.target.value)}
         placeholder="z.B. 6 Portionen"
         disabled={generating}
-        className="rounded-2xl border border-line bg-bg px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+        className="field rounded-2xl px-3 py-2.5 text-sm"
       />
 
       <div className="flex flex-wrap gap-1.5">

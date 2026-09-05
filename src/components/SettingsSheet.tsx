@@ -37,7 +37,7 @@ export function SettingsSheet({ onClose, dismiss }: { onClose: () => void; dismi
       sheetClassName="glass flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl"
     >
       <div className="min-h-0 overflow-y-auto p-5 pt-7 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
-        <h2 className="mb-4 text-lg font-semibold text-ink">Einstellungen</h2>
+        <h2 className="font-display mb-4 text-lg font-semibold text-ink">Einstellungen</h2>
         <SettingsMenu />
       </div>
     </Sheet>

@@ -558,7 +558,7 @@ function MealEditorContent({
   if (barcodeStep === 'not-found') {
     return (
       <div className="flex flex-col gap-4 p-5 pt-7">
-        <h2 className="text-lg font-semibold text-ink">Kein Produkt gefunden</h2>
+        <h2 className="font-display text-lg font-semibold text-ink">Kein Produkt gefunden</h2>
         <p className="text-sm text-ink-soft">
           Dieser Barcode ist bei Open Food Facts nicht hinterlegt, oder der Eintrag hat keine vollständigen
           Nährwertangaben. Du kannst es erneut versuchen oder die Mahlzeit wie gewohnt beschreiben.
@@ -616,7 +616,7 @@ function MealEditorContent({
   if (matchedSupplements) {
     return (
       <div className="flex flex-col gap-4 p-5 pt-7">
-        <h2 className="text-lg font-semibold text-ink">Supp erkannt</h2>
+        <h2 className="font-display text-lg font-semibold text-ink">Supp erkannt</h2>
         <p className="text-sm text-ink-soft">
           In deiner Beschreibung erwähnt — heute als eingenommen markieren?
         </p>
@@ -659,7 +659,7 @@ function MealEditorContent({
             <BackIcon />
           </button>
         ) : (
-          <h2 className="text-lg font-semibold text-ink">{initial ? 'Mahlzeit bearbeiten' : 'Mahlzeit hinzufügen'}</h2>
+          <h2 className="font-display text-lg font-semibold text-ink">{initial ? 'Mahlzeit bearbeiten' : 'Mahlzeit hinzufügen'}</h2>
         )}
         <div className="flex items-center gap-3">
           {step === 'input' && hasResult && (
@@ -927,7 +927,7 @@ function MealEditorContent({
                   type="date"
                   value={mealDate}
                   onChange={(e) => e.target.value && setMealDate(e.target.value)}
-                  className="rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+                  className="field rounded-2xl px-3 py-2 text-sm"
                 />
               </label>
 
@@ -956,7 +956,7 @@ function MealEditorContent({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Titel des Gerichts"
-                  className="rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+                  className="field rounded-2xl px-3 py-2 text-sm"
                 />
               </label>
 
@@ -1002,7 +1002,7 @@ function MealEditorContent({
                                 value={ing.amount}
                                 onChange={(next: number) => handleIngredientAmountChange(i, next)}
                                 ariaLabel={`Menge für ${ing.name}`}
-                                className="w-16 rounded-lg border border-line bg-bg px-1.5 py-1 text-right text-xs text-ink focus:border-accent focus:outline-none"
+                                className="field w-16 rounded-lg px-1.5 py-1 text-right text-xs"
                               />
                               <span className="text-xs text-ink-soft">{ing.unit}</span>
                             </div>

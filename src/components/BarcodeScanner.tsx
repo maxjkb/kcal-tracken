@@ -101,7 +101,7 @@ export function BarcodeScanner({
 
   return (
     <div className="flex flex-col gap-4 p-5 pt-7">
-      <h2 className="text-lg font-semibold text-ink">Barcode scannen</h2>
+      <h2 className="font-display text-lg font-semibold text-ink">Barcode scannen</h2>
 
       {error ? (
         <p className="rounded-2xl bg-danger/10 p-4 text-sm text-danger">{error}</p>
@@ -142,7 +142,7 @@ export function BarcodeScanner({
                 if (e.key === 'Enter') submitManualCode()
               }}
               placeholder="z.B. 4008400123456"
-              className="min-w-0 flex-1 rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+              className="field min-w-0 flex-1 rounded-2xl px-3 py-2 text-sm"
             />
             <button
               type="button"

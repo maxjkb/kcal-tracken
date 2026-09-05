@@ -71,7 +71,7 @@ export function SupplementChatSheet({ suggestion, onClose }: { suggestion: Suppl
     <Sheet onClose={onClose} sheetClassName="glass flex h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl">
       <div className="flex shrink-0 items-center justify-between border-b border-line/60 px-5 py-4">
         <div>
-          <h2 className="text-lg font-semibold text-ink">{suggestion.supplementName}</h2>
+          <h2 className="font-display text-lg font-semibold text-ink">{suggestion.supplementName}</h2>
           <p className="text-xs text-ink-soft">Rückfragen zu diesem Supp</p>
         </div>
         <div className="flex items-center gap-1.5">

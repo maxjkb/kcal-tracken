@@ -55,7 +55,7 @@ export function ApiSettingsPage() {
             value={apiKey}
             onChange={(e) => setApiKeyInput(e.target.value)}
             placeholder="AIza…"
-            className="flex-1 rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+            className="field flex-1 rounded-xl px-3 py-2 text-sm"
           />
           <button
             type="button"
@@ -94,7 +94,7 @@ export function ApiSettingsPage() {
             type="text"
             value={model}
             onChange={(e) => handleModelChange(e.target.value)}
-            className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+            className="field w-full rounded-xl px-3 py-2 text-sm"
           />
         </DockedField>
         {/* Driven by GEMINI_MODELS rather than its own copy of the list. The

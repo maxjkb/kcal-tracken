@@ -53,7 +53,7 @@ export function SupplementCatalogSheet({ onClose }: { onClose: () => void }) {
     >
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         <div className="flex flex-col gap-5 px-5 pt-7">
-          <h2 className="text-lg font-semibold text-ink">Katalog</h2>
+          <h2 className="font-display text-lg font-semibold text-ink">Katalog</h2>
 
           {supplements === undefined ? (
             <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>

@@ -62,7 +62,7 @@ export function SuppScoreSheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet onClose={onClose} sheetClassName="glass flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl">
       <div className="flex shrink-0 items-center justify-between border-b border-line/60 px-5 py-4">
-        <h2 className="text-lg font-semibold text-ink">Supp-Score</h2>
+        <h2 className="font-display text-lg font-semibold text-ink">Supp-Score</h2>
         <button
           type="button"
           onClick={onClose}
