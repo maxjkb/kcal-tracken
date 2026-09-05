@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMealSummariesInRange } from '../hooks/useMeals'
 import { MEAL_TYPE_LABELS, toLocalDateKey, type Nutrition } from '../lib/db'
-import { ConcentricRings, NutrientRings } from '../components/NutrientRings'
+import { RemainingHero } from '../components/RemainingHero'
 import { DayPickerModal, MonthPickerModal, YearPickerModal } from '../components/DatePickerModal'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { SupplementScoreCard } from '../components/SupplementScoreCard'
@@ -274,7 +274,7 @@ export function StatsPage() {
             ) : perMealData.length === 0 ? (
               <p className="py-10 text-center text-sm text-ink-soft">Keine Mahlzeiten an diesem Tag.</p>
             ) : (
-              <NutrientRings
+              <RemainingHero
                 kcal={totals.kcal}
                 protein={totals.protein}
                 carbs={totals.carbs}
@@ -300,7 +300,7 @@ export function StatsPage() {
             {meals === undefined ? (
               <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
             ) : (
-              <NutrientRings
+              <RemainingHero
                 kcal={dailyAverage}
                 protein={macroAverages.protein}
                 carbs={macroAverages.carbs}
@@ -430,7 +430,7 @@ function StatTile({
 }) {
   const body = (
     <>
-      <div className={`text-xl font-bold ${valueClassName}`}>{value}</div>
+      <div className={`hero-num text-xl ${valueClassName}`}>{value}</div>
       <div className="text-[10px] text-ink-soft">{label}</div>
     </>
   )
@@ -459,7 +459,14 @@ function StatTile({
   )
 }
 
-/** The 3rd tile of the stat row — the compact concentric ring, the app's signature nutrient visualization, used identically across all four periods. */
+/**
+ * The 3rd tile of the stat row — a switch into the macro breakdown below,
+ * same job ConcentricRings used to do here. Big-Number-Redesign replaces the
+ * literal rings with four small identity-colored scale lines (the same
+ * `.hero-rule` device the breakdown itself now uses), each filled to that
+ * macro's share of its target — a glance-sized preview of the same
+ * not-a-ring language, not a separate visual metaphor of its own.
+ */
 function RingTile({
   kcal,
   protein,
@@ -479,16 +486,34 @@ function RingTile({
   selected?: boolean
   onSelect?: () => void
 }) {
-  // No caption inside the tile any more — per explicit request, the ring
-  // graphic gets the tile's whole area instead of sharing it with a line of
-  // text underneath. `caption` still becomes the tile's accessible name
+  // No caption inside the tile any more — per explicit request, the glyph
+  // gets the tile's whole area instead of sharing it with a line of text
+  // underneath. `caption` still becomes the tile's accessible name
   // (aria-label) rather than being dropped outright: this is otherwise an
-  // SVG with no text content at all, and removing its only description
-  // along with the visible words would have silently broken it for a
-  // screen-reader user tapping through the stat row, which the visual
-  // request never asked for.
-  const body = <ConcentricRings kcal={kcal} protein={protein} carbs={carbs} fat={fat} targets={targets} size="compact" />
-  const shell = `flex h-24 w-full items-center justify-center rounded-3xl p-2 shadow-sm shadow-black/5 transition ${
+  // SVG-free glyph with no text content at all, and removing its only
+  // description along with the visible words would have silently broken it
+  // for a screen-reader user tapping through the stat row.
+  const values: Record<'kcal' | 'protein' | 'carbs' | 'fat', number> = { kcal, protein, carbs, fat }
+  const colors = {
+    kcal: 'var(--color-kcal)',
+    protein: 'var(--color-protein)',
+    carbs: 'var(--color-carbs)',
+    fat: 'var(--color-fat)',
+  } as const
+  const body = (
+    <div className="flex w-full flex-col gap-1.5 px-1">
+      {(['kcal', 'protein', 'carbs', 'fat'] as const).map((type) => {
+        const target = targets?.[type]
+        const ratio = target ? values[type] / target : 0
+        return (
+          <div key={type} className="hero-rule" style={{ height: 3 }}>
+            <i style={{ width: `${Math.max(0, Math.min(100, ratio * 100))}%`, background: colors[type] }} />
+          </div>
+        )
+      })}
+    </div>
+  )
+  const shell = `flex h-24 w-full items-center justify-center rounded-3xl p-3 shadow-sm shadow-black/5 transition ${
     selected ? 'ring-2 ring-inset ring-accent' : ''
   }`
 

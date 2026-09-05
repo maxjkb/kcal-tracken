@@ -34,6 +34,12 @@ function clampPct(ratio: number): number {
  * body profile yet — the same condition NutrientRings used to gate its own
  * percent display and footer note on, kept identical here so nothing about
  * the "set up your body profile first" flow changed, only its presentation.
+ *
+ * `perMeal`, when given, preserves the one bit of information the old
+ * Stats-Tag "closed ring" style carried that a plain remaining-value doesn't:
+ * the day's per-meal average. Shown as a small extra line rather than a
+ * second ring-in-ring, since a closed/non-progress ring was itself part of
+ * what this component replaces.
  */
 export function RemainingHero({
   kcal,
@@ -41,12 +47,14 @@ export function RemainingHero({
   carbs,
   fat,
   targets,
+  perMeal,
 }: {
   kcal: number
   protein: number
   carbs: number
   fat: number
   targets: Totals | null
+  perMeal?: Totals
 }) {
   const kcalRemaining = targets ? targets.kcal - kcal : null
   // Same "überschritten = rot" convention as everywhere else kcal balance is
@@ -73,6 +81,7 @@ export function RemainingHero({
       </div>
       <p className="mt-0.5 text-xs font-medium text-ink-soft">
         {targets ? (over ? 'kcal über dem Ziel' : 'kcal übrig heute') : 'kcal heute'}
+        {perMeal && ` · Ø ${Math.round(perMeal.kcal)} pro Mahlzeit`}
       </p>
       {targets && (
         <div className="hero-rule mt-3">
@@ -84,6 +93,7 @@ export function RemainingHero({
         {strip.map(({ type, value, target, remaining }) => {
           const color = MACRO_COLOR[type]
           const macroOver = remaining !== null && remaining < 0
+          const perMealValue = perMeal?.[type]
           return (
             <div key={type} className="rounded-2xl bg-bg/70 p-3">
               <div className="flex items-center gap-1.5" style={{ color }}>
@@ -92,8 +102,11 @@ export function RemainingHero({
                   {MACRO_LABEL[type]}
                 </span>
               </div>
-              <div className="mt-1 text-lg font-bold text-ink">{Math.round(Math.abs(remaining ?? value))}g</div>
-              <div className="text-[10px] text-ink-soft">{target !== undefined ? (macroOver ? 'über Ziel' : 'übrig') : ''}</div>
+              <div className="hero-num mt-1 text-lg text-ink">{Math.round(Math.abs(remaining ?? value))}g</div>
+              <div className="text-[10px] text-ink-soft">
+                {target !== undefined ? (macroOver ? 'über Ziel' : 'übrig') : ''}
+                {perMealValue !== undefined && ` · Ø ${Math.round(perMealValue)}g`}
+              </div>
               {target !== undefined && (
                 <div className="hero-rule mt-1.5" style={{ height: 2 }}>
                   <i style={{ width: `${clampPct(value / target)}%`, background: color }} />

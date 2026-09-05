@@ -3,7 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { monotonePath, niceTicks, visibleLabelIndices } from '../lib/chartGeometry'
 import type { StatBucket } from '../lib/stats'
 import type { DailyTargets } from '../lib/bodyProfile'
-import { NutrientRings } from './NutrientRings'
+import { RemainingHero } from './RemainingHero'
 import { REDUCED_MOTION_TRANSITION, SPRING_DEFAULT } from '../lib/motionTokens'
 import { useGlassSurfaceNode } from '../glass/glassSurfaces'
 
@@ -140,7 +140,7 @@ export function KcalTrendChart({
               <span className="text-sm font-semibold text-ink">{selected.label}</span>
               <span className="text-xs text-ink-soft">{Math.round(selected.kcal).toLocaleString('de-DE')} kcal</span>
             </div>
-            <NutrientRings
+            <RemainingHero
               kcal={selected.kcal}
               protein={selected.protein}
               carbs={selected.carbs}
