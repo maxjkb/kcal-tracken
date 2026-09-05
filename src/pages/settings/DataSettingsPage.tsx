@@ -11,6 +11,7 @@ import { BouncingDots } from '../../components/BouncingDots'
 import { DayPickerModal, MonthPickerModal, YearPickerModal } from '../../components/DatePickerModal'
 import { formatPeriodLabel, getPeriodRange, shiftAnchor, type Period } from '../../lib/stats'
 import { InfoButton } from '../../components/InfoButton'
+import { GlassSurface } from '../../glass/GlassSurface'
 
 const PERIODS: { key: Period; label: string }[] = [
   { key: 'day', label: 'Tag' },
@@ -177,7 +178,7 @@ export function DataSettingsPage() {
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       <SettingsBackHeader title="Daten" />
 
-      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+      <GlassSurface as="section" rim={24} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-4 shadow-sm shadow-black/5">
         <h2 className="mb-1 text-sm font-semibold text-ink">Backup & Zurücksetzen</h2>
         <div className="mb-3 flex justify-end">
           <InfoButton label="Was enthält das Backup?" title="Backup">
@@ -228,9 +229,9 @@ export function DataSettingsPage() {
             </button>
           )}
         </div>
-      </section>
+      </GlassSurface>
 
-      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+      <GlassSurface as="section" rim={24} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-4 shadow-sm shadow-black/5">
         <h2 className="mb-1 text-sm font-semibold text-ink">PDF-Export</h2>
         <div className="mb-3 flex justify-end">
           <InfoButton label="Was ist im PDF-Export enthalten?" title="PDF-Export">
@@ -291,7 +292,7 @@ export function DataSettingsPage() {
             'Als PDF exportieren'
           )}
         </button>
-      </section>
+      </GlassSurface>
 
       {pdfPickerOpen && pdfPeriod === 'day' && (
         <DayPickerModal

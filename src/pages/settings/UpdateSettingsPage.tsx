@@ -3,6 +3,7 @@ import { useRegisterSW } from 'virtual:pwa-register/react'
 import { SettingsBackHeader } from '../../components/SettingsBackHeader'
 import { CURRENT_VERSION } from '../../lib/releaseNotes'
 import { InfoButton } from '../../components/InfoButton'
+import { GlassSurface } from '../../glass/GlassSurface'
 
 type CheckState = 'idle' | 'checking' | 'uptodate' | 'stale' | 'unsupported'
 
@@ -196,10 +197,10 @@ export function UpdateSettingsPage() {
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       <SettingsBackHeader title="Aktualisierung" />
 
-      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+      <GlassSurface as="section" rim={24} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-4 shadow-sm shadow-black/5">
         <div className="mb-3 flex items-baseline justify-between gap-3">
           <span className="text-sm text-ink-soft">Installierte Version</span>
-          <span className="text-lg font-bold text-ink">{CURRENT_VERSION}</span>
+          <span className="hero-num text-lg text-ink">{CURRENT_VERSION}</span>
         </div>
 
         <div className="mb-3 flex justify-end">
@@ -255,9 +256,9 @@ export function UpdateSettingsPage() {
             schließen und neu öffnen.
           </p>
         )}
-      </section>
+      </GlassSurface>
 
-      <section className="rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+      <GlassSurface as="section" rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-4 shadow-sm shadow-black/5">
         <h2 className="mb-1 text-sm font-semibold text-ink">Wenn die neue Version nicht erscheint</h2>
         <div className="flex justify-end">
           <InfoButton label="Was tun, wenn die neue Version nicht erscheint?" title="Wenn die neue Version nicht erscheint">
@@ -265,7 +266,7 @@ export function UpdateSettingsPage() {
             es, die App zweimal vollständig zu schließen und wieder zu öffnen. Deine Daten bleiben dabei erhalten.
           </InfoButton>
         </div>
-      </section>
+      </GlassSurface>
     </div>
   )
 }

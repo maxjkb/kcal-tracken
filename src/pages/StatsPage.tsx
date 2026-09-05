@@ -315,7 +315,7 @@ export function StatsPage() {
           </GlassSurface>
         </>
       ) : (
-        <div className="rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+        <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-4 shadow-sm shadow-black/5">
           {/* The "i" sits on the same line as this card's own heading, per
               explicit request — even on Jahr, which has no heading text of
               its own, `justify-between` still pushes it to the right. */}
@@ -351,7 +351,7 @@ export function StatsPage() {
               />
             )}
           </div>
-        </div>
+        </GlassSurface>
       )}
 
       <SupplementScoreCard />

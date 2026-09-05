@@ -27,7 +27,7 @@ export function NutritionFields({
           <NumberField
             value={value[key]}
             onChange={(next: number) => onChange({ ...value, [key]: next })}
-            className="rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+            className="field rounded-xl px-3 py-2 text-sm"
           />
         </label>
       ))}

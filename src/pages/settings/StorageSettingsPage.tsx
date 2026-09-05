@@ -4,6 +4,7 @@ import { SavedToast } from '../../components/SavedToast'
 import { useSavedToast } from '../../hooks/useSavedToast'
 import { isStoragePersisted, requestPersistentStorage } from '../../lib/persistence'
 import { InfoButton } from '../../components/InfoButton'
+import { GlassSurface } from '../../glass/GlassSurface'
 
 export function StorageSettingsPage() {
   const [persisted, setPersisted] = useState<boolean | null>(null)
@@ -23,7 +24,7 @@ export function StorageSettingsPage() {
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       <SettingsBackHeader title="Speicher" />
 
-      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+      <GlassSurface as="section" rim={24} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-4 shadow-sm shadow-black/5">
         <h2 className="mb-1 text-sm font-semibold text-ink">Dauerhafter Speicher</h2>
         <div className="mb-3 flex justify-end">
           <InfoButton label="Was ist dauerhafter Speicher?" title="Dauerhafter Speicher">
@@ -51,7 +52,7 @@ export function StorageSettingsPage() {
             </button>
           </div>
         )}
-      </section>
+      </GlassSurface>
 
       <SavedToast message={message} />
     </div>

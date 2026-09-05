@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { ChevronIcon } from './ChevronIcon'
 import { useRegisterBackSwipe } from '../lib/backSwipe'
+import { GlassSurface } from '../glass/GlassSurface'
 
 /**
  * Back-to-menu header shared by every settings sub-page — mirrors the iOS
@@ -22,14 +23,16 @@ export function SettingsBackHeader({ title }: { title: string }) {
 
   return (
     <div className="mb-4 flex items-center gap-3">
-      <button
+      <GlassSurface
+        as="button"
         type="button"
+        rim={22}
         onClick={() => navigate(-1)}
         aria-label="Zurück"
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface text-ink-soft shadow-sm shadow-black/5 hover:text-ink"
+        className="glass-subtle glass-subtle-themed flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-soft shadow-sm shadow-black/5 hover:text-ink"
       >
         <ChevronIcon direction="left" />
-      </button>
+      </GlassSurface>
       <h1 className="font-display text-2xl font-bold tracking-tight text-ink">{title}</h1>
     </div>
   )

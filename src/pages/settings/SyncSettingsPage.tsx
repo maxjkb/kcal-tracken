@@ -23,6 +23,7 @@ import {
 import { getSyncError, getSyncStatus, onSyncStatusChange, resyncNow, startSync, stopSync } from '../../lib/sync'
 import { DockedField } from '../../components/DockedField'
 import { InfoButton } from '../../components/InfoButton'
+import { GlassSurface } from '../../glass/GlassSurface'
 
 /**
  * Sync setup. Tracke ships with its own Firebase project baked in
@@ -197,7 +198,7 @@ export function SyncSettingsPage() {
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       <SettingsBackHeader title="Sync" />
 
-      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+      <GlassSurface as="section" rim={24} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-4 shadow-sm shadow-black/5">
         <h2 className="mb-1 text-sm font-semibold text-ink">Firebase-Projekt</h2>
         <p className="mb-3 text-xs text-ink-soft">
           {isCustom
@@ -263,9 +264,9 @@ export function SyncSettingsPage() {
             </button>
           </div>
         )}
-      </section>
+      </GlassSurface>
 
-      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+      <GlassSurface as="section" rim={24} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-4 shadow-sm shadow-black/5">
         <h2 className="mb-1 text-sm font-semibold text-ink">Anmeldung</h2>
 
         {linkToComplete ? (
@@ -383,7 +384,7 @@ export function SyncSettingsPage() {
         )}
 
         {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
-      </section>
+      </GlassSurface>
 
       {user && (
         <div className="mt-3 flex justify-end">

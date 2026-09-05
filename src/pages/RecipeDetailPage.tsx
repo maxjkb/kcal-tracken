@@ -127,19 +127,16 @@ export function RecipeDetailPage() {
           className="relative mb-5 overflow-hidden rounded-3xl p-5 shadow-sm shadow-black/5"
           style={{ background: `color-mix(in srgb, ${color} 16%, var(--color-bg))` }}
         >
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full opacity-25 blur-2xl"
-            style={{ background: color }}
-          />
           <div className="relative z-10">
-            <Link
+            <GlassSurface
+              as={Link}
               to={`/recipes/${recipe.category}`}
+              rim={20}
               aria-label="Zurück"
-              className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-surface text-ink-soft shadow-sm shadow-black/5 hover:text-ink"
+              className="glass-subtle mb-4 flex h-10 w-10 items-center justify-center rounded-full text-ink-soft shadow-sm shadow-black/5 hover:text-ink"
             >
               <ChevronIcon direction="left" />
-            </Link>
+            </GlassSurface>
 
             <h2 className="font-display mb-3 text-2xl font-bold tracking-tight text-ink">{recipe.title}</h2>
 

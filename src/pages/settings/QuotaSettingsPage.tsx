@@ -5,6 +5,7 @@ import { InfoButton } from '../../components/InfoButton'
 import { GEMINI_MODELS, exhaustedModels } from '../../lib/geminiModels'
 import { getAllUsage, nextResetAt, onUsageChange } from '../../lib/usageQuota'
 import { SIGN_IN_EMAIL_USAGE_ID } from '../../lib/firebase'
+import { GlassSurface } from '../../glass/GlassSurface'
 
 /**
  * Firebase publishes no number for the daily sign-in-email allowance, and it is
@@ -81,7 +82,7 @@ export function QuotaSettingsPage() {
         </InfoButton>
       </div>
 
-      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+      <GlassSurface as="section" rim={24} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-4 shadow-sm shadow-black/5">
         <h2 className="mb-3 text-sm font-semibold text-ink">Gemini — Anfragen heute</h2>
         <div className="flex flex-col gap-4">
           {GEMINI_MODELS.map((model) => (
@@ -99,12 +100,12 @@ export function QuotaSettingsPage() {
             </div>
           ))}
         </div>
-      </section>
+      </GlassSurface>
 
-      <section className="rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+      <GlassSurface as="section" rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-4 shadow-sm shadow-black/5">
         <h2 className="mb-3 text-sm font-semibold text-ink">Firebase — Anmelde-E-Mails heute</h2>
         <QuotaBar used={emailsSent} limit={SIGN_IN_EMAIL_ASSUMED_LIMIT} label="Anmeldelinks" />
-      </section>
+      </GlassSurface>
     </div>
   )
 }
