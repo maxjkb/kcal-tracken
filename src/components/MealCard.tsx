@@ -1,17 +1,32 @@
 import { useState } from 'react'
-import type { Meal } from '../lib/db'
+import { mealPhotos, type Meal } from '../lib/db'
 import { deleteMeal } from '../hooks/useMeals'
 import { MacroBadge, MacroRingBadge } from './MacroBadge'
 import { GlassSurface } from '../glass/GlassSurface'
 
 export function MealCard({ meal, onView }: { meal: Meal; onView: () => void }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const photos = mealPhotos(meal)
 
   return (
     <GlassSurface rim={18} className="press-card glass-subtle rounded-2xl p-3 shadow-sm shadow-black/5">
       <div className="flex gap-3">
-        {meal.photo && (
-          <img src={meal.photo} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+        {photos.length > 0 && (
+          <div className="relative h-16 w-16 shrink-0">
+            <img src={photos[0]} alt="" className="h-16 w-16 rounded-xl object-cover" />
+            {/* The only hint (besides opening the meal) that there's more than
+                one photo — a plain img can't show a stack, and a full gallery
+                grid in a card this small would crowd out the macros next to
+                it. */}
+            {photos.length > 1 && (
+              <span
+                aria-label={`${photos.length} Fotos`}
+                className="absolute bottom-1 right-1 rounded-full bg-ink/70 px-1.5 py-0.5 text-[10px] font-semibold text-white"
+              >
+                +{photos.length - 1}
+              </span>
+            )}
+          </div>
         )}
         <div className="min-w-0 flex-1">
           <button className="press-target block w-full py-1 text-left" onClick={onView}>

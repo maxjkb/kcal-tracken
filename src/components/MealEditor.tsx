@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { REDUCED_MOTION_TRANSITION, SPRING_SNAPPY } from '../lib/motionTokens'
 import {
   db,
+  mealPhotos,
   MEAL_TYPE_LABELS,
   MEAL_TYPE_ORDER,
   newMealId,
@@ -26,7 +27,7 @@ import { addMySupplement, toggleSupplementCheck } from '../hooks/useSupplements'
 import { lookupFoodByBarcode } from '../lib/foodDatabase'
 import { DictationButton } from './DictationButton'
 import { DictationWaveform } from './DictationWaveform'
-import { PhotoActionButton, PhotoPreview } from './PhotoInput'
+import { PhotoActionButton, PhotoGallery } from './PhotoInput'
 import { ActionButton } from './ActionButton'
 import { NutritionFields } from './NutritionFields'
 import { NumberField } from './NumberField'
@@ -64,7 +65,7 @@ interface MealDraft {
   hasResult: boolean
   mealDate: string
   description: string
-  photo: string | undefined
+  photos: string[]
   mealType: MealType
   title: string
   nutrition: Nutrition
@@ -79,9 +80,9 @@ function isSameDraft(a: MealDraft, b: MealDraft): boolean {
   return JSON.stringify(a) === JSON.stringify(b)
 }
 
-/** Fallback when the snapshot won't fit in storage: the photo is by far the largest field, and the one the user can re-pick in a tap. */
-function stripPhoto(draft: MealDraft): MealDraft {
-  return { ...draft, photo: undefined }
+/** Fallback when the snapshot won't fit in storage: photos are by far the largest field, and the ones the user can re-pick in a tap. */
+function stripPhotos(draft: MealDraft): MealDraft {
+  return { ...draft, photos: [] }
 }
 
 function sumIngredients(ingredients: Ingredient[]): Nutrition {
@@ -162,7 +163,7 @@ function MealEditorContent({
     hasResult: Boolean(initial),
     mealDate: initial?.date ?? date,
     description: initial?.description ?? '',
-    photo: initial?.photo,
+    photos: initial ? mealPhotos(initial) : [],
     mealType: initial?.mealType ?? defaultMealType ?? 'lunch',
     title: initial?.title ?? '',
     nutrition: initial?.nutrition ?? EMPTY_NUTRITION,
@@ -180,7 +181,7 @@ function MealEditorContent({
   const [hasResult, setHasResult] = useState(restored?.hasResult ?? baseline.hasResult)
   const [mealDate, setMealDate] = useState(restored?.mealDate ?? baseline.mealDate)
   const [description, setDescription] = useState(restored?.description ?? baseline.description)
-  const [photo, setPhoto] = useState<string | undefined>(restored ? restored.photo : baseline.photo)
+  const [photos, setPhotos] = useState<string[]>(restored ? restored.photos : baseline.photos)
   const [mealType, setMealType] = useState<MealType>(restored?.mealType ?? baseline.mealType)
   const [title, setTitle] = useState(restored?.title ?? baseline.title)
   const [nutrition, setNutrition] = useState<Nutrition>(restored?.nutrition ?? baseline.nutrition)
@@ -265,7 +266,7 @@ function MealEditorContent({
     hasResult,
     mealDate,
     description,
-    photo,
+    photos,
     mealType,
     title,
     nutrition,
@@ -274,7 +275,7 @@ function MealEditorContent({
     note,
     manuallyEdited,
   }
-  const draft = useDraftAutosave(draftId, snapshot, !isSameDraft(snapshot, baseline), stripPhoto)
+  const draft = useDraftAutosave(draftId, snapshot, !isSameDraft(snapshot, baseline), stripPhotos)
 
   /** Drops the restored values and returns the sheet to how it opened. */
   function discardDraft() {
@@ -282,7 +283,7 @@ function MealEditorContent({
     setHasResult(baseline.hasResult)
     setMealDate(baseline.mealDate)
     setDescription(baseline.description)
-    setPhoto(baseline.photo)
+    setPhotos(baseline.photos)
     setMealType(baseline.mealType)
     setTitle(baseline.title)
     setNutrition(baseline.nutrition)
@@ -391,7 +392,7 @@ function MealEditorContent({
   }
 
   async function handleEstimate() {
-    if (!description.trim() && !photo) {
+    if (!description.trim() && photos.length === 0) {
       setError('Bitte beschreibe die Mahlzeit oder füge ein Foto hinzu.')
       return
     }
@@ -407,7 +408,7 @@ function MealEditorContent({
       setEstimateProgress((p) => Math.min(92, p + (92 - p) * 0.1))
     }, 180)
     try {
-      const result = await estimateNutrition({ description, photoDataUrl: photo })
+      const result = await estimateNutrition({ description, photoDataUrls: photos })
       setTitle((current) => current || result.suggestedTitle)
       setNutrition({ kcal: result.kcal, protein: result.protein, carbs: result.carbs, fat: result.fat })
       setIngredients(result.ingredients)
@@ -450,7 +451,7 @@ function MealEditorContent({
       mealType,
       title: title.trim() || 'Mahlzeit',
       description,
-      photo,
+      photos,
       nutrition,
       ingredients,
       micronutrients,
@@ -746,7 +747,9 @@ function MealEditorContent({
                     buttons are docked below it, outside the scroll — that is
                     what keeps both reachable without opening the sheet, and
                     it is also why neither needs `sticky` any more. */}
-                {photo && <PhotoPreview photo={photo} onChange={setPhoto} />}
+                {photos.length > 0 && (
+                  <PhotoGallery photos={photos} onRemove={(i) => setPhotos((prev) => prev.filter((_, j) => j !== i))} />
+                )}
 
                 {!hasApiKey && (
                   <p className="rounded-2xl bg-fat/15 px-3 py-2 text-xs text-ink">
@@ -891,8 +894,8 @@ function MealEditorContent({
                     <ActionButton label="Rezept auswählen" onClick={() => setPickingRecipe(true)}>
                       <RecipeIcon />
                     </ActionButton>
-                    <PhotoActionButton photo={photo} onChange={setPhoto} source="camera" />
-                    <PhotoActionButton photo={photo} onChange={setPhoto} source="library" />
+                    <PhotoActionButton count={photos.length} onAdd={(p) => setPhotos((prev) => [...prev, p])} source="camera" />
+                    <PhotoActionButton count={photos.length} onAdd={(p) => setPhotos((prev) => [...prev, p])} source="library" />
                     <ActionButton label="Barcode scannen" onClick={openBarcodeScanner}>
                       <BarcodeIcon />
                     </ActionButton>
@@ -910,6 +913,14 @@ function MealEditorContent({
               what review actually needed to show. */}
           <div data-sheet-collapse className="w-full shrink-0 overflow-y-auto overflow-x-hidden px-5 pb-5">
             <div className="flex flex-col gap-4">
+              {/* The one place in review a photo was invisible: step 1's own
+                  PhotoGallery lives in step 1's scroll area, which review
+                  doesn't share — attaching a photo, then estimating, landed
+                  on review with no sign it existed at all until save. */}
+              {photos.length > 0 && (
+                <PhotoGallery photos={photos} onRemove={(i) => setPhotos((prev) => prev.filter((_, j) => j !== i))} />
+              )}
+
               <label className="flex flex-col gap-1">
                 <span className="text-xs text-ink-soft">Datum</span>
                 <input

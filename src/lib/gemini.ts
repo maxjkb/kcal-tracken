@@ -517,12 +517,13 @@ export async function callGeminiChatReply(
 
 export async function estimateNutrition(params: {
   description: string
-  photoDataUrl?: string
+  /** One inline_data part per photo — Gemini's multimodal input already takes several images in one request, so a multi-photo meal (a dish plus its packaging label, several angles) is just more parts, not a different call shape. */
+  photoDataUrls?: string[]
 }): Promise<NutritionEstimate> {
   const parts: GeminiPart[] = []
 
-  if (params.photoDataUrl) {
-    const match = params.photoDataUrl.match(/^data:([^;]+);base64,(.+)$/)
+  for (const photoDataUrl of params.photoDataUrls ?? []) {
+    const match = photoDataUrl.match(/^data:([^;]+);base64,(.+)$/)
     if (match) {
       const [, mimeType, base64Data] = match
       parts.push({ inline_data: { mime_type: mimeType, data: base64Data } })

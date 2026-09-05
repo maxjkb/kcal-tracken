@@ -120,6 +120,20 @@ export function formatIngredientAmount(ing: Pick<Ingredient, 'amount' | 'unit'>)
   return `${ing.amount} ${ing.unit ?? ''}`.trim()
 }
 
+/**
+ * Every photo attached to a meal, oldest (or only) first — the one place
+ * that reconciles the current `photos` array with a record saved before
+ * multi-photo support, which only ever had the single `photo` field. No
+ * migration needed: an old record simply has `photos` undefined, and
+ * this reads its lone photo the same way a new record's first entry
+ * would. Every UI that shows a meal's photo(s) should go through this
+ * rather than reading either field directly.
+ */
+export function mealPhotos(meal: Pick<Meal, 'photo' | 'photos'>): string[] {
+  if (meal.photos && meal.photos.length > 0) return meal.photos
+  return meal.photo ? [meal.photo] : []
+}
+
 export interface Meal {
   id: string
   /** ISO date string, e.g. "2026-08-23" — the day this meal belongs to (local time). */
@@ -128,8 +142,14 @@ export interface Meal {
   title: string
   /** The raw text the user typed/dictated describing the meal. */
   description: string
-  /** Optional photo, stored as a data URL (base64) directly in IndexedDB. */
+  /**
+   * @deprecated Superseded by `photos` (plural) — kept only so records
+   * saved before multi-photo support still render. New saves never write
+   * this field; read it through `mealPhotos()` below, never directly.
+   */
   photo?: string
+  /** Photos attached to this meal, stored as data URLs (base64) directly in IndexedDB. Empty/absent, not `photo`, is what a photo-less meal looks like going forward. */
+  photos?: string[]
   nutrition: Nutrition
   /** Per-ingredient breakdown from the AI estimate, if any. Read-only detail info — reflects the estimate at the time it ran, not necessarily in sync with later manual edits to `nutrition`. */
   ingredients?: Ingredient[]
