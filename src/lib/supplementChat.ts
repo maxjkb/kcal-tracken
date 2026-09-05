@@ -53,8 +53,12 @@ Antworte kurz und konkret (in der Regel 2-5 Sätze, nur bei echtem Bedarf länge
  * recommendation itself was grounded in — the latest advisor run's stored
  * context, reused rather than recomputed, so the chat's picture of "your
  * situation" always matches what the card's own reasoning was based on.
+ *
+ * Exported for coachChat.ts's own system prompt too — the general coach
+ * chat wants exactly the same personal grounding, not a second, possibly
+ * diverging computation of it.
  */
-async function buildPersonalContext(): Promise<string> {
+export async function buildPersonalContext(): Promise<string> {
   const bodyProfile = getBodyProfile()
   const lines = [
     bodyProfile ? `Körperziel: ${GOAL_LABELS[bodyProfile.goal]}` : 'Kein Körperziel hinterlegt (keine Körperwerte eingerichtet).',

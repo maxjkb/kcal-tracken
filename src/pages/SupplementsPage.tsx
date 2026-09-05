@@ -26,6 +26,7 @@ import { SupplementFormSheet } from '../components/SupplementFormSheet'
 import { SupplementDetailSheet } from '../components/SupplementDetailSheet'
 import { SupplementCatalogSheet } from '../components/SupplementCatalogSheet'
 import { SuppScoreSheet } from '../components/SuppScoreSheet'
+import { CoachChatSheet } from '../components/CoachChatSheet'
 import { SupplementCategoryBadge } from '../components/SupplementCategoryBadge'
 import { InfoButton } from '../components/InfoButton'
 import { HeaderButton } from '../components/PageHeader'
@@ -50,6 +51,10 @@ export function SupplementsPage() {
   // button right beside Katalog gets there directly from Supplements too,
   // without a detour through Statistik.
   const [scoreOpen, setScoreOpen] = useState(false)
+  // The one app-wide coach chat (lib/coachChat.ts) — unlike a recommendation
+  // card's own KI-Chat-Button, not scoped to a single supplement, so it
+  // lives in the page's own toolbar instead, alongside Supp-Score/Katalog.
+  const [coachOpen, setCoachOpen] = useState(false)
   const prefersReducedMotion = useReducedMotion()
 
   return (
@@ -58,6 +63,9 @@ export function SupplementsPage() {
         title="Supps"
         actions={
           <>
+            <HeaderButton onClick={() => setCoachOpen(true)} label="Coach-Chat">
+              <ChatIcon />
+            </HeaderButton>
             <HeaderButton onClick={() => setScoreOpen(true)} label="Supp-Score">
               <TrophyIcon />
             </HeaderButton>
@@ -106,7 +114,17 @@ export function SupplementsPage() {
 
       {catalogOpen && <SupplementCatalogSheet onClose={() => setCatalogOpen(false)} />}
       {scoreOpen && <SuppScoreSheet onClose={() => setScoreOpen(false)} />}
+      {coachOpen && <CoachChatSheet onClose={() => setCoachOpen(false)} />}
     </div>
+  )
+}
+
+function ChatIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-[1.15rem] w-[1.15rem]">
+      <rect x="4" y="4" width="16" height="12" rx="3" strokeLinejoin="round" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16v4l4-4" />
+    </svg>
   )
 }
 
