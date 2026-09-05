@@ -55,7 +55,7 @@ export function SupplementScoreCard() {
                 <TrophyIcon
                   className={`h-4 w-4 ${score.overallScore >= GOOD_SCORE_THRESHOLD ? 'text-accent' : 'text-ink-faint'}`}
                 />
-                <span className="text-lg font-bold text-accent">{score.overallScore}</span>
+                <span className="hero-num text-lg text-accent">{score.overallScore}</span>
                 <span className="text-xs font-medium text-ink-soft">/ 100</span>
               </span>
             )}

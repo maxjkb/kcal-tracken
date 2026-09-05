@@ -56,7 +56,7 @@ export function RecipeCategoryPage() {
             </Link>
             <MealTypeBadge type={cat} size="lg" />
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-ink">{MEAL_TYPE_LABELS[cat]}</h1>
+              <h1 className="font-display text-2xl font-bold tracking-tight text-ink">{MEAL_TYPE_LABELS[cat]}</h1>
               <p className="text-xs text-ink-soft">
                 {recipes === undefined
                   ? 'Lädt…'

@@ -78,7 +78,7 @@ export function SuppScoreSheet({ onClose }: { onClose: () => void }) {
           <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Gesamt, seit Beginn</p>
           {score?.overallScore != null ? (
             <p className="mt-1 flex items-baseline justify-center gap-1.5">
-              <span className="text-4xl font-bold text-accent">{score.overallScore}</span>
+              <span className="hero-num text-4xl text-accent">{score.overallScore}</span>
               <span className="text-sm font-medium text-ink-soft">/ 100</span>
             </p>
           ) : (

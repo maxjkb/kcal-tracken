@@ -141,7 +141,7 @@ export function RecipeDetailPage() {
               <ChevronIcon direction="left" />
             </Link>
 
-            <h2 className="mb-3 text-2xl font-bold tracking-tight text-ink">{recipe.title}</h2>
+            <h2 className="font-display mb-3 text-2xl font-bold tracking-tight text-ink">{recipe.title}</h2>
 
             <div className="flex flex-wrap items-center gap-2.5">
               <MacroBadge type="kcal" value={recipe.nutrition.kcal} />
