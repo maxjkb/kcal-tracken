@@ -13,7 +13,8 @@ import { GLASS_GLSL_CORE, GLASS_GLSL_HEAD } from './glassShader'
  *
  *   1. --color-bg als Grundfläche          (body in index.css)
  *   2. die Nährwertringe unten rechts      (BackgroundRings.tsx)
- *   3. der Farbverlauf am oberen Rand      (TopGradient.tsx)
+ *   3. der Farbverlauf am oberen Rand      (TopGradient.tsx, inzwischen ersetzt
+ *      durch AmbientBackground.tsx — siehe die Anmerkung bei scene() unten)
  *
  * Alles davon kommt als Uniform herein statt als Konstante, weil es sich zur
  * Laufzeit ändert: --color-section wechselt mit der Route, --color-bg mit
@@ -62,8 +63,17 @@ vec3 scene(vec2 px) {
     c = mix(c, uRingColors[i], e * e * uRingAlpha);
   }
 
-  // --- Farbverlauf am oberen Rand (TopGradient) -----------------------------
-  // CSS: linear-gradient(to bottom, transparent, <section> <peak>, transparent)
+  // --- Farbverlauf am oberen Rand (TopGradient, veraltet) -------------------
+  // Big-Number-Redesign: TopGradient.tsx/.top-gradient existieren nicht mehr,
+  // ersetzt durch AmbientBackground.tsx (drei große, weichgezeichnete Kreise
+  // über den ganzen Viewport statt eines Verlaufs im oberen Viertel). Dieser
+  // Block hier bildet also nicht mehr nach, was tatsächlich hinter der
+  // Glasfläche liegt — unschädlich nur, weil GlassStage in App.tsx mit
+  // enabled={false} läuft und dieser Shader-Pfad aktuell nirgends zeichnet.
+  // Vor einer Reaktivierung müsste scene() erst auf AmbientBackground
+  // umgestellt werden, sonst zeigt die WebGL-Fläche einen Hintergrund, der
+  // nicht mehr existiert.
+  // CSS (alt): linear-gradient(to bottom, transparent, <section> <peak>, transparent)
   // Also zwei lineare Rampen, keine Glättung — bewusst genau so nachgebaut,
   // damit die Kante zwischen WebGL-Fläche und CSS-Bereichen nicht sichtbar wird.
   float t = px.y / max(uGradientHeight, 1.0);

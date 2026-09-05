@@ -13,6 +13,16 @@
     <meta name="apple-mobile-web-app-title" content="Tracke" />
     <meta name="description" content="Ernährungstracker: Mahlzeiten per Text, Diktat oder Foto erfassen, KI schätzt die Nährwerte." />
     <title>Tracke</title>
+    <!-- Big-Number-Redesign: Unbounded trägt jede Hero-Zahl (Rest-kcal & Co.),
+         Work Sans den Fließtext — ersetzt den reinen Systemfont-Stack.
+         Beide fallen bei fehlendem Netz sauber auf die -apple-system-Kette in
+         index.css zurück, kein Layout-Bruch offline. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700;800&family=Work+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
     <div id="root"></div>

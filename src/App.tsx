@@ -6,7 +6,7 @@ import { RecipesPage, StatsPage, SupplementsPage } from './components/SectionPre
 import { AddMealContext } from './hooks/useAddMeal'
 import { SwipeProgressProvider } from './lib/swipeProgress'
 import { preloadSection, registerSectionLoaders } from './lib/preloadSection'
-import { TopGradient } from './components/TopGradient'
+import { AmbientBackground } from './components/AmbientBackground'
 import { BackgroundRings } from './components/BackgroundRings'
 import { FeedPage } from './pages/FeedPage'
 import { SettingsSheet } from './components/SettingsSheet'
@@ -68,7 +68,7 @@ function sectionForPath(pathname: string): Section | null {
   return null
 }
 
-/** The --color-section-* custom property (see index.css) each area washes its TopGradient and
+/** The --color-section-* custom property (see index.css) each area washes its AmbientBackground and
   * .glass-accent buttons in — Rezepte/Supplements lighter than Feed's exact accent blue, Statistik
   * darker, per the uploaded blue-scale palette (index.css has the full reasoning). */
 const SECTION_COLOR_VAR: Record<Section, string> = {
@@ -165,7 +165,14 @@ export default function App() {
           behind it; body's own canvas-level background doesn't have that
           problem, it's always the bottom-most layer. */}
       <BackgroundRings />
-      {section && <TopGradient />}
+      {/* Big-Number-Redesign point 5: unconditional (TopGradient only ever
+          rendered inside the four main areas) — a Sheet portalled to
+          document.body from Einstellungen or anywhere else now also has
+          colour behind it to blur, not just Feed/Rezepte/Supplements/
+          Statistik. Still area-aware where an area exists: --color-section
+          falls back to --color-accent outside the four main routes (see
+          body{} in index.css), so this reads as plain accent-blue there. */}
+      <AmbientBackground />
       {/* Disabled (was unconditionally on in v1.14.3): the WebGL layer tracks
           each flow-positioned card's position by reading getBoundingClientRect()
           once per requestAnimationFrame and redrawing the canvas there — but

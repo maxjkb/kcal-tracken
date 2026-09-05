@@ -25,7 +25,14 @@
 }
 
 @theme {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Inter, ui-sans-serif, system-ui, sans-serif;
+  /* Big-Number-Redesign (v2): Work Sans trägt jetzt jeden Fließtext statt des
+     reinen Systemfont-Stacks — zusammen mit --font-display (Unbounded, siehe
+     .hero-num unten) das Typo-Paar aus dem gewählten Vision Board. Beide
+     Google Fonts, mit der alten -apple-system-Kette weiterhin als Fallback,
+     falls die Schrift (noch) nicht geladen ist oder offline nicht verfügbar
+     war — kein Layout-Bruch, nur ein anderer Systemfont bis dahin. */
+  --font-sans: "Work Sans", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Unbounded", -apple-system, BlinkMacSystemFont, ui-sans-serif, system-ui, sans-serif;
 
   /* Size-specific tracking and leading, the way Apple's system font ships its
      own optical-size tables (WWDC20, "The Details of UI Typography"). Letters
@@ -152,38 +159,39 @@
    *   "bunte" swatches, used verbatim (also true of --color-meal-breakfast/
    *   -dinner just above — same swatches, same reasoning).
    * - iron reuses --color-danger's Red — see the comment there.
-   * - The rest are either a given swatch too pale to read as its own
-   *   identity color at full strength, darkened via color-mix(black %, …)
-   *   the same way the section-icon tokens below already are (so the hue
-   *   stays exactly the swatch's, only its lightness moves), or — where no
-   *   single swatch fit — an actual blend of two swatches that are close by
-   *   on the hue wheel to the missing hue, then darkened the same way:
-   *     folate:    Soft-Akzentgrün #98D8B6, darkened 30%
-   *     vitaminC:  Orange #FF9500, darkened 30% (kept distinct from
-   *                vitaminD's undarkened Orange right above)
-   *     calcium:   Sekundärblau #8AB3D4, darkened 35%
-   *     magnesium: Kern-Blau #1E90FF blended 45% toward Purple #AF52DE
-   *                (an indigo sits between the two on the hue wheel — this
-   *                blend recreates it from two given swatches rather than
-   *                inventing a new hue), darkened 15%
-   *     zinc:      Hellblau #5AC8FA blended 50% toward Tiefschieferblau
-   *                #2C4258
-   *     potassium: Softes Pfirsichorange #FCD8B8, darkened 40%
-   *     iodine:    Hellblau #5AC8FA, darkened 15%
-   *   Each darken/blend percentage was picked by checking the resulting
-   *   contrast against white numerically (all now ≥3.3:1, several
-   *   comfortably above the v1.13 values they replace — never regressed).
+   *
+   * v2 (Big-Number-Redesign, point 3 — "erweitere die Farbpalette für die
+   * Mikros noch weiter... nicht wie ein bunter Zirkus, aber auch nicht zu
+   * plain"): the seven that weren't already a genuine palette-swatch reuse
+   * (folate/vitaminC/calcium/magnesium/zinc/potassium/iodine) were replaced
+   * wholesale rather than re-darkened — the old values mixed vivid hues
+   * (iron, vitaminD) with muted, almost-grey ones (folate #6a977f,
+   * potassium #97826e), which read as inconsistent rather than "harmonious
+   * but calm". The new seven are generated on one shared recipe: hues
+   * spaced by an even-distribution search across the wheel (each ≥18° from
+   * every macro/meal/micro anchor already in use, so none of the ten ever
+   * sits on top of --color-kcal/-protein/-carbs/-fat), one shared saturation
+   * (68%), and a lightness solved per-hue so every light-mode value clears
+   * ≥3.4:1 on white and every dark-mode value clears ≥9:1 on black — same
+   * discipline as the numeric contrast-checking this block's v1.14.1
+   * history already used, just automated instead of hand-picked. Hues were
+   * then assigned to nutrients by loose association (folate/vitaminC →
+   * leafy/citrus greens; calcium/magnesium/zinc/iodine keep the cool
+   * blue-teal-indigo family their old muted values already lived in, just
+   * vivid now instead of grey; potassium — previously the muted-est value
+   * of all ten, essentially a non-color — becomes its own clear magenta
+   * identity instead of stapled-on beige).
    */
   --color-micro-vitamind: #ff9500;
   --color-micro-vitaminb12: #af52de;
-  --color-micro-folate: #6a977f;
-  --color-micro-vitaminc: #b26800;
-  --color-micro-calcium: #5a748a;
+  --color-micro-folate: #509c1e;
+  --color-micro-vitaminc: #7c951c;
+  --color-micro-calcium: #1e9b8f;
   --color-micro-iron: #ff3b30;
-  --color-micro-magnesium: #4757b4;
-  --color-micro-zinc: #4385a9;
-  --color-micro-potassium: #97826e;
-  --color-micro-iodine: #4caad4;
+  --color-micro-magnesium: #3a29d6;
+  --color-micro-zinc: #d629b4;
+  --color-micro-potassium: #1fa11f;
+  --color-micro-iodine: #2297b5;
 
   /*
    * Einstellungen category icon badges (pages/SettingsSheet.tsx) — one
@@ -329,31 +337,6 @@ body {
     --color-section-icon 400ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* TopGradient's own sizing. `vh` in real mobile Safari is measured against
-   the LARGEST possible viewport (address bar hidden) while what's actually
-   on screen is smaller whenever the address bar/toolbar is showing — a
-   mismatch that can leave the fixed, viewport-pinned gradient not quite
-   flush with the real visible top edge. `dvh` tracks the viewport that's
-   actually visible right now, so it's the correct unit here; the plain
-   `vh` line stays first as a fallback for engines that don't parse `dvh`
-   (an unsupported unit makes the whole declaration invalid, so it's simply
-   skipped, leaving the fallback in place). A small negative top offset plus
-   matching extra height extends the gradient a bit past the true viewport
-   top as a safety margin against exactly this class of mismatch, so a few
-   px of discrepancy can't expose a hard seam between it and the page
-   background. */
-.top-gradient {
-  top: -2rem;
-  /* 28dvh → 44dvh → 50dvh across two rounds of the same request: the wash
-     should cover up to half the screen. The percentage stops inside
-     TopGradient.tsx's own gradient (where the color actually peaks) don't
-     need to change alongside this — they're relative to this box's own
-     height, so enlarging the box already stretches the visible blue area
-     proportionally further down the screen on its own. */
-  height: 50vh;
-  height: calc(50dvh + 2rem);
-}
-
 /* --- Dark mode — follows the device setting only (no in-app toggle) --- */
 @media (prefers-color-scheme: dark) {
   :root {
@@ -379,22 +362,20 @@ body {
     --color-danger: #ff453a;
     --color-good: #30d158;
 
-    /* Same light-mode source swatches/blends as above, each brightened
-       toward white (rather than the light values' darken-toward-black)
-       until landing in roughly the same contrast-on-black neighborhood
-       (~6-12:1) the previous, unrelated dark values happened to occupy —
-       so nothing here looks newly washed-out or newly blinding on a real
-       dark-mode screen even though every hex changed. */
+    /* v2: same hues as the light-mode block above, solved for ≥9:1 contrast
+       on black instead of ≥3.4:1 on white (see that block's comment for the
+       generation method) — so the same seven identities carry through, just
+       brightened rather than darkened. */
     --color-micro-vitamind: #ff9f0a;
     --color-micro-vitaminb12: #bf5af2;
-    --color-micro-folate: #a6c1b2;
-    --color-micro-vitaminc: #d1a466;
-    --color-micro-calcium: #8c9ead;
+    --color-micro-folate: #6ed629;
+    --color-micro-vitaminc: #b4d629;
+    --color-micro-calcium: #29d6c5;
     --color-micro-iron: #ff453a;
-    --color-micro-magnesium: #7e89ca;
-    --color-micro-zinc: #8eb6cb;
-    --color-micro-potassium: #b6a89a;
-    --color-micro-iodine: #94cce5;
+    --color-micro-magnesium: #a9a1ed;
+    --color-micro-zinc: #e989d5;
+    --color-micro-potassium: #29d629;
+    --color-micro-iodine: #35b8d9;
 
     --color-settings-body: #ff9f0a;
     --color-settings-api: #5e5ce6;
@@ -431,6 +412,99 @@ body {
   }
 }
 
+/* --- Big Number hero (Big-Number-Redesign) ---
+   The device the chosen direction replaces rings/tiles with: the day's most
+   relevant remaining value spans most of a screen in Unbounded, with a thin
+   rule beneath it whose filled portion carries the scale — instead of a
+   separate ring or bar graphic. Kalorien uses this treatment wherever it
+   appears now (explicit request: "immer die Kalorien als präsente Zahl"),
+   and Statistik/Feed reuse the same two classes for their own hero figures
+   so the device reads as one system rather than a one-off component.
+   `<i>` inside .hero-rule is the filled segment; callers set its width and
+   background inline (the fill's colour is per-metric, not fixed here). */
+.hero-num {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 0.86;
+  font-variant-numeric: tabular-nums;
+}
+.hero-rule {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-line);
+  position: relative;
+  overflow: hidden;
+}
+.hero-rule > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: block;
+  border-radius: 2px;
+}
+
+/* --- Ambient background (components/AmbientBackground.tsx) ---
+   Big-Number-Redesign point 5: Liquid Glass needs colour behind it to
+   blur/refract, and TopGradient's wash (which this replaces) only ever
+   covered the top quarter of the screen — every glass surface further down
+   the page had nothing but the flat --color-bg to frost, which is a real
+   part of why the effect "geht fast komplett unter" on longer pages.
+   Three large, heavily blurred circles rather than many small ones —
+   abstract and minimal on purpose (explicit request), not a busy graphic in
+   its own right. Two follow --color-section (area-aware, like TopGradient
+   did); the third stays fixed on --color-kcal, since Kalorien is now the
+   one constant hero across every screen. Fixed + deeply negative z-index,
+   same stacking approach as TopGradient/BackgroundRings: ordinary page
+   content simply paints over it. */
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -30;
+  overflow: hidden;
+  background: var(--color-bg);
+  pointer-events: none;
+}
+.ambient-bg::before,
+.ambient-bg::after,
+.ambient-bg .ambient-blob {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+}
+.ambient-bg::before {
+  width: 58vh;
+  height: 58vh;
+  top: -16vh;
+  left: -12vw;
+  background: var(--color-section);
+  opacity: 0.2;
+}
+.ambient-bg::after {
+  width: 52vh;
+  height: 52vh;
+  bottom: -18vh;
+  right: -14vw;
+  background: var(--color-kcal);
+  opacity: 0.2;
+}
+.ambient-bg .ambient-blob {
+  width: 42vh;
+  height: 42vh;
+  top: 34vh;
+  right: 6vw;
+  background: var(--color-fat);
+  opacity: 0.13;
+}
+@media (prefers-color-scheme: dark) {
+  .ambient-bg::before,
+  .ambient-bg::after {
+    opacity: 0.3;
+  }
+  .ambient-bg .ambient-blob {
+    opacity: 0.2;
+  }
+}
 /* The caption sizes below text-xs are one-off arbitrary values (the ring
    labels, the badge numbers), so they can't carry tracking through the theme
    scale above. At these sizes the same rule applies — a little extra tracking
@@ -851,7 +925,9 @@ input[type="number"] {
     -webkit-backdrop-filter: none;
   }
 
-  .top-gradient,
+  .ambient-bg::before,
+  .ambient-bg::after,
+  .ambient-bg .ambient-blob,
   .background-rings {
     display: none;
   }
@@ -868,6 +944,9 @@ input[type="number"] {
     border: 1px solid var(--color-ink);
   }
 
+  .ambient-bg::before,
+  .ambient-bg::after,
+  .ambient-bg .ambient-blob,
   .background-rings {
     display: none;
   }
