@@ -27,8 +27,7 @@ import {
   type Period,
 } from '../lib/stats'
 
-import { motion, useReducedMotion } from 'motion/react'
-import { SPRING_SNAPPY } from '../lib/motionTokens'
+import { ExpandablePicker } from '../components/ExpandablePicker'
 
 const PERIODS: { key: Period; label: string }[] = [
   { key: 'day', label: 'Tag' },
@@ -39,7 +38,6 @@ const PERIODS: { key: Period; label: string }[] = [
 
 export function StatsPage() {
   const navigate = useNavigate()
-  const prefersReducedMotion = useReducedMotion()
   const [period, setPeriod] = useState<Period>('week')
   const [anchorKey, setAnchorKey] = useState(() => toLocalDateKey(new Date()))
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -185,36 +183,22 @@ export function StatsPage() {
     <div className="mx-auto max-w-lg px-4 pb-28">
       <PageHeader title="Statistik" />
 
-      {/* One shared pill slides between the segments (Motion `layoutId`)
-          instead of each segment fading its own background in and out — the
-          segmented-control behavior iOS uses, where the selection reads as a
-          single object moving to the tapped option. */}
-      {/* Full .glass, not .glass-subtle — a segmented control is navigation
-          the same way BottomNav is, so it gets the same material. */}
-      <GlassSurface rim={22} className="glass mb-4 flex gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5">
-        {PERIODS.map(({ key, label }) => (
-          <button
-            key={key}
-            // Tapping the period you're already on has nothing left to
-            // switch to, so that tap now opens the calendar sheet instead —
-            // the trigger the date-navigator's own middle tile used to be,
-            // before it was removed below in favor of this.
-            onClick={() => (period === key ? setPickerOpen(true) : setPeriod(key))}
-            className={`relative flex-1 rounded-full py-3 text-sm font-medium transition-colors ${
-              period === key ? 'text-ink' : 'text-ink-soft hover:text-ink'
-            }`}
-          >
-            {period === key && (
-              <motion.span
-                layoutId="stats-period-pill"
-                className="absolute inset-0 rounded-full bg-section-20"
-                transition={prefersReducedMotion ? { duration: 0 } : SPRING_SNAPPY}
-              />
-            )}
-            <span className="relative z-10">{label}</span>
-          </button>
-        ))}
-      </GlassSurface>
+      {/* Global brainstorm round (v2.1): the always-fully-expanded segmented
+          control is gone in favor of a collapsed pill (defaults to "Woche")
+          that only reveals the other three periods on touch — same
+          Kamera-app-style device as the Supps page's own picker, see
+          ExpandablePicker's own comment for why. Tapping the period you're
+          already on (from inside the expanded row) still opens the calendar
+          sheet, same as before — ExpandablePicker's onChange fires even when
+          the tapped option matches the current value, so that shortcut just
+          moves one level down (expand, then tap the highlighted option)
+          instead of firing straight from the always-visible row. */}
+      <ExpandablePicker
+        options={PERIODS}
+        value={period}
+        onChange={(key) => (period === key ? setPickerOpen(true) : setPeriod(key))}
+        label="Zeitraum"
+      />
 
       {/* The prev/next arrow tile is gone — the calendar sheet (a second tap
           on the active pill above) is now the only way to change the shown

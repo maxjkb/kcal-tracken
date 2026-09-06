@@ -8,23 +8,38 @@ const COACH_CHAT_ID = 'coach'
 const OPENING_MESSAGE =
   'Hi! Frag mich alles zu deiner Ernährung, deinem Training oder deinen Supps — ich kenne deine geloggten Werte und kann darauf eingehen.'
 
-/**
- * Opens (or reopens) the single app-wide coach conversation — creates it
- * the first time, seeded with a short opening line so the chat never starts
- * from a blank screen. Idempotent, same as openSupplementChat: reopening
- * just returns the existing thread, never resets or duplicates it.
- */
-export async function getOrCreateCoachChat(): Promise<CoachChat> {
-  const existing = await db.coachChat.get(COACH_CHAT_ID)
-  if (existing) return existing
+/** Global brainstorm round (v2.1): the thread wipes itself once it's gone quiet this long, not on any fixed clock. */
+const IDLE_RESET_MS = 24 * 60 * 60 * 1000
 
-  const chat: CoachChat = {
+function freshChat(): CoachChat {
+  return {
     id: COACH_CHAT_ID,
     messages: [{ role: 'model', text: OPENING_MESSAGE, createdAt: Date.now() }],
     createdAt: Date.now(),
     updatedAt: Date.now(),
   }
-  await db.coachChat.add(chat)
+}
+
+/**
+ * Opens (or reopens) the single app-wide coach conversation — creates it
+ * the first time, seeded with a short opening line so the chat never starts
+ * from a blank screen.
+ *
+ * Global brainstorm round (v2.1): unlike the per-supplement chat (always
+ * fresh, see openSupplementChat), this one keeps its single thread across
+ * reopens — right up until it's been quiet for 24h, at which point opening
+ * it again resets it to a blank opening line rather than resuming a
+ * conversation that's gone cold. Checked here, on open, rather than via a
+ * background timer: nothing needs to happen while the chat sheet isn't even
+ * mounted, and `updatedAt` is already bumped on every message
+ * (sendCoachChatMessage), so "idle" is just "now minus that timestamp".
+ */
+export async function getOrCreateCoachChat(): Promise<CoachChat> {
+  const existing = await db.coachChat.get(COACH_CHAT_ID)
+  if (existing && Date.now() - existing.updatedAt < IDLE_RESET_MS) return existing
+
+  const chat = freshChat()
+  await db.coachChat.put(chat)
   return chat
 }
 

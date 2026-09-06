@@ -8,17 +8,21 @@ import { BouncingDots } from './BouncingDots'
 import { InfoButton } from './InfoButton'
 
 /**
- * The single, app-wide coach chat — reachable from the Supps page's own
- * toolbar (not from a specific recommendation card, unlike
- * SupplementChatSheet), for anything about the user's overall nutrition,
- * training, or supplement routine rather than one supplement in isolation.
+ * The single, app-wide coach chat — reachable from its own button in
+ * BottomNav (useCoachChat/App.tsx), not from a specific recommendation card
+ * like SupplementChatSheet, for anything about the user's overall
+ * nutrition, training, or supplement routine rather than one supplement in
+ * isolation. Used to live in the Supps page's own toolbar; moved to the
+ * global nav bar (v2.1) since it was never actually Supps-specific.
  *
  * Structurally the same component as SupplementChatSheet (thread via
  * useLiveQuery, persist-then-reply), just against the single CoachChat row
  * instead of one keyed by supplement name — kept as its own component
  * rather than a parameterized shared one, since the two are likely to
  * diverge (e.g. only the coach chat would ever grow quick-reply chips for
- * "wie war meine Woche?"-style prompts).
+ * "wie war meine Woche?"-style prompts, and only this one resets on a 24h
+ * idle timer — see getOrCreateCoachChat — while the per-supplement chat
+ * always starts fresh instead).
  */
 export function CoachChatSheet({ onClose }: { onClose: () => void }) {
   const [ready, setReady] = useState(false)

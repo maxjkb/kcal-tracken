@@ -9,14 +9,15 @@ import type { MealType } from './db'
  * pictograms are genuinely hard to tell apart at 14px, and time of day is the
  * one attribute a glance is actually looking for here.
  *
- * The overlap that reasoning warned about is real and deliberately accepted —
- * lunch shares the fat yellow, the snack shares the carbs green. The two
- * systems never take the same form: macros are ring outlines around a macro
- * glyph, these are filled badges behind a sun or a moon. If it ever reads as
- * one meaning rather than two, lunch and snack are the values to shift.
- *
- * Indigo rather than a lilac purple for the evening: a lilac was tried for the
- * section theme and read as washed out beside this palette.
+ * Global brainstorm round (v2.1): these four used to deliberately reuse
+ * fat's and carbs' exact hues (lunch = fat's yellow, snack = carbs' green),
+ * accepted at the time because the two color systems never rendered in the
+ * same form (ring outlines vs. filled badges) so the reuse never visually
+ * collided. Explicit feedback overruled that too — a color meaning two
+ * things is a cost on its own, independent of whether it ever collides on
+ * screen — so all four now have their own hue, tuned to sit at the same
+ * muted depth as each other rather than the old vivid-system-color look
+ * (index.css has the actual values + the contrast numbers behind them).
  */
 export const MEAL_TYPE_COLOR: Record<MealType, string> = {
   breakfast: 'var(--color-meal-breakfast)',

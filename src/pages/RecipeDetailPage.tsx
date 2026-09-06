@@ -7,7 +7,7 @@ import { useMealprepVersions, deleteMealprepVersion } from '../hooks/useMealprep
 import { RecipeEditor } from '../components/RecipeEditor'
 import { MealprepSheet } from '../components/MealprepSheet'
 import { ChevronIcon } from '../components/ChevronIcon'
-import { MacroBadge, MacroRingBadge } from '../components/MacroBadge'
+import { MacroBadge } from '../components/MacroBadge'
 import { SlideInPage } from '../components/SlideInPage'
 import { Collapse } from '../components/Collapse'
 import { MEAL_TYPE_COLOR } from '../lib/mealTypeColor'
@@ -142,9 +142,9 @@ export function RecipeDetailPage() {
 
             <div className="flex flex-wrap items-center gap-2.5">
               <MacroBadge type="kcal" value={recipe.nutrition.kcal} />
-              <MacroRingBadge type="protein" value={recipe.nutrition.protein} />
-              <MacroRingBadge type="carbs" value={recipe.nutrition.carbs} />
-              <MacroRingBadge type="fat" value={recipe.nutrition.fat} />
+              <MacroBadge type="protein" value={recipe.nutrition.protein} />
+              <MacroBadge type="carbs" value={recipe.nutrition.carbs} />
+              <MacroBadge type="fat" value={recipe.nutrition.fat} />
             </div>
           </div>
         </div>

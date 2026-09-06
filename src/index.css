@@ -120,14 +120,24 @@
      trick as .glass-accent below. */
   --color-badge-ink: #101114;
 
-  /* One colour per meal type. Lunch/snack still deliberately reuse
-     fat's/carbs' exact hues (ring outlines with a glyph vs. filled
-     time-of-day badges never share a screen, so the reuse never collides)
-     — same reasoning as before, just carried onto the new values. */
-  --color-meal-breakfast: #ff9500;
-  --color-meal-lunch: #d98d00;
-  --color-meal-dinner: #af52de;
-  --color-meal-snack: #2fae63;
+  /* Global brainstorm round (v2.1): four genuinely own hues, not reused
+     from anywhere else — lunch/snack used to deliberately double up on
+     fat's/carbs' exact colors (documented at length in the old comment
+     here), accepted at the time because the two systems never rendered
+     side by side. Explicit feedback overruled that: a color meaning two
+     different things is a cost even if it never collides on screen, and
+     the old values (vivid system orange/yellow/purple/green) also read as
+     bright/pastel "default palette" rather than chosen, next to the rest
+     of this now-muted, mostly-neutral palette. Replaced with a small,
+     deliberately muted arc — clay, teal, indigo, plum — picked to sit at
+     roughly the same depth/saturation as each other (checked: 4.2-7.5:1
+     against --color-bg in both themes, comfortably legible as the plain
+     icon-on-canvas color MealTypeBadge uses it as, never a badge fill an
+     overlaid label needs to contrast against). */
+  --color-meal-breakfast: #b8623a;
+  --color-meal-lunch: #2f7770;
+  --color-meal-dinner: #5b4a9c;
+  --color-meal-snack: #954d6e;
 
   --color-danger: #ff3b30;
   /* Positive/"good source of" accent — MealDetail's per-meal micronutrient
@@ -304,13 +314,14 @@ body {
     --color-protein: #ff6b8a;
     --color-carbs: #4ecf8a;
     --color-fat: #f0ac3a;
-    --color-meal-breakfast: #ff9f0a;
-    --color-meal-lunch: #f0ac3a;
-    /* Follows --color-meal-dinner's light-mode swap to Purple above — its
-       dark-mode counterpart, matching --color-micro-vitaminb12's own
-       light/dark pair just below. */
-    --color-meal-dinner: #bf5af2;
-    --color-meal-snack: #4ecf8a;
+    /* Global brainstorm round (v2.1): dark counterparts of the same clay/
+       teal/indigo/plum arc above, lightened for ≥5.7:1 on the near-black
+       canvas (checked 5.77-7.5:1 across all four) rather than reusing
+       fat's/carbs' dark values as the old ones did. */
+    --color-meal-breakfast: #e2895c;
+    --color-meal-lunch: #4fada3;
+    --color-meal-dinner: #8f7ddb;
+    --color-meal-snack: #d4839f;
     --color-danger: #ff453a;
     --color-good: #4ecf8a;
 
@@ -435,10 +446,26 @@ body {
   position: fixed;
   inset: 0;
   z-index: -30;
-  background:
-    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--color-ink) 5%, transparent) 1px, transparent 0) 0 0 / 22px 22px,
-    var(--color-bg);
+  overflow: hidden;
+  background: var(--color-bg);
   pointer-events: none;
+}
+/* Global brainstorm round (v2.1): the plain dot grid above is gone in favor
+   of the actual texture requested — a tiled lowercase "t" (Unbounded, the
+   same face the app's own name-mark reads in) instead of an anonymous dot,
+   mostly ink at low opacity with a handful per tile in the macro colors for
+   the "auffälliger als ein Punkt" ask. Drawn by AmbientBackground.tsx as a
+   real inline <svg><pattern> in the DOM rather than a CSS background-image:
+   an externally-referenced SVG (background-image/mask-image) renders in its
+   own document context with no access to this page's @font-face, so the
+   glyph would silently fall back to Times/serif in most browsers — inline
+   SVG is a DOM node like any other and picks up loaded page fonts
+   correctly. */
+.ambient-bg svg {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
 }
 /* The caption sizes below text-xs are one-off arbitrary values (the ring
    labels, the badge numbers), so they can't carry tracking through the theme
@@ -812,43 +839,6 @@ input[type="number"] {
   }
 }
 
-/* --- Background nutrient rings (components/BackgroundRings.tsx) ---
-   The app-icon's concentric rings, echoed faintly in the bottom-right
-   corner of the background on every screen. Blurred and low-opacity so it
-   reads as ambient texture behind the Liquid Glass surfaces (see the
-   comment on TopGradient for why those want something colorful to
-   frost/blur instead of a flat backdrop) rather than a second, competing
-   data visualization — the values it draws are fixed/illustrative, not
-   today's real intake. The slow drift is the same "ein bisschen dynamisch"
-   request as .glass's liquid-drift above, on an even longer, subtler cycle
-   since this sits behind every screen rather than just the nav bar. */
-.background-rings {
-  width: 22rem;
-  height: 22rem;
-  transform: translate(30%, 32%);
-  /* Both eased back from the original 30px/0.38 per explicit request: less
-     blur (30px → 22px, roughly a quarter less) and +25% opacity
-     (0.38 × 1.25 ≈ 0.48) — two separate, additive asks ("weniger blurry"
-     and "25% sichtbarer") rather than one knob, so both moved. */
-  filter: blur(22px);
-  opacity: 0.48;
-  animation: rings-drift 100s ease-in-out infinite;
-}
-.background-rings svg {
-  width: 100%;
-  height: 100%;
-}
-
-@keyframes rings-drift {
-  0%,
-  100% {
-    transform: translate(30%, 32%) rotate(0deg) scale(1);
-  }
-  50% {
-    transform: translate(32%, 29%) rotate(2deg) scale(1.04);
-  }
-}
-
 /* --- Accessibility preferences (Apple treats these as three independent
        signals, not one "accessibility mode") --- */
 
@@ -869,10 +859,6 @@ input[type="number"] {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
-
-  .background-rings {
-    display: none;
-  }
 }
 
 /* Increased contrast: near-solid surfaces with a defined border, so every
@@ -884,10 +870,6 @@ input[type="number"] {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     border: 1px solid var(--color-ink);
-  }
-
-  .background-rings {
-    display: none;
   }
 }
 

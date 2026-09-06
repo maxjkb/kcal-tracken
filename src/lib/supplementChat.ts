@@ -14,23 +14,27 @@ function normalizeKey(name: string): string {
 }
 
 /**
- * Opens (or reopens) the conversation for one recommendation — creates the
- * thread the first time, seeded with the recommendation's own reasoning +
- * effects text as the opening "model" turn, exactly per the request: "Die
- * erste Nachricht im Chat ist der ohnehin schon generierte Empfehlungstext."
- * Idempotent — calling this again for the same supplement just returns the
- * existing thread untouched, so reopening a chat never duplicates the
- * opening message or resets the conversation.
+ * Opens a fresh conversation for one recommendation — always creates a new
+ * thread, seeded with the recommendation's own reasoning + effects text as
+ * the opening "model" turn, exactly per the request: "Die erste Nachricht
+ * im Chat ist der ohnehin schon generierte Empfehlungstext."
+ *
+ * Global brainstorm round (v2.1): this used to be idempotent — reopening
+ * the KI-Chat button for the same supplement resumed whatever conversation
+ * was already there. Explicit feedback wants the opposite here specifically
+ * (unlike the app-wide coach chat, which keeps its one thread going for up
+ * to 24h): every tap is a new question about that supplement, not a
+ * continuation of whatever was last discussed. `supplementKey` stays on
+ * every row for the same reason it always did (grouping/lookup potential
+ * later), it just no longer doubles as a uniqueness key — old threads for
+ * the same supplement simply stay in IndexedDB, unread, the same way old
+ * meals or recipes do.
  */
 export async function openSupplementChat(suggestion: SupplementRecommendation): Promise<SupplementChat> {
-  const key = normalizeKey(suggestion.supplementName)
-  const existing = await db.supplementChats.where('supplementKey').equals(key).first()
-  if (existing) return existing
-
   const opening = [suggestion.reasoning, suggestion.effects].filter((s): s is string => Boolean(s?.trim())).join(' ')
   const chat: SupplementChat = {
     id: newSupplementChatId(),
-    supplementKey: key,
+    supplementKey: normalizeKey(suggestion.supplementName),
     supplementName: suggestion.supplementName,
     messages: [{ role: 'model', text: opening, createdAt: Date.now() }],
     createdAt: Date.now(),

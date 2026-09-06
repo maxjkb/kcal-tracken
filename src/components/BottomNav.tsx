@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { motion, useMotionValue, useReducedMotion, useTransform } from 'motion/react'
 import { SECTION_TABS, sectionIndexForPath } from '../lib/sections'
 import { useSwipeProgress } from '../hooks/useSwipeProgress'
+import { useCoachChat } from '../hooks/useCoachChat'
 
 /** Tab hit area (h-11 = 44px) plus the gap-1 between them — the stride the selection pill travels per tab. */
 const TAB_STRIDE_PX = 48
@@ -20,15 +21,13 @@ export function BottomNav() {
   const location = useLocation()
   const progress = useSwipeProgress()
   const activeIndex = sectionIndexForPath(location.pathname)
+  const openCoachChat = useCoachChat()
 
   return (
     // pointer-events-none on the full-width wrapper + pointer-events-auto on the
     // visible pill: otherwise the transparent strip around the pill still
     // intercepts taps on whatever page content happens to sit behind it.
     <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pointer-events-none">
-      {/* Back to a roomier mx-4/gap-1 now that it's four tabs rather than six
-          plus a "+" — the pill no longer has to fight for width on a 375px
-          iPhone SE, so the targets can breathe. */}
       <div className="glass pointer-events-auto mx-4 flex gap-1 rounded-full p-1.5">
         <div className="relative flex gap-1">
           {activeIndex !== -1 && <SelectionPill progress={progress} activeIndex={activeIndex} />}
@@ -47,6 +46,21 @@ export function BottomNav() {
             )
           })}
         </div>
+        {/* Global brainstorm round (v2.1): the coach chat used to live in the
+            Supps page's own header — explicit request to move it into the
+            nav bar instead, "am besten rechts neben Statistik". Deliberately
+            outside the relative flex above rather than a fifth SECTION_TABS
+            entry: it doesn't open a route, so it never participates in the
+            selection pill or the horizontal swipe between the four areas —
+            it's a plain button, styled like a tab but never "active". */}
+        <button
+          type="button"
+          onClick={openCoachChat}
+          aria-label="Coach-Chat"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-soft"
+        >
+          <ChatIcon />
+        </button>
       </div>
     </nav>
   )
@@ -176,6 +190,16 @@ function StatsIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 20V10M12 20V4M20 20v-6" />
+    </svg>
+  )
+}
+
+/** Same shape SupplementsPage's header button used before the chat moved here. */
+function ChatIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+      <rect x="4" y="4" width="16" height="12" rx="3" strokeLinejoin="round" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16v4l4-4" />
     </svg>
   )
 }
