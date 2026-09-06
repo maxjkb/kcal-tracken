@@ -90,7 +90,7 @@ export function PageHeader({
         style={{ opacity: edgeOpacity }}
       />
       <div className="relative flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tight text-ink">
+        <h1 className="font-display text-2xl font-bold tracking-tight text-ink">
           {onTitleClick ? (
             <button type="button" onClick={onTitleClick} className="text-left active:opacity-70">
               {title}

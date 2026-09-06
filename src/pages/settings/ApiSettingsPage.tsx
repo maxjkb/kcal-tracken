@@ -6,6 +6,7 @@ import { clearApiKey, getApiKey, setApiKey } from '../../lib/settings'
 import { getModel, setModel } from '../../lib/gemini'
 import { GEMINI_MODELS } from '../../lib/geminiModels'
 import { DockedField } from '../../components/DockedField'
+import { GlassSurface } from '../../glass/GlassSurface'
 
 export function ApiSettingsPage() {
   const [apiKey, setApiKeyInput] = useState(getApiKey() ?? '')
@@ -32,7 +33,7 @@ export function ApiSettingsPage() {
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       <SettingsBackHeader title="Gemini API" />
 
-      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+      <GlassSurface as="section" rim={24} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-4 shadow-sm shadow-black/5">
         <h2 className="mb-1 text-sm font-semibold text-ink">API-Key</h2>
         <p className="mb-3 text-xs text-ink-soft">
           Kostenlos im Rahmen des Gratis-Kontingents von Google. Wird lokal in deinem Browser
@@ -55,7 +56,7 @@ export function ApiSettingsPage() {
             value={apiKey}
             onChange={(e) => setApiKeyInput(e.target.value)}
             placeholder="AIza…"
-            className="flex-1 rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+            className="field flex-1 rounded-xl px-3 py-2 text-sm"
           />
           <button
             type="button"
@@ -71,9 +72,9 @@ export function ApiSettingsPage() {
         >
           Speichern
         </button>
-      </section>
+      </GlassSurface>
 
-      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+      <GlassSurface as="section" rim={24} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-4 shadow-sm shadow-black/5">
         <h2 className="mb-1 text-sm font-semibold text-ink">Modell für Nährwertschätzung</h2>
         <p className="mb-3 text-xs text-ink-soft">
           Google benennt Gemini-Modelle gelegentlich um oder schaltet alte Versionen ab. Falls die
@@ -94,7 +95,7 @@ export function ApiSettingsPage() {
             type="text"
             value={model}
             onChange={(e) => handleModelChange(e.target.value)}
-            className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+            className="field w-full rounded-xl px-3 py-2 text-sm"
           />
         </DockedField>
         {/* Driven by GEMINI_MODELS rather than its own copy of the list. The
@@ -108,7 +109,7 @@ export function ApiSettingsPage() {
             </option>
           ))}
         </datalist>
-      </section>
+      </GlassSurface>
 
       <SavedToast message={message} />
     </div>

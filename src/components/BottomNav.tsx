@@ -125,7 +125,7 @@ function TabIcon({
 
   if (prefersReducedMotion) {
     return (
-      <span className={`relative z-10 ${index === activeIndex ? 'text-white' : 'text-ink-soft'}`}>
+      <span className={`relative z-10 ${index === activeIndex ? 'text-bg' : 'text-ink-soft'}`}>
         <Icon />
       </span>
     )
@@ -134,7 +134,7 @@ function TabIcon({
   return (
     <span className="relative z-10 text-ink-soft">
       <Icon />
-      <motion.span className="absolute inset-0 text-white" style={{ opacity }} aria-hidden="true">
+      <motion.span className="absolute inset-0 text-bg" style={{ opacity }} aria-hidden="true">
         <Icon />
       </motion.span>
     </span>

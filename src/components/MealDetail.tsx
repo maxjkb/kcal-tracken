@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { formatIngredientAmount, MEAL_TYPE_LABELS, MICRONUTRIENT_LABELS, type Meal } from '../lib/db'
+import { formatIngredientAmount, mealPhotos, MEAL_TYPE_LABELS, MICRONUTRIENT_LABELS, type Meal } from '../lib/db'
 import { getBodyProfile } from '../lib/bodyProfile'
 import { notableMicronutrients } from '../lib/micronutrients'
 import { MacroBadge, MacroRingBadge } from './MacroBadge'
@@ -42,6 +42,7 @@ function MealDetailContent({ meal, onEdit }: { meal: Meal; onEdit: () => void })
   // estimate, simply show no badges rather than a misleading empty state.
   const bodyProfile = getBodyProfile()
   const notableKeys = meal.micronutrients && bodyProfile ? notableMicronutrients(meal.micronutrients, bodyProfile.sex) : []
+  const photos = mealPhotos(meal)
 
   return (
     <>
@@ -49,7 +50,19 @@ function MealDetailContent({ meal, onEdit }: { meal: Meal; onEdit: () => void })
         <span className="text-xs font-medium text-ink-soft">{MEAL_TYPE_LABELS[meal.mealType]}</span>
       </div>
 
-      {meal.photo && <img src={meal.photo} alt="" className="mb-4 h-44 w-full rounded-2xl object-cover" />}
+      {photos.length === 1 ? (
+        <img src={photos[0]} alt="" className="mb-4 h-44 w-full rounded-2xl object-cover" />
+      ) : photos.length > 1 ? (
+        // A horizontal strip rather than a grid: this is a read-only recap,
+        // not a picker, and a strip keeps every photo at the same generous
+        // size (h-44, same as the single-photo case) instead of shrinking
+        // them to fit a grid cell.
+        <div className="mb-4 flex gap-2 overflow-x-auto">
+          {photos.map((p, i) => (
+            <img key={i} src={p} alt="" className="h-44 w-44 shrink-0 rounded-2xl object-cover" />
+          ))}
+        </div>
+      ) : null}
 
       <h2 className="mb-3 text-xl font-semibold text-ink">{meal.title}</h2>
 

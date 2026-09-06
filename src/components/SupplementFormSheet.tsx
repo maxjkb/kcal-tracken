@@ -232,7 +232,7 @@ function SupplementFormContent({
   return (
     <>
       <div className="mb-4 flex items-start justify-between gap-3">
-        <h2 className="text-lg font-semibold text-ink">
+        <h2 className="font-display text-lg font-semibold text-ink">
           {editing ? 'Supp bearbeiten' : isCustomEntry ? 'Eigenes Supp' : 'Zur Liste hinzufügen'}
         </h2>
         {catalogChatSuggestion && (
@@ -241,7 +241,7 @@ function SupplementFormContent({
             onClick={() => setChatOpen(true)}
             aria-label="KI Chat"
             title="KI Chat"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-white transition hover:opacity-90 active:scale-95"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-bg transition hover:opacity-90 active:scale-95"
           >
             <ChatIcon />
           </button>
@@ -260,7 +260,7 @@ function SupplementFormContent({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="z.B. L-Theanin"
-                className="rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+                className="field rounded-2xl px-3 py-2 text-sm"
               />
             </label>
             <div>
@@ -295,7 +295,7 @@ function SupplementFormContent({
             value={dosage}
             onChange={(e) => setDosage(e.target.value)}
             placeholder="z.B. 3–5 g täglich"
-            className="rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+            className="field rounded-2xl px-3 py-2 text-sm"
           />
         </label>
 

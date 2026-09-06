@@ -16,6 +16,13 @@ während diese Datei ab 1.14.0 liegen blieb; damit stehen beide wieder auf demse
 Stand. Die Git-Tags aus dem Absatz darüber sind in demselben Zeitraum ebenfalls
 ausgeblieben: der letzte gesetzte ist `v1.2.1`.
 
+## [2.0.0] - 2026-09-06
+
+- Rebrand: die App trägt jetzt eine eigene visuelle Identität statt der alten, durchgängig blauen Optik. Farbe ist neutral geworden (ein nahezu weißer/schwarzer Grund je nach Hell/Dunkel-Modus statt der bunten Verlaufs-Kreise im Hintergrund), Buttons sind jetzt dunkel-auf-hell bzw. hell-auf-dunkel statt blau, und Blau bleibt die eine Farbe, die ausschließlich für Kalorien steht.
+- Große, gestaltete Zahlen statt Ringe: Heute und Statistik zeigen den Kalorien-Rest bzw. die Kalorienbilanz jetzt als große Headline-Zahl (eigene Zierschrift), mit einem schlanken Balken für die Makros darunter statt der alten Ringgrafik.
+- Eigenes Schriftbild: Überschriften und alle Hero-Zahlen laufen jetzt in einer eigenen, kräftigen Display-Schrift statt der reinen Systemschrift; Zahlen stehen app-weit auf fester Breite, damit sich beim Aktualisieren nichts mehr verschiebt.
+- Rezepte, Supps, Einstellungen und alle Sheets (Mahlzeiten-Editor, Coach-Chat, Datumsauswahl, …) sind auf dieselbe neue Optik umgestellt — Glas-Materialien, einheitliche Eingabefelder, keine unterschiedlich eingefärbten Bereiche mehr.
+
 ## [1.20.4] - 2026-09-01
 
 - Das Kalorien-Diagramm zeichnet sich jetzt selbst statt über eine Diagramm-Bibliothek. Der Wechsel auf die Statistik hing dadurch spürbar: der schlimmste Bildaussetzer ist von 317 auf 100 Millisekunden gefallen, und die Statistik-Seite lädt 337 KB weniger Code — bei sieben Punkten in der Wochenansicht hat sich die Bibliothek schlicht nicht gerechnet.

@@ -7,13 +7,19 @@ const BADGE_BG: Record<MacroType, string> = {
   fat: 'bg-fat',
 }
 
-// Every nutrient color is dark/saturated enough for white text except fat's
-// light yellow, which needs dark text to stay legible.
+// Global audit (v2.0.0): computed by actual WCAG contrast against each
+// fill, not eyeballed — kcal is the one macro whose fill genuinely swaps
+// brightness per theme (darker blue in light mode, lighter in dark), so it
+// alone needs text that flips too (var(--color-bg), same trick as
+// .glass-accent in index.css). Protein/carbs/fat stay a fixed dark ink in
+// both themes (--color-badge-ink, index.css) — their fills don't invert,
+// and white text on any of them measured well under the 4.5:1 minimum
+// (bg-carbs+white was ~2:1 in both themes).
 const BADGE_TEXT: Record<MacroType, string> = {
-  kcal: 'text-white',
-  protein: 'text-white',
-  carbs: 'text-white',
-  fat: 'text-ink',
+  kcal: 'text-bg',
+  protein: 'text-badge-ink',
+  carbs: 'text-badge-ink',
+  fat: 'text-badge-ink',
 }
 
 /** A solid-colored pill badge showing a macro pictogram + absolute value (+ optional "· NN%" of daily target). */

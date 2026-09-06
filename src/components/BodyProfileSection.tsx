@@ -16,6 +16,7 @@ import {
 } from '../lib/bodyProfile'
 import { recordTodaysTargetSnapshot } from '../lib/targetHistory'
 import { InfoButton } from './InfoButton'
+import { GlassSurface } from '../glass/GlassSurface'
 
 const ACTIVITY_LEVELS: ActivityLevel[] = ['sedentary', 'light', 'moderate', 'active', 'very_active']
 const GOALS: Goal[] = ['lose', 'maintain', 'gain', 'build_muscle']
@@ -71,7 +72,7 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
   }
 
   return (
-    <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+    <GlassSurface as="section" rim={24} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-4 shadow-sm shadow-black/5">
       <div className="mb-3 flex justify-end">
         <InfoButton label="Wie wird der Bedarf berechnet?" title="Berechnung des Tagesbedarfs">
           Wird genutzt, um deinen täglichen Kalorien- und Makrobedarf zu berechnen (Mifflin-St-Jeor-Formel)
@@ -105,7 +106,7 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
             <NumberField
               value={profile.heightCm}
               onChange={(next: number) => update('heightCm', next)}
-              className="rounded-xl border border-line bg-bg px-2 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+              className="field rounded-xl px-2 py-2 text-sm"
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -113,7 +114,7 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
             <NumberField
               value={profile.weightKg}
               onChange={(next: number) => update('weightKg', next)}
-              className="rounded-xl border border-line bg-bg px-2 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+              className="field rounded-xl px-2 py-2 text-sm"
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -121,7 +122,7 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
             <NumberField
               value={profile.age}
               onChange={(next: number) => update('age', next)}
-              className="rounded-xl border border-line bg-bg px-2 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+              className="field rounded-xl px-2 py-2 text-sm"
             />
           </label>
         </div>
@@ -131,7 +132,7 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
           <select
             value={profile.activityLevel}
             onChange={(e) => update('activityLevel', e.target.value as ActivityLevel)}
-            className="rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+            className="field rounded-xl px-3 py-2 text-sm"
           >
             {ACTIVITY_LEVELS.map((level) => (
               <option key={level} value={level}>
@@ -215,7 +216,7 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
           )}
         </div>
       </div>
-    </section>
+    </GlassSurface>
   )
 }
 

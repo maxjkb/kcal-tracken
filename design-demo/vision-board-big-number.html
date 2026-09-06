@@ -1,0 +1,281 @@
+<title>Big Number</title>
+<meta name="description" content="Vision Board für die gewählte Design-Richtung: eine dominante Zahl statt Ringe, für Tracke.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Work+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+  :root{
+    --bg:#fbfbf9; --ink:#101114; --soft:#5c6068; --faint:#9296a0; --line:#e6e5e0; --panel:#fff; --panel-2:#f3f2ec;
+    --protein:#ff375f; --carbs:#2fae63; --fat:#d98d00; --kcal:#2f6bff;
+    --pin:#c9c7bd;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0d0d0f; --ink:#f5f5f3; --soft:#9c9ea3; --faint:#54565c; --line:#232327; --panel:#17171a; --panel-2:#141416;
+      --protein:#ff6b8a; --carbs:#4ecf8a; --fat:#f0ac3a; --kcal:#5c8dff; --pin:#3a3a3d;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0d0d0f; --ink:#f5f5f3; --soft:#9c9ea3; --faint:#54565c; --line:#232327; --panel:#17171a; --panel-2:#141416;
+    --protein:#ff6b8a; --carbs:#4ecf8a; --fat:#f0ac3a; --kcal:#5c8dff; --pin:#3a3a3d;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:
+      radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 0) 0 0/22px 22px,
+      var(--bg);
+    color:var(--ink); font-family:'Work Sans',sans-serif;
+  }
+  .board{max-width:1240px; margin:0 auto; padding:40px 24px 90px;}
+  .masthead{margin-bottom:34px;}
+  .eyebrow{font-family:'Unbounded',sans-serif; font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--kcal);}
+  .masthead h1{font-family:'Unbounded',sans-serif; font-weight:800; font-size:clamp(40px,7vw,68px); line-height:.95; letter-spacing:-0.02em; margin:8px 0 12px;}
+  .masthead p{max-width:560px; font-size:15px; line-height:1.6; color:var(--soft); margin:0;}
+
+  .grid{display:grid; grid-template-columns:repeat(12,1fr); gap:22px;}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px; position:relative; box-shadow:0 14px 30px -18px rgba(0,0,0,.28);}
+  .card::before{content:''; position:absolute; top:-9px; left:50%; transform:translateX(-50%); width:16px; height:16px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #fff8, var(--pin) 60%); box-shadow:0 3px 5px rgba(0,0,0,.25);}
+  .card.no-pin::before{content:none;}
+  .card h2{font-family:'Unbounded',sans-serif; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--faint); margin:0 0 14px;}
+
+  /* -------- thesis hero -------- */
+  .thesis{grid-column:1 / 8; transform:rotate(-0.6deg); padding:34px 30px;}
+  .thesis .quote{font-family:'Unbounded',sans-serif; font-weight:700; font-size:clamp(22px,2.6vw,32px); line-height:1.18; letter-spacing:-0.01em; margin:0 0 16px;}
+  .thesis .quote em{font-style:normal; color:var(--fat);}
+  .thesis p{font-size:14px; line-height:1.65; color:var(--soft); max-width:520px; margin:0;}
+
+  .heronum{grid-column:8 / 13; transform:rotate(1.1deg); display:flex; flex-direction:column; justify-content:center; align-items:flex-start; padding:26px 26px 22px;}
+  .heronum .num{font-family:'Unbounded',sans-serif; font-weight:800; font-size:96px; line-height:.82; color:var(--fat); letter-spacing:-0.03em;}
+  .heronum .unit{font-size:32px; font-weight:600;}
+  .heronum .lbl{font-size:13px; color:var(--soft); margin-top:8px;}
+  .heronum .rule{width:100%; height:4px; border-radius:2px; background:var(--line); margin-top:16px; position:relative; overflow:hidden;}
+  .heronum .rule i{position:absolute; inset:0; width:82.5%; background:var(--fat); border-radius:2px;}
+
+  /* -------- palette -------- */
+  .palette{grid-column:1 / 5; transform:rotate(0.8deg);}
+  .swrow{display:flex; align-items:center; gap:10px; margin-bottom:9px;}
+  .sw{width:34px; height:34px; border-radius:9px; flex-shrink:0; box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);}
+  .swrow .meta b{display:block; font-size:12.5px; font-weight:700;}
+  .swrow .meta span{font-family:'Work Sans',monospace; font-size:10.5px; color:var(--faint);}
+  .hexpair .dv{display:none;}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .hexpair .lv{display:none;} :root:not([data-theme="light"]) .hexpair .dv{display:inline;} }
+  :root[data-theme="dark"] .hexpair .lv{display:none;}
+  :root[data-theme="dark"] .hexpair .dv{display:inline;}
+
+  /* -------- type specimen -------- */
+  .type{grid-column:5 / 9; transform:rotate(-0.4deg);}
+  .type .big{font-family:'Unbounded',sans-serif; font-weight:800; font-size:52px; line-height:1; letter-spacing:-0.02em; margin-bottom:6px;}
+  .type .mid{font-family:'Unbounded',sans-serif; font-weight:700; font-size:18px; margin-bottom:10px;}
+  .type .body{font-size:13px; line-height:1.6; color:var(--soft); border-top:1px solid var(--line); padding-top:10px;}
+  .type .tag{display:inline-block; font-family:'Unbounded',sans-serif; font-size:9.5px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--kcal); background:color-mix(in srgb, var(--kcal) 12%, transparent); padding:3px 8px; border-radius:6px; margin-bottom:8px;}
+
+  /* -------- principles -------- */
+  .principles{grid-column:9 / 13; transform:rotate(1.4deg);}
+  .principles ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px;}
+  .principles li{font-size:12.5px; font-weight:600; line-height:1.4; padding-left:16px; position:relative;}
+  .principles li::before{content:'—'; position:absolute; left:0; color:var(--fat);}
+
+  /* -------- screens gallery -------- */
+  .gallery-lbl{grid-column:1/13; margin:6px 0 -4px;}
+  .gallery-lbl h2{font-family:'Unbounded',sans-serif; font-size:13px; text-transform:uppercase; letter-spacing:.1em; color:var(--faint);}
+  .polaroid{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:14px 14px 18px; box-shadow:0 16px 34px -20px rgba(0,0,0,.32); position:relative;}
+  .polaroid::before{content:''; position:absolute; top:-9px; left:50%; transform:translateX(-50%); width:16px; height:16px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #fff8, var(--pin) 60%); box-shadow:0 3px 5px rgba(0,0,0,.25);}
+  .polaroid figcaption{font-family:'Unbounded',sans-serif; font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); text-align:center; margin-top:10px;}
+  .p1{grid-column:1/4; transform:rotate(-1.6deg);}
+  .p2{grid-column:4/7; transform:rotate(1deg);}
+  .p3{grid-column:7/10; transform:rotate(-0.8deg);}
+  .p4{grid-column:10/13; transform:rotate(1.5deg);}
+  .screen{background:var(--bg); border-radius:10px; overflow:hidden; height:100%;}
+  .screen-pad{padding:16px 14px;}
+  .s-hdr{display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;}
+  .s-title{font-family:'Unbounded',sans-serif; font-weight:700; font-size:16px;}
+  .s-icon{width:22px; height:22px; border-radius:7px; background:var(--panel-2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:11px;}
+  .s-hero{margin-top:10px;}
+  .s-hero .n{font-family:'Unbounded',sans-serif; font-weight:700; font-size:44px; line-height:.85; color:var(--fat);}
+  .s-hero .n small{font-size:16px; font-weight:600;}
+  .s-hero .l{font-size:9.5px; color:var(--soft); margin-top:4px;}
+  .s-hero .r{height:3px; border-radius:2px; background:var(--line); margin-top:8px; position:relative;}
+  .s-hero .r i{position:absolute; inset:0; background:var(--fat); border-radius:2px;}
+  .s-strip{display:flex; gap:5px; margin-top:9px;}
+  .s-strip div{flex:1; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:6px; text-align:center;}
+  .s-strip b{display:block; font-family:'Unbounded',sans-serif; font-size:10.5px;}
+  .s-strip span{font-size:6.5px; color:var(--faint); text-transform:uppercase;}
+  .s-meal{display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line); font-size:9.5px;}
+  .s-meal b{font-weight:600;}
+  .s-badges{display:flex; gap:3px;}
+  .s-badges span{font-size:7px; font-weight:700; color:#fff; padding:1px 4px; border-radius:99px;}
+  .s-micro{display:grid; grid-template-columns:1fr 1fr; gap:8px 10px; margin-top:6px;}
+  .s-micro .track{height:4px; border-radius:99px; background:var(--line); position:relative; margin:3px 0 2px;}
+  .s-micro .fill{position:absolute; inset:0; border-radius:99px;}
+  .s-micro .dot{position:absolute; top:50%; width:6px; height:6px; border-radius:99px; transform:translate(-50%,-50%); border:1.5px solid var(--panel);}
+  .s-micro .ab{font-size:7.5px; font-weight:800;}
+  .s-micro .nm{font-size:6px; color:var(--faint);}
+  .s-supp{display:flex; justify-content:space-between; align-items:baseline; padding:6px 0; border-bottom:1px solid var(--line); font-size:9.5px;}
+  .s-supp .warn{width:11px; height:11px; border-radius:99px; background:var(--fat); color:#fff; font-size:7px; font-weight:800; display:flex; align-items:center; justify-content:center;}
+  .s-input{border:none; border-bottom:2px solid var(--ink); padding:6px 1px 10px; font-family:'Unbounded',sans-serif; font-weight:600; font-size:13px; color:var(--faint); margin-top:10px;}
+  .s-actions{display:flex; gap:6px; margin-top:10px;}
+  .s-actions div{flex:1; background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:7px; text-align:center; font-size:8.5px; font-weight:600;}
+  .s-cta{margin-top:8px; background:var(--ink); color:var(--bg); border-radius:10px; padding:9px; text-align:center; font-size:10px; font-weight:700;}
+
+  /* -------- before/after -------- */
+  .versus{grid-column:1/6; transform:rotate(-0.5deg);}
+  .versus .row{display:flex; gap:14px; align-items:center;}
+  .versus .col{flex:1; text-align:center;}
+  .versus .col span{display:block; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px;}
+  .versus .no span{color:var(--faint);}
+  .versus .yes span{color:var(--fat);}
+  .ring-demo{width:64px; height:64px; border-radius:50%; margin:0 auto; background:conic-gradient(var(--fat) 82.5%, var(--line) 0); display:flex; align-items:center; justify-content:center; position:relative;}
+  .ring-demo::after{content:''; position:absolute; inset:9px; border-radius:50%; background:var(--panel);}
+  .ring-demo b{position:relative; font-size:11px; font-weight:700;}
+  .num-demo{font-family:'Unbounded',sans-serif; font-weight:800; font-size:38px; color:var(--fat); line-height:1;}
+  .num-demo small{font-size:13px; font-weight:600;}
+  .versus .caption{font-size:11px; color:var(--soft); margin-top:10px; text-align:center; line-height:1.4;}
+
+  /* -------- mood tags -------- */
+  .moods{grid-column:6/13; transform:rotate(0.6deg); display:flex; flex-wrap:wrap; align-content:flex-start; gap:9px;}
+  .moods span{font-family:'Unbounded',sans-serif; font-size:11px; font-weight:600; padding:8px 14px; border-radius:99px; border:1.5px solid var(--line); color:var(--soft);}
+  .moods span.hot{border-color:var(--fat); color:var(--fat); background:color-mix(in srgb, var(--fat) 10%, transparent);}
+
+  footer{grid-column:1/13; text-align:center; margin-top:6px; font-size:11px; color:var(--faint);}
+</style>
+
+<div class="board">
+  <div class="masthead">
+    <span class="eyebrow">Vision Board · Runde 3</span>
+    <h1>Big Number</h1>
+    <p>Eine Zahl trägt den ganzen Screen. Kein Ring, keine vier gleichwertigen Kacheln — der Rest-Wert, der heute zählt, steht riesig da, alles andere tritt einen Schritt zurück.</p>
+  </div>
+
+  <div class="grid">
+    <div class="card thesis">
+      <h2>These</h2>
+      <p class="quote">Die Zahl <em>ist</em> die Grafik. Typografie ersetzt das Diagramm, statt es nur zu beschriften.</p>
+      <p>Ringe suggerieren „voller = besser" — bei Fett stimmt das nicht. Big Number kehrt die Hierarchie um: der wichtigste Rest-Wert (bei dir: Fett) bekommt die ganze Bühne, in einer Größe, die keine Interpretation zulässt. Ein dünner Strich darunter trägt die Skala, ohne von der Zahl abzulenken.</p>
+    </div>
+    <div class="card heronum no-pin">
+      <div class="num">14<span class="unit">g</span></div>
+      <div class="lbl">Fett übrig heute — im Blick behalten</div>
+      <div class="rule"><i></i></div>
+    </div>
+
+    <div class="card palette">
+      <h2>Farbe</h2>
+      <div class="swrow"><span class="sw" style="background:var(--bg); border:1px solid var(--line);"></span><span class="meta"><b>Bg</b><span class="hexpair"><i class="lv">#fbfbf9</i><i class="dv">#0d0d0f</i></span></span></div>
+      <div class="swrow"><span class="sw" style="background:var(--ink);"></span><span class="meta"><b>Ink</b><span class="hexpair"><i class="lv">#101114</i><i class="dv">#f5f5f3</i></span></span></div>
+      <div class="swrow"><span class="sw" style="background:var(--fat);"></span><span class="meta"><b>Fett (Fokus-Akzent)</b><span class="hexpair"><i class="lv">#d98d00</i><i class="dv">#f0ac3a</i></span></span></div>
+      <div class="swrow"><span class="sw" style="background:var(--protein);"></span><span class="meta"><b>Protein</b><span class="hexpair"><i class="lv">#ff375f</i><i class="dv">#ff6b8a</i></span></span></div>
+      <div class="swrow"><span class="sw" style="background:var(--carbs);"></span><span class="meta"><b>Carbs</b><span class="hexpair"><i class="lv">#2fae63</i><i class="dv">#4ecf8a</i></span></span></div>
+      <div class="swrow"><span class="sw" style="background:var(--kcal);"></span><span class="meta"><b>Kcal</b><span class="hexpair"><i class="lv">#2f6bff</i><i class="dv">#5c8dff</i></span></span></div>
+    </div>
+
+    <div class="card type">
+      <h2>Type</h2>
+      <span class="tag">Unbounded · Hero</span>
+      <div class="big">31g</div>
+      <span class="tag" style="margin-top:6px;">Work Sans · Support</span>
+      <div class="mid">Protein übrig</div>
+      <p class="body">Unbounded trägt jede Zahl, die als Held auftritt — Hero-Numerale und Screen-Titel. Work Sans übernimmt alles, was gelesen statt gesehen wird: Fließtext, Beschriftungen, Mahlzeiten-Namen. Zahlen überall in Tabellenziffern, damit nichts beim Wechseln wandert.</p>
+    </div>
+
+    <div class="card principles">
+      <h2>Prinzipien</h2>
+      <ul>
+        <li>Immer der <b>Rest</b>, nie der Verbrauch oder ein Prozentwert</li>
+        <li>Eine Hero-Zahl pro Screen, drei weitere treten zurück</li>
+        <li>Die Skala steckt in der Unterstrich-Linie, nicht in einer separaten Grafik</li>
+        <li>Farbe nur am Fokus-Wert — der Rest bleibt Tinte/Off-White</li>
+        <li>Gilt für Sheets genauso wie für Hauptseiten</li>
+      </ul>
+    </div>
+
+    <div class="gallery-lbl"><h2>Screens</h2></div>
+
+    <figure class="card polaroid p1">
+      <div class="screen"><div class="screen-pad">
+        <div class="s-hdr"><span class="s-title">Heute</span><span class="s-icon">＋</span></div>
+        <div class="s-hero"><div class="n">14<small>g</small></div><div class="l">Fett übrig — im Blick behalten</div><div class="r"><i style="width:82.5%"></i></div></div>
+        <div class="s-strip"><div><b style="color:var(--kcal)">1000</b><span>kcal übrig</span></div><div><b style="color:var(--protein)">31g</b><span>Protein übrig</span></div><div><b style="color:var(--carbs)">156g</b><span>Carbs übrig</span></div></div>
+        <div id="meals"></div>
+      </div></div>
+      <figcaption>Heute</figcaption>
+    </figure>
+
+    <figure class="card polaroid p2">
+      <div class="screen"><div class="screen-pad">
+        <div class="s-hdr"><span class="s-title">Statistik</span><span class="s-icon">⚙︎</span></div>
+        <div style="font-size:9px; color:var(--soft); text-align:center; margin:2px 0 6px;">31.08. – 06.09.2026</div>
+        <div class="s-hero"><div class="n" style="font-size:32px; color:var(--kcal)">2.139<small style="font-size:11px">Ø kcal</small></div><div class="l">Ziel 2.759 · 620 darunter</div></div>
+        <div class="s-hero" style="margin-top:10px;"><div class="n">14<small>g</small></div><div class="l">Ø Fett übrig/Tag</div><div class="r"><i style="width:82.5%"></i></div></div>
+        <div class="s-micro" id="micros"></div>
+      </div></div>
+      <figcaption>Statistik</figcaption>
+    </figure>
+
+    <figure class="card polaroid p3">
+      <div class="screen"><div class="screen-pad">
+        <div class="s-hdr"><span class="s-title">Supps</span><span class="s-icon">＋</span></div>
+        <div style="margin-top:8px;" id="supps"></div>
+      </div></div>
+      <figcaption>Supps</figcaption>
+    </figure>
+
+    <figure class="card polaroid p4">
+      <div class="screen"><div class="screen-pad">
+        <div class="s-hdr"><span class="s-title" style="font-size:13px;">Heute</span><span class="s-icon">＋</span></div>
+        <div style="height:1px; background:var(--line); margin:36px -14px 0;"></div>
+        <div style="background:var(--panel); border-radius:16px 16px 0 0; margin:-2px -14px -18px; padding:14px 14px 18px;">
+          <div style="width:30px; height:3px; border-radius:99px; background:var(--line); margin:0 auto 12px;"></div>
+          <div style="font-weight:700; font-size:12px; margin-bottom:8px;">Mahlzeit hinzufügen</div>
+          <div class="s-input">z. B. „Hähnchen mit Reis"…</div>
+          <div class="s-actions"><div>📷 Foto</div><div>🎤 Diktieren</div></div>
+          <div class="s-cta">Nährwerte schätzen</div>
+        </div>
+      </div></div>
+      <figcaption>Eingabe-Sheet</figcaption>
+    </figure>
+
+    <div class="card versus">
+      <h2>Warum kein Ring</h2>
+      <div class="row">
+        <div class="col no"><span>Ring</span><div class="ring-demo"><b>82%</b></div></div>
+        <div class="col yes"><span>Big Number</span><div class="num-demo">14<small>g</small></div></div>
+      </div>
+      <p class="caption">82% gefüllt liest sich wie ein Fortschritt, den man vollenden will. 14g Rest liest sich wie ein Budget, das man einhält — bei Fett der richtige Rahmen.</p>
+    </div>
+
+    <div class="card moods">
+      <h2 style="width:100%;">Referenzrahmen</h2>
+      <span class="hot">Scoreboard</span><span>Kinetische Typografie</span><span class="hot">Coach, nicht Wellness</span>
+      <span>Editorial-Kontrast</span><span class="hot">Headline-Journalismus</span><span>Ein Fokus pro Blick</span>
+      <span>Budget statt Trophäe</span>
+    </div>
+
+    <footer>Big Number · Vision Board für Tracke — Grundlage für #76–78, sobald freigegeben</footer>
+  </div>
+</div>
+
+<script>
+  const MEALS = [
+    {name:'Haferflocken mit Beeren', kcal:380, p:14, c:58, f:9},
+    {name:'Hähnchen mit Reis', kcal:620, p:45, c:65, f:18},
+    {name:'Lachs mit Ofengemüse', kcal:540, p:38, c:22, f:28},
+  ];
+  document.getElementById('meals').innerHTML = MEALS.map(m=>`<div class="s-meal"><b>${m.name}</b><span class="s-badges">
+    <span style="background:var(--kcal)">${m.kcal}</span><span style="background:var(--protein)">${m.p}P</span><span style="background:var(--carbs)">${m.c}C</span><span style="background:var(--fat)">${m.f}F</span></span></div>`).join('');
+
+  const MICROS = [
+    {ab:'D', name:'Vit. D', ratio:0.30, hue:'#ff9500'}, {ab:'B12', name:'Vit. B12', ratio:0.90, hue:'#af52de'},
+    {ab:'C', name:'Vit. C', ratio:1.00, hue:'#b26800'}, {ab:'Fe', name:'Eisen', ratio:0.35, hue:'#ff3b30'},
+  ];
+  document.getElementById('micros').innerHTML = MICROS.map(m=>`<div><span class="ab" style="color:${m.hue}">${m.ab}</span><div class="track">
+    <div class="fill" style="background:linear-gradient(to right, color-mix(in srgb, ${m.hue} 15%, transparent), ${m.hue});"></div>
+    <span class="dot" style="left:${Math.min(100,(m.ratio/1.5)*100)}%; background:${m.hue};"></span></div><span class="nm">${m.name}</span></div>`).join('');
+
+  const SUPPS = [
+    {name:'Vitamin D3', dose:'2.000 IE · morgens', warn:null},
+    {name:'Omega-3', dose:'1g EPA/DHA', warn:'Nicht mehr notwendig'},
+    {name:'Magnesium', dose:'300mg · abends', warn:null},
+  ];
+  document.getElementById('supps').innerHTML = SUPPS.map(s=>`<div class="s-supp"><span><b>${s.name}</b><br><span style="color:var(--faint); font-size:8.5px;">${s.dose}</span></span>${s.warn?`<span class="warn" role="img" aria-label="${s.warn}">!</span>`:''}</div>`).join('');
+</script>

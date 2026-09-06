@@ -42,6 +42,9 @@ async function downscaleImage(dataUrl: string, maxDim = 1024): Promise<string> {
   })
 }
 
+/** How many photos one meal can carry — generous for "a dish plus its packaging label", not meant as a real gallery. */
+export const MAX_MEAL_PHOTOS = 5
+
 /**
  * The camera as a single round action, input and all.
  *
@@ -49,29 +52,35 @@ async function downscaleImage(dataUrl: string, maxDim = 1024): Promise<string> {
  * a render prop would mean passing a ref-reading callback out during render,
  * and this keeps the ref's only reader inside the event handler where it
  * belongs.
+ *
+ * Always adds rather than replaces: with multiple photos per meal, "take
+ * another one" and "replace the one I have" are different actions, and this
+ * button is only ever the former now — removing a specific photo is the
+ * gallery's own per-thumbnail control (see PhotoGallery below).
  */
 export function PhotoActionButton({
-  photo,
-  onChange,
+  count,
+  onAdd,
   source = 'camera',
 }: {
-  photo?: string
-  onChange: (dataUrl: string | undefined) => void
+  /** How many photos this meal already has — drives the "active" look and the at-limit disabled state, nothing else. */
+  count: number
+  onAdd: (dataUrl: string) => void
   /** `camera` opens the camera directly; `library` opens the photo picker. */
   source?: 'camera' | 'library'
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const atLimit = count >= MAX_MEAL_PHOTOS
 
   async function handleFile(input: HTMLInputElement) {
     const file = input.files?.[0]
     // Reset first, and unconditionally: the input keeps its value, so picking
-    // the same file again is not a change and fires no event at all. Removing
-    // a photo and re-picking the identical one silently did nothing.
+    // the same file again is not a change and fires no event at all.
     input.value = ''
     if (!file) return
     const raw = await readAsDataUrl(file)
     const scaled = await downscaleImage(raw)
-    onChange(scaled)
+    onAdd(scaled)
   }
 
   const isCamera = source === 'camera'
@@ -79,8 +88,15 @@ export function PhotoActionButton({
   return (
     <>
       <ActionButton
-        label={isCamera ? (photo ? 'Foto neu aufnehmen' : 'Foto aufnehmen') : 'Foto aus der Galerie wählen'}
-        active={Boolean(photo)}
+        label={
+          atLimit
+            ? `Maximal ${MAX_MEAL_PHOTOS} Fotos`
+            : isCamera
+              ? 'Foto aufnehmen'
+              : 'Foto aus der Galerie wählen'
+        }
+        active={count > 0}
+        disabled={atLimit}
         onClick={() => inputRef.current?.click()}
       >
         {isCamera ? <CameraIcon /> : <LibraryIcon />}
@@ -112,19 +128,52 @@ function LibraryIcon() {
   )
 }
 
-/** Just the taken photo with its remove control — rendered by callers that show the picker elsewhere. */
-export function PhotoPreview({ photo, onChange }: { photo: string; onChange: (dataUrl: string | undefined) => void }) {
+/**
+ * The taken photo(s) with a per-photo remove control — rendered by callers
+ * that show the picker elsewhere. A single photo keeps the previous
+ * full-width, taller treatment (this is overwhelmingly the common case);
+ * more than one becomes a horizontal-scroll strip of smaller tiles, each
+ * individually removable, rather than shrinking to fit a grid.
+ */
+export function PhotoGallery({ photos, onRemove }: { photos: string[]; onRemove: (index: number) => void }) {
+  if (photos.length === 1) {
+    return (
+      <div className="relative w-full">
+        <img src={photos[0]} alt="Foto der Mahlzeit" className="h-40 w-full rounded-2xl object-cover" />
+        <button
+          type="button"
+          onClick={() => onRemove(0)}
+          className="absolute right-2 top-2 rounded-full bg-ink/70 px-2.5 py-1 text-xs font-medium text-white"
+        >
+          Entfernen
+        </button>
+      </div>
+    )
+  }
   return (
-    <div className="relative w-full">
-      <img src={photo} alt="Foto der Mahlzeit" className="h-40 w-full rounded-2xl object-cover" />
-      <button
-        type="button"
-        onClick={() => onChange(undefined)}
-        className="absolute right-2 top-2 rounded-full bg-ink/70 px-2.5 py-1 text-xs font-medium text-white"
-      >
-        Entfernen
-      </button>
+    <div className="flex w-full gap-2 overflow-x-auto pb-0.5">
+      {photos.map((photo, i) => (
+        <div key={i} className="relative h-28 w-28 shrink-0">
+          <img src={photo} alt={`Foto ${i + 1} der Mahlzeit`} className="h-28 w-28 rounded-2xl object-cover" />
+          <button
+            type="button"
+            onClick={() => onRemove(i)}
+            aria-label={`Foto ${i + 1} entfernen`}
+            className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-ink/70 text-white"
+          >
+            <RemoveIcon />
+          </button>
+        </div>
+      ))}
     </div>
+  )
+}
+
+function RemoveIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-3.5 w-3.5">
+      <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
+    </svg>
   )
 }
 

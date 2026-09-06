@@ -1,52 +1,43 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, type SupplementChat, type SupplementRecommendation } from '../lib/db'
-import { openSupplementChat, sendSupplementChatMessage } from '../lib/supplementChat'
+import { db, type CoachChat } from '../lib/db'
+import { getOrCreateCoachChat, sendCoachChatMessage } from '../lib/coachChat'
 import { GeminiError } from '../lib/gemini'
 import { Sheet } from './Sheet'
 import { BouncingDots } from './BouncingDots'
 import { InfoButton } from './InfoButton'
 
 /**
- * The per-supplement follow-up chat, opened from a recommendation card's
- * name/reasoning area (see SupplementsPage). First message is always the
- * recommendation's own reasoning + effects text, already generated and
- * already read on the card — reusing it here (rather than a blank chat)
- * means the conversation starts from context the user already has, not
- * from nothing (see lib/supplementChat.ts's openSupplementChat).
+ * The single, app-wide coach chat — reachable from the Supps page's own
+ * toolbar (not from a specific recommendation card, unlike
+ * SupplementChatSheet), for anything about the user's overall nutrition,
+ * training, or supplement routine rather than one supplement in isolation.
  *
- * Reads the thread via useLiveQuery rather than local state: sending a
- * message persists the user's question immediately, before the Gemini
- * round trip even starts, so it's never lost to a failed reply — the live
- * query picks that up on its own without this component tracking two
- * sources of truth.
+ * Structurally the same component as SupplementChatSheet (thread via
+ * useLiveQuery, persist-then-reply), just against the single CoachChat row
+ * instead of one keyed by supplement name — kept as its own component
+ * rather than a parameterized shared one, since the two are likely to
+ * diverge (e.g. only the coach chat would ever grow quick-reply chips for
+ * "wie war meine Woche?"-style prompts).
  */
-export function SupplementChatSheet({ suggestion, onClose }: { suggestion: SupplementRecommendation; onClose: () => void }) {
+export function CoachChatSheet({ onClose }: { onClose: () => void }) {
   const [ready, setReady] = useState(false)
   const [question, setQuestion] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Creates the thread (idempotent) the first time this sheet ever opens for
-  // this supplement — see openSupplementChat's own doc comment for why a
-  // second open just returns the same thread instead of duplicating it.
   useEffect(() => {
     let cancelled = false
-    void openSupplementChat(suggestion).then(() => {
+    void getOrCreateCoachChat().then(() => {
       if (!cancelled) setReady(true)
     })
     return () => {
       cancelled = true
     }
-    // suggestion is read once on mount — a new sheet instance opens per card tap anyway.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const chat: SupplementChat | undefined = useLiveQuery(
-    () => db.supplementChats.where('supplementKey').equals(suggestion.supplementName.trim().toLowerCase()).first(),
-    [suggestion.supplementName],
-  )
+  const chat: CoachChat | undefined = useLiveQuery(() => db.coachChat.get('coach'), [])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
@@ -59,7 +50,7 @@ export function SupplementChatSheet({ suggestion, onClose }: { suggestion: Suppl
     setError(null)
     setQuestion('')
     try {
-      await sendSupplementChatMessage(chat, text)
+      await sendCoachChatMessage(chat, text)
     } catch (err) {
       setError(err instanceof GeminiError ? err.message : 'Unbekannter Fehler bei der Antwort.')
     } finally {
@@ -71,8 +62,8 @@ export function SupplementChatSheet({ suggestion, onClose }: { suggestion: Suppl
     <Sheet onClose={onClose} sheetClassName="glass flex h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl">
       <div className="flex shrink-0 items-center justify-between border-b border-line/60 px-5 py-4">
         <div>
-          <h2 className="font-display text-lg font-semibold text-ink">{suggestion.supplementName}</h2>
-          <p className="text-xs text-ink-soft">Rückfragen zu diesem Supp</p>
+          <h2 className="font-display text-lg font-semibold text-ink">Coach</h2>
+          <p className="text-xs text-ink-soft">Fragen zu Ernährung, Training und Supps</p>
         </div>
         <div className="flex items-center gap-1.5">
           <InfoButton label="Hinweis zum Chat" title="Hinweis">

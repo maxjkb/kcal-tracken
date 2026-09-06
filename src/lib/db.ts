@@ -120,6 +120,20 @@ export function formatIngredientAmount(ing: Pick<Ingredient, 'amount' | 'unit'>)
   return `${ing.amount} ${ing.unit ?? ''}`.trim()
 }
 
+/**
+ * Every photo attached to a meal, oldest (or only) first — the one place
+ * that reconciles the current `photos` array with a record saved before
+ * multi-photo support, which only ever had the single `photo` field. No
+ * migration needed: an old record simply has `photos` undefined, and
+ * this reads its lone photo the same way a new record's first entry
+ * would. Every UI that shows a meal's photo(s) should go through this
+ * rather than reading either field directly.
+ */
+export function mealPhotos(meal: Pick<Meal, 'photo' | 'photos'>): string[] {
+  if (meal.photos && meal.photos.length > 0) return meal.photos
+  return meal.photo ? [meal.photo] : []
+}
+
 export interface Meal {
   id: string
   /** ISO date string, e.g. "2026-08-23" — the day this meal belongs to (local time). */
@@ -128,8 +142,14 @@ export interface Meal {
   title: string
   /** The raw text the user typed/dictated describing the meal. */
   description: string
-  /** Optional photo, stored as a data URL (base64) directly in IndexedDB. */
+  /**
+   * @deprecated Superseded by `photos` (plural) — kept only so records
+   * saved before multi-photo support still render. New saves never write
+   * this field; read it through `mealPhotos()` below, never directly.
+   */
   photo?: string
+  /** Photos attached to this meal, stored as data URLs (base64) directly in IndexedDB. Empty/absent, not `photo`, is what a photo-less meal looks like going forward. */
+  photos?: string[]
   nutrition: Nutrition
   /** Per-ingredient breakdown from the AI estimate, if any. Read-only detail info — reflects the estimate at the time it ran, not necessarily in sync with later manual edits to `nutrition`. */
   ingredients?: Ingredient[]
@@ -261,6 +281,14 @@ export interface Supplement {
   typicalDosage: string
   isCustom: boolean
   createdAt: number
+  /**
+   * Other names/spellings this supplement is commonly typed under —
+   * "Calcium" for "Kalzium", "B12" for "Vitamin B12" — that automatic
+   * detection in a meal's free text (supplementTextMatch.ts) also matches
+   * against, not just `name` itself. Not shown anywhere in the UI, so no
+   * migration/index needed: an absent field is just an empty alias list.
+   */
+  aliases?: string[]
 }
 
 /**
@@ -498,6 +526,31 @@ export interface SupplementChat {
   updatedAt: number
 }
 
+/** Same message shape as a supplement chat's — kept as its own type rather than reused so the two threads can diverge later without one dragging the other along. */
+export interface CoachChatMessage {
+  role: 'user' | 'model'
+  text: string
+  createdAt: number
+}
+
+/**
+ * The single, app-wide "Ernährungsberater/Fitnesscoach" conversation —
+ * unlike SupplementChat, not scoped to one recommendation: reachable from
+ * the Supps page's own toolbar (see CoachChatSheet), for anything about the
+ * user's overall nutrition, training, or supplement routine. There is
+ * exactly one row, at the fixed id COACH_CHAT_ID (lib/coachChat.ts) — no
+ * per-topic key, since the whole point is one ongoing conversation rather
+ * than a new thread per question. Never synced to Firebase, same as
+ * SupplementChat.
+ */
+export interface CoachChat {
+  id: string
+  /** Oldest first. Seeded with a short opening line on first open, not a blank screen — see lib/coachChat.ts. */
+  messages: CoachChatMessage[]
+  createdAt: number
+  updatedAt: number
+}
+
 class KcalDatabase extends Dexie {
   meals!: EntityTable<Meal, 'id'>
   recipes!: EntityTable<Recipe, 'id'>
@@ -509,6 +562,7 @@ class KcalDatabase extends Dexie {
   dailyTargetSnapshots!: EntityTable<DailyTargetSnapshot, 'date'>
   mealprepVersions!: EntityTable<MealprepVersion, 'id'>
   supplementChats!: EntityTable<SupplementChat, 'id'>
+  coachChat!: EntityTable<CoachChat, 'id'>
 
   constructor() {
     super('kcal-tracker')
@@ -575,6 +629,19 @@ class KcalDatabase extends Dexie {
       dailyTargetSnapshots: 'date',
       mealprepVersions: 'id, recipeId, createdAt',
       supplementChats: 'id, supplementKey, updatedAt',
+    })
+    this.version(9).stores({
+      meals: 'id, date, mealType, createdAt',
+      recipes: 'id, category, createdAt',
+      supplements: 'id, name, category, createdAt',
+      mySupplements: 'id, supplementId, createdAt',
+      supplementLog: 'id, mySupplementId, date, [mySupplementId+date+timeOfDay]',
+      supplementAdvisorRuns: 'id, date, generatedAt',
+      tipRuns: 'id, date, generatedAt, [date+slot]',
+      dailyTargetSnapshots: 'date',
+      mealprepVersions: 'id, recipeId, createdAt',
+      supplementChats: 'id, supplementKey, updatedAt',
+      coachChat: 'id',
     })
   }
 }

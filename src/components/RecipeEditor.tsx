@@ -341,7 +341,7 @@ function RecipeEditorContent({
             <BackIcon />
           </button>
         ) : (
-          <h2 className="text-lg font-semibold text-ink">
+          <h2 className="font-display text-lg font-semibold text-ink">
             {initial ? 'Rezept bearbeiten' : fromMeal ? 'Rezept aus Mahlzeit' : 'Rezept hinzufügen'}
           </h2>
         )}
@@ -381,7 +381,7 @@ function RecipeEditorContent({
                       onChange={setDescription}
                       disabled={cleaningUp}
                       placeholder="z.B. 300g Nudeln, 100g Hackfleisch, 250ml Fix-Tomatensauce, 100g passierte Tomaten. Zuerst Nudeln kochen, Hackfleisch anbraten, Sauce dazugeben und köcheln lassen."
-                      className={`w-full rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none ${cleaningUp ? 'opacity-50' : ''}`}
+                      className={`field w-full rounded-2xl px-3 py-2 text-sm ${cleaningUp ? 'opacity-50' : ''}`}
                     />
                     {cleaningUp && (
                       <p className="mt-1.5 flex items-center gap-2 text-xs text-ink-soft">
@@ -444,7 +444,7 @@ function RecipeEditorContent({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Titel des Rezepts"
-                  className="rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+                  className="field rounded-2xl px-3 py-2 text-sm"
                 />
               </label>
 
@@ -474,7 +474,7 @@ function RecipeEditorContent({
                               value={ing.amount}
                               onChange={(next: number) => handleIngredientAmountChange(i, next)}
                               ariaLabel={`Menge für ${ing.name}`}
-                              className="w-16 rounded-lg border border-line bg-bg px-1.5 py-1 text-right text-xs text-ink focus:border-accent focus:outline-none"
+                              className="field w-16 rounded-lg px-1.5 py-1 text-right text-xs"
                             />
                             <span className="text-xs text-ink-soft">{ing.unit}</span>
                             <button
@@ -507,7 +507,7 @@ function RecipeEditorContent({
                       onChange={(e) => setNewIngredientText(e.target.value)}
                       placeholder="z.B. 150g Feta"
                       disabled={estimatingIngredient}
-                      className="w-full rounded-xl border border-line bg-bg px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none disabled:opacity-50"
+                      className="field w-full rounded-xl px-2.5 py-1.5 text-sm disabled:opacity-50"
                     />
                     <div className="mt-2 flex items-center gap-3">
                       <button
@@ -560,7 +560,7 @@ function RecipeEditorContent({
                         value={s.text}
                         onChange={(text) => handleStepTextChange(i, text)}
                         placeholder="Zubereitungsschritt"
-                        className="flex-1 rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+                        className="field flex-1 rounded-2xl px-3 py-2 text-sm"
                       />
                       <button
                         type="button"

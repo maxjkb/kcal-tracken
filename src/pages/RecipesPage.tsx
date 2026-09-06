@@ -54,6 +54,7 @@ export function RecipesPage() {
   for (const r of allRecipes ?? []) {
     countByCategory.set(r.category, (countByCategory.get(r.category) ?? 0) + 1)
   }
+  const maxCategoryCount = Math.max(0, ...MEAL_TYPE_ORDER.map((t) => countByCategory.get(t) ?? 0))
 
   // No SlideInPage here, unlike the two Rezepte drill-downs: this is a section
   // root, and SwipeNavigator already animates it in from whichever side the
@@ -66,7 +67,7 @@ export function RecipesPage() {
 
         <div className="grid grid-cols-2 gap-3">
           {MEAL_TYPE_ORDER.map((type) => (
-            <CategoryTile key={type} type={type} count={countByCategory.get(type) ?? 0} />
+            <CategoryTile key={type} type={type} count={countByCategory.get(type) ?? 0} maxCount={maxCategoryCount} />
           ))}
         </div>
 
@@ -123,33 +124,35 @@ export function RecipesPage() {
  * (SettingsRow, RecipeCard): the whole tile does exactly one thing — open
  * that category — so there's no second control competing for the tap.
  *
- * The color blob is a decorative, absolutely-positioned layer behind the
- * content rather than an inline `background` on the tile itself: `.glass-
- * subtle`'s own `background` shorthand (the frosted-material look) would
- * otherwise just be overwritten outright by a second inline `background`
- * on the same element, losing the glass effect entirely. Layering a
- * separate blurred circle keeps both.
+ * Big-Number-Redesign: the color used to be a large blurred circle
+ * absolutely positioned behind the content, clipped by the tile's own
+ * `overflow-hidden` — the reported "Kachel hat eine scharfe Ecke" bug (a
+ * blur this size sitting right against a rounded corner is exactly the kind
+ * of layer real devices have been seen to clip incorrectly, even though it
+ * couldn't be reproduced in this sandbox's headless Chromium). Replaced
+ * with the same `.hero-rule` scale-line device the rest of the redesign
+ * uses instead of a blob: a flat colored bar, filled relative to this
+ * category's share of the most-stocked one — no blur, no absolute
+ * positioning near a rounded edge, so the whole bug class it's a candidate
+ * for is gone structurally, not just visually.
  */
-function CategoryTile({ type, count }: { type: MealType; count: number }) {
+function CategoryTile({ type, count, maxCount }: { type: MealType; count: number; maxCount: number }) {
   const color = MEAL_TYPE_COLOR[type]
+  const fill = maxCount > 0 ? Math.max(count > 0 ? 12 : 0, (count / maxCount) * 100) : 0
   return (
     <GlassSurface
       as={Link}
       to={`/recipes/${type}`}
       rim={26}
-      className="press-card glass-subtle glass-subtle-themed relative flex flex-col gap-3 overflow-hidden rounded-3xl p-4 shadow-sm shadow-black/5"
+      className="press-card glass-subtle glass-subtle-themed flex flex-col gap-3 rounded-3xl p-4 shadow-sm shadow-black/5"
     >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-5 -top-5 h-20 w-20 rounded-full opacity-30 blur-xl"
-        style={{ background: color }}
-      />
-      <div className="relative z-10 flex flex-col gap-3">
-        <MealTypeBadge type={type} size="lg" />
-        <div>
-          <p className="text-base font-bold text-ink">{MEAL_TYPE_LABELS[type]}</p>
-          <p className="text-xs text-ink-soft">{count === 0 ? 'Noch keine Rezepte' : count === 1 ? '1 Rezept' : `${count} Rezepte`}</p>
-        </div>
+      <MealTypeBadge type={type} size="lg" />
+      <div>
+        <p className="font-display text-base font-bold text-ink">{MEAL_TYPE_LABELS[type]}</p>
+        <p className="text-xs text-ink-soft">{count === 0 ? 'Noch keine Rezepte' : count === 1 ? '1 Rezept' : `${count} Rezepte`}</p>
+      </div>
+      <div className="hero-rule" style={{ marginTop: 'auto' }}>
+        <i style={{ width: `${fill}%`, background: color }} />
       </div>
     </GlassSurface>
   )

@@ -23,6 +23,7 @@ import {
 import { getSyncError, getSyncStatus, onSyncStatusChange, resyncNow, startSync, stopSync } from '../../lib/sync'
 import { DockedField } from '../../components/DockedField'
 import { InfoButton } from '../../components/InfoButton'
+import { GlassSurface } from '../../glass/GlassSurface'
 
 /**
  * Sync setup. Tracke ships with its own Firebase project baked in
@@ -197,7 +198,7 @@ export function SyncSettingsPage() {
     <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       <SettingsBackHeader title="Sync" />
 
-      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+      <GlassSurface as="section" rim={24} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-4 shadow-sm shadow-black/5">
         <h2 className="mb-1 text-sm font-semibold text-ink">Firebase-Projekt</h2>
         <p className="mb-3 text-xs text-ink-soft">
           {isCustom
@@ -227,7 +228,7 @@ export function SyncSettingsPage() {
               onChange={(e) => setConfigText(e.target.value)}
               placeholder={'const firebaseConfig = {\n  apiKey: "…",\n  authDomain: "…",\n  projectId: "…",\n  …\n};'}
               rows={5}
-              className="w-full resize-none rounded-xl border border-line bg-bg px-3 py-2 font-mono text-xs text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+              className="field w-full resize-none rounded-xl px-3 py-2 font-mono text-xs"
             />
             <div className="mt-3 flex gap-2">
               <button
@@ -247,7 +248,7 @@ export function SyncSettingsPage() {
                 Abbrechen
               </button>
             </div>
-            {configError && <p className="mt-3 text-xs text-red-500">{configError}</p>}
+            {configError && <p className="mt-3 text-xs text-danger">{configError}</p>}
           </>
         ) : (
           <div className="flex items-center justify-between rounded-xl bg-bg px-3 py-2.5">
@@ -257,15 +258,15 @@ export function SyncSettingsPage() {
             <button
               type="button"
               onClick={() => (isCustom ? handleRemoveConfig() : setShowOverrideForm(true))}
-              className={`-my-3.5 py-3.5 text-xs font-medium ${isCustom ? 'text-red-500' : 'text-accent'}`}
+              className={`-my-3.5 py-3.5 text-xs font-medium ${isCustom ? 'text-danger' : 'text-accent'}`}
             >
               {isCustom ? 'Entfernen' : 'Anderes Projekt'}
             </button>
           </div>
         )}
-      </section>
+      </GlassSurface>
 
-      <section className="mb-6 rounded-3xl bg-surface p-4 shadow-sm shadow-black/5">
+      <GlassSurface as="section" rim={24} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-4 shadow-sm shadow-black/5">
         <h2 className="mb-1 text-sm font-semibold text-ink">Anmeldung</h2>
 
         {linkToComplete ? (
@@ -287,7 +288,7 @@ export function SyncSettingsPage() {
               value={confirmEmail}
               onChange={(e) => setConfirmEmail(e.target.value)}
               placeholder="deine@email.de"
-              className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+              className="field w-full rounded-xl px-3 py-2 text-sm"
             />
             <button
               onClick={handleConfirmEmail}
@@ -301,7 +302,7 @@ export function SyncSettingsPage() {
           <>
             <p className="mb-3 text-sm text-ink">
               Angemeldet als <span className="font-medium">{user.email}</span>.{' '}
-              <span className={`text-xs ${getSyncStatus() === 'error' ? 'text-red-500' : 'text-ink-soft'}`}>
+              <span className={`text-xs ${getSyncStatus() === 'error' ? 'text-danger' : 'text-ink-soft'}`}>
                 {getSyncStatus() === 'syncing'
                   ? 'Synchronisation aktiv.'
                   : getSyncStatus() === 'error'
@@ -319,7 +320,7 @@ export function SyncSettingsPage() {
               </button>
               <button
                 onClick={handleSignOut}
-                className="flex-1 rounded-xl bg-bg py-2.5 text-sm font-medium text-red-500 hover:bg-line"
+                className="flex-1 rounded-xl bg-bg py-2.5 text-sm font-medium text-danger hover:bg-line"
               >
                 Abmelden
               </button>
@@ -345,7 +346,7 @@ export function SyncSettingsPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="deine@email.de"
-                  className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+                  className="field w-full rounded-xl px-3 py-2 text-sm"
                 />
                 <button
                   onClick={handleSendLink}
@@ -368,7 +369,7 @@ export function SyncSettingsPage() {
                   value={pasteInput}
                   onChange={(e) => setPasteInput(e.target.value)}
                   placeholder="https://maxjkb.github.io/…"
-                  className="flex-1 rounded-xl border border-line bg-bg px-3 py-2 text-xs text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+                  className="field flex-1 rounded-xl px-3 py-2 text-xs"
                 />
                 <button
                   onClick={handlePasteLink}
@@ -382,8 +383,8 @@ export function SyncSettingsPage() {
           </>
         )}
 
-        {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
-      </section>
+        {error && <p className="mt-3 text-xs text-danger">{error}</p>}
+      </GlassSurface>
 
       {user && (
         <div className="mt-3 flex justify-end">

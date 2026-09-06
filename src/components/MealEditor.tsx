@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { REDUCED_MOTION_TRANSITION, SPRING_SNAPPY } from '../lib/motionTokens'
 import {
   db,
+  mealPhotos,
   MEAL_TYPE_LABELS,
   MEAL_TYPE_ORDER,
   newMealId,
@@ -26,7 +27,7 @@ import { addMySupplement, toggleSupplementCheck } from '../hooks/useSupplements'
 import { lookupFoodByBarcode } from '../lib/foodDatabase'
 import { DictationButton } from './DictationButton'
 import { DictationWaveform } from './DictationWaveform'
-import { PhotoActionButton, PhotoPreview } from './PhotoInput'
+import { PhotoActionButton, PhotoGallery } from './PhotoInput'
 import { ActionButton } from './ActionButton'
 import { NutritionFields } from './NutritionFields'
 import { NumberField } from './NumberField'
@@ -64,7 +65,7 @@ interface MealDraft {
   hasResult: boolean
   mealDate: string
   description: string
-  photo: string | undefined
+  photos: string[]
   mealType: MealType
   title: string
   nutrition: Nutrition
@@ -79,9 +80,9 @@ function isSameDraft(a: MealDraft, b: MealDraft): boolean {
   return JSON.stringify(a) === JSON.stringify(b)
 }
 
-/** Fallback when the snapshot won't fit in storage: the photo is by far the largest field, and the one the user can re-pick in a tap. */
-function stripPhoto(draft: MealDraft): MealDraft {
-  return { ...draft, photo: undefined }
+/** Fallback when the snapshot won't fit in storage: photos are by far the largest field, and the ones the user can re-pick in a tap. */
+function stripPhotos(draft: MealDraft): MealDraft {
+  return { ...draft, photos: [] }
 }
 
 function sumIngredients(ingredients: Ingredient[]): Nutrition {
@@ -162,7 +163,7 @@ function MealEditorContent({
     hasResult: Boolean(initial),
     mealDate: initial?.date ?? date,
     description: initial?.description ?? '',
-    photo: initial?.photo,
+    photos: initial ? mealPhotos(initial) : [],
     mealType: initial?.mealType ?? defaultMealType ?? 'lunch',
     title: initial?.title ?? '',
     nutrition: initial?.nutrition ?? EMPTY_NUTRITION,
@@ -180,7 +181,7 @@ function MealEditorContent({
   const [hasResult, setHasResult] = useState(restored?.hasResult ?? baseline.hasResult)
   const [mealDate, setMealDate] = useState(restored?.mealDate ?? baseline.mealDate)
   const [description, setDescription] = useState(restored?.description ?? baseline.description)
-  const [photo, setPhoto] = useState<string | undefined>(restored ? restored.photo : baseline.photo)
+  const [photos, setPhotos] = useState<string[]>(restored ? restored.photos : baseline.photos)
   const [mealType, setMealType] = useState<MealType>(restored?.mealType ?? baseline.mealType)
   const [title, setTitle] = useState(restored?.title ?? baseline.title)
   const [nutrition, setNutrition] = useState<Nutrition>(restored?.nutrition ?? baseline.nutrition)
@@ -265,7 +266,7 @@ function MealEditorContent({
     hasResult,
     mealDate,
     description,
-    photo,
+    photos,
     mealType,
     title,
     nutrition,
@@ -274,7 +275,7 @@ function MealEditorContent({
     note,
     manuallyEdited,
   }
-  const draft = useDraftAutosave(draftId, snapshot, !isSameDraft(snapshot, baseline), stripPhoto)
+  const draft = useDraftAutosave(draftId, snapshot, !isSameDraft(snapshot, baseline), stripPhotos)
 
   /** Drops the restored values and returns the sheet to how it opened. */
   function discardDraft() {
@@ -282,7 +283,7 @@ function MealEditorContent({
     setHasResult(baseline.hasResult)
     setMealDate(baseline.mealDate)
     setDescription(baseline.description)
-    setPhoto(baseline.photo)
+    setPhotos(baseline.photos)
     setMealType(baseline.mealType)
     setTitle(baseline.title)
     setNutrition(baseline.nutrition)
@@ -391,7 +392,7 @@ function MealEditorContent({
   }
 
   async function handleEstimate() {
-    if (!description.trim() && !photo) {
+    if (!description.trim() && photos.length === 0) {
       setError('Bitte beschreibe die Mahlzeit oder füge ein Foto hinzu.')
       return
     }
@@ -407,7 +408,7 @@ function MealEditorContent({
       setEstimateProgress((p) => Math.min(92, p + (92 - p) * 0.1))
     }, 180)
     try {
-      const result = await estimateNutrition({ description, photoDataUrl: photo })
+      const result = await estimateNutrition({ description, photoDataUrls: photos })
       setTitle((current) => current || result.suggestedTitle)
       setNutrition({ kcal: result.kcal, protein: result.protein, carbs: result.carbs, fat: result.fat })
       setIngredients(result.ingredients)
@@ -450,7 +451,7 @@ function MealEditorContent({
       mealType,
       title: title.trim() || 'Mahlzeit',
       description,
-      photo,
+      photos,
       nutrition,
       ingredients,
       micronutrients,
@@ -492,6 +493,14 @@ function MealEditorContent({
    * only into the totals, so the review step's existing per-ingredient
    * amount field is immediately how someone corrects the portion size —
    * "the tub was 250g, not 100g" is a number edit, not a re-scan.
+   *
+   * Appends rather than replaces: a meal is often more than one scanned
+   * product (a yogurt AND its topping, both packaged), and this is also
+   * what "Produkt scannen" in the review step (see below) re-invokes —
+   * replacing here would silently throw away whatever was already scanned
+   * or typed. Title/description follow the same rule: the first scan sets
+   * them outright, a later one appends to the description without
+   * clobbering a title the user may have already edited themselves.
    */
   async function handleBarcodeDetected(barcode: string) {
     setBarcodeStep('looking-up')
@@ -500,12 +509,20 @@ function MealEditorContent({
       setBarcodeStep('not-found')
       return
     }
-    setDescription(match.name)
-    setTitle(match.name)
-    setIngredients([
-      { name: match.name, amount: 100, unit: 'g', kcal: match.kcal100g, protein: match.protein100g, carbs: match.carbs100g, fat: match.fat100g },
-    ])
-    setNutrition({ kcal: match.kcal100g, protein: match.protein100g, carbs: match.carbs100g, fat: match.fat100g })
+    const newIngredient: Ingredient = {
+      name: match.name,
+      amount: 100,
+      unit: 'g',
+      kcal: match.kcal100g,
+      protein: match.protein100g,
+      carbs: match.carbs100g,
+      fat: match.fat100g,
+    }
+    const nextIngredients = ingredients && ingredients.length > 0 ? [...ingredients, newIngredient] : [newIngredient]
+    setIngredients(nextIngredients)
+    setNutrition(sumIngredients(nextIngredients))
+    setDescription((prev) => (prev.trim() ? `${prev}, ${match.name}` : match.name))
+    setTitle((prev) => prev.trim() || match.name)
     setManuallyEdited(false)
     setHasResult(true)
     setStep('review')
@@ -541,7 +558,7 @@ function MealEditorContent({
   if (barcodeStep === 'not-found') {
     return (
       <div className="flex flex-col gap-4 p-5 pt-7">
-        <h2 className="text-lg font-semibold text-ink">Kein Produkt gefunden</h2>
+        <h2 className="font-display text-lg font-semibold text-ink">Kein Produkt gefunden</h2>
         <p className="text-sm text-ink-soft">
           Dieser Barcode ist bei Open Food Facts nicht hinterlegt, oder der Eintrag hat keine vollständigen
           Nährwertangaben. Du kannst es erneut versuchen oder die Mahlzeit wie gewohnt beschreiben.
@@ -599,7 +616,7 @@ function MealEditorContent({
   if (matchedSupplements) {
     return (
       <div className="flex flex-col gap-4 p-5 pt-7">
-        <h2 className="text-lg font-semibold text-ink">Supp erkannt</h2>
+        <h2 className="font-display text-lg font-semibold text-ink">Supp erkannt</h2>
         <p className="text-sm text-ink-soft">
           In deiner Beschreibung erwähnt — heute als eingenommen markieren?
         </p>
@@ -626,7 +643,7 @@ function MealEditorContent({
         <button
           type="button"
           onClick={requestClose}
-          className="mt-2 w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-white hover:opacity-90"
+          className="mt-2 w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-bg hover:opacity-90"
         >
           Fertig
         </button>
@@ -642,7 +659,7 @@ function MealEditorContent({
             <BackIcon />
           </button>
         ) : (
-          <h2 className="text-lg font-semibold text-ink">{initial ? 'Mahlzeit bearbeiten' : 'Mahlzeit hinzufügen'}</h2>
+          <h2 className="font-display text-lg font-semibold text-ink">{initial ? 'Mahlzeit bearbeiten' : 'Mahlzeit hinzufügen'}</h2>
         )}
         <div className="flex items-center gap-3">
           {step === 'input' && hasResult && (
@@ -730,7 +747,9 @@ function MealEditorContent({
                     buttons are docked below it, outside the scroll — that is
                     what keeps both reachable without opening the sheet, and
                     it is also why neither needs `sticky` any more. */}
-                {photo && <PhotoPreview photo={photo} onChange={setPhoto} />}
+                {photos.length > 0 && (
+                  <PhotoGallery photos={photos} onRemove={(i) => setPhotos((prev) => prev.filter((_, j) => j !== i))} />
+                )}
 
                 {!hasApiKey && (
                   <p className="rounded-2xl bg-fat/15 px-3 py-2 text-xs text-ink">
@@ -875,8 +894,8 @@ function MealEditorContent({
                     <ActionButton label="Rezept auswählen" onClick={() => setPickingRecipe(true)}>
                       <RecipeIcon />
                     </ActionButton>
-                    <PhotoActionButton photo={photo} onChange={setPhoto} source="camera" />
-                    <PhotoActionButton photo={photo} onChange={setPhoto} source="library" />
+                    <PhotoActionButton count={photos.length} onAdd={(p) => setPhotos((prev) => [...prev, p])} source="camera" />
+                    <PhotoActionButton count={photos.length} onAdd={(p) => setPhotos((prev) => [...prev, p])} source="library" />
                     <ActionButton label="Barcode scannen" onClick={openBarcodeScanner}>
                       <BarcodeIcon />
                     </ActionButton>
@@ -894,13 +913,21 @@ function MealEditorContent({
               what review actually needed to show. */}
           <div data-sheet-collapse className="w-full shrink-0 overflow-y-auto overflow-x-hidden px-5 pb-5">
             <div className="flex flex-col gap-4">
+              {/* The one place in review a photo was invisible: step 1's own
+                  PhotoGallery lives in step 1's scroll area, which review
+                  doesn't share — attaching a photo, then estimating, landed
+                  on review with no sign it existed at all until save. */}
+              {photos.length > 0 && (
+                <PhotoGallery photos={photos} onRemove={(i) => setPhotos((prev) => prev.filter((_, j) => j !== i))} />
+              )}
+
               <label className="flex flex-col gap-1">
                 <span className="text-xs text-ink-soft">Datum</span>
                 <input
                   type="date"
                   value={mealDate}
                   onChange={(e) => e.target.value && setMealDate(e.target.value)}
-                  className="rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+                  className="field rounded-2xl px-3 py-2 text-sm"
                 />
               </label>
 
@@ -929,7 +956,7 @@ function MealEditorContent({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Titel des Gerichts"
-                  className="rounded-2xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+                  className="field rounded-2xl px-3 py-2 text-sm"
                 />
               </label>
 
@@ -975,7 +1002,7 @@ function MealEditorContent({
                                 value={ing.amount}
                                 onChange={(next: number) => handleIngredientAmountChange(i, next)}
                                 ariaLabel={`Menge für ${ing.name}`}
-                                className="w-16 rounded-lg border border-line bg-bg px-1.5 py-1 text-right text-xs text-ink focus:border-accent focus:outline-none"
+                                className="field w-16 rounded-lg px-1.5 py-1 text-right text-xs"
                               />
                               <span className="text-xs text-ink-soft">{ing.unit}</span>
                             </div>
@@ -998,6 +1025,23 @@ function MealEditorContent({
                   </Collapse>
                 </div>
               )}
+
+              {/* Reachable from review, not just from the input step's docked
+                  row: a meal is often more than one scanned product (see
+                  handleBarcodeDetected's own doc comment), and without this
+                  the only way to add a second one was to save this meal,
+                  reopen the editor, and scan into an unrelated new entry —
+                  exactly the "muss erst eine Mahlzeit anlegen" complaint. */}
+              <button
+                type="button"
+                onClick={openBarcodeScanner}
+                className="flex items-center justify-center gap-1.5 rounded-2xl border border-line py-2.5 text-sm font-medium text-ink-soft transition hover:bg-bg"
+              >
+                <BarcodeIcon className="h-4 w-4" />
+                Weiteres Produkt scannen
+              </button>
+
+              {barcodeLoadError && <p className="text-sm font-medium text-danger">{barcodeLoadError}</p>}
 
               <button
                 type="button"
@@ -1147,9 +1191,9 @@ function RecipeIcon() {
   )
 }
 
-function BarcodeIcon() {
+function BarcodeIcon({ className = 'h-5 w-5' }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
       <path strokeLinecap="round" d="M4 5v14M8 5v14M11 5v14M13 5v14M16 5v14M20 5v14" />
     </svg>
   )

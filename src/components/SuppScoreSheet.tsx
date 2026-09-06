@@ -62,7 +62,7 @@ export function SuppScoreSheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet onClose={onClose} sheetClassName="glass flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl">
       <div className="flex shrink-0 items-center justify-between border-b border-line/60 px-5 py-4">
-        <h2 className="text-lg font-semibold text-ink">Supp-Score</h2>
+        <h2 className="font-display text-lg font-semibold text-ink">Supp-Score</h2>
         <button
           type="button"
           onClick={onClose}
@@ -78,7 +78,7 @@ export function SuppScoreSheet({ onClose }: { onClose: () => void }) {
           <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Gesamt, seit Beginn</p>
           {score?.overallScore != null ? (
             <p className="mt-1 flex items-baseline justify-center gap-1.5">
-              <span className="text-4xl font-bold text-accent">{score.overallScore}</span>
+              <span className="hero-num text-4xl text-accent">{score.overallScore}</span>
               <span className="text-sm font-medium text-ink-soft">/ 100</span>
             </p>
           ) : (
