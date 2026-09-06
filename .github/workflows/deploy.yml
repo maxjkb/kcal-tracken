@@ -2,7 +2,11 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    # claude/nutrition-tracker-app-k9vdjn added temporarily for a one-off
+    # live preview deploy of the rebrand work, at the user's explicit
+    # request ("Mach es live" -> temporär auf die echte Live-URL). Reverted
+    # in a follow-up commit right after the deploy completes.
+    branches: [main, claude/nutrition-tracker-app-k9vdjn]
   workflow_dispatch:
 
 permissions:
