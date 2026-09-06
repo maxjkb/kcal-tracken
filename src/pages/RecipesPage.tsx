@@ -132,28 +132,39 @@ export function RecipesPage() {
  * couldn't be reproduced in this sandbox's headless Chromium). Replaced
  * with the same `.hero-rule` scale-line device the rest of the redesign
  * uses instead of a blob: a flat colored bar, filled relative to this
- * category's share of the most-stocked one — no blur, no absolute
- * positioning near a rounded edge, so the whole bug class it's a candidate
- * for is gone structurally, not just visually.
+ * category's share of the most-stocked one.
+ *
+ * Global brainstorm round (v2.1): the fill bar is gone in favor of the
+ * count itself, shown as a large colored digit exactly where the bar used
+ * to sit — explicit feedback was that a bar implying "how full" read as a
+ * progress/quota metaphor for something that isn't one (there's no target
+ * number of recipes to fill up toward). The plain count is what the bar was
+ * standing in for anyway; showing it directly, in the tile's own meal-type
+ * color and the same display face as every other "big number" in the app,
+ * says the same thing without the borrowed metaphor — the same "let the
+ * number speak for itself" move RemainingHero already makes for a 0 kcal
+ * empty state, applied here too rather than keeping a separate "Noch keine
+ * Rezepte" line that would just repeat what a plain "0" already says.
+ * `maxCount` is unused now but kept in the signature — every call site
+ * still computes and passes it, and there's no benefit to touching those
+ * four call sites just to drop a prop this component alone stopped
+ * needing.
  */
-function CategoryTile({ type, count, maxCount }: { type: MealType; count: number; maxCount: number }) {
+function CategoryTile({ type, count }: { type: MealType; count: number; maxCount: number }) {
   const color = MEAL_TYPE_COLOR[type]
-  const fill = maxCount > 0 ? Math.max(count > 0 ? 12 : 0, (count / maxCount) * 100) : 0
   return (
     <GlassSurface
       as={Link}
       to={`/recipes/${type}`}
       rim={26}
+      aria-label={`${MEAL_TYPE_LABELS[type]}: ${count === 0 ? 'noch keine Rezepte' : count === 1 ? '1 Rezept' : `${count} Rezepte`}`}
       className="press-card glass-subtle glass-subtle-themed flex flex-col gap-3 rounded-3xl p-4 shadow-sm shadow-black/5"
     >
       <MealTypeBadge type={type} size="lg" />
-      <div>
-        <p className="font-display text-base font-bold text-ink">{MEAL_TYPE_LABELS[type]}</p>
-        <p className="text-xs text-ink-soft">{count === 0 ? 'Noch keine Rezepte' : count === 1 ? '1 Rezept' : `${count} Rezepte`}</p>
-      </div>
-      <div className="hero-rule" style={{ marginTop: 'auto' }}>
-        <i style={{ width: `${fill}%`, background: color }} />
-      </div>
+      <p className="font-display text-base font-bold text-ink">{MEAL_TYPE_LABELS[type]}</p>
+      <span aria-hidden="true" className="hero-num mt-auto text-3xl" style={{ color }}>
+        {count}
+      </span>
     </GlassSurface>
   )
 }

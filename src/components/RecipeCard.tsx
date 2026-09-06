@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Recipe } from '../lib/db'
 import { deleteRecipe } from '../hooks/useRecipes'
-import { MacroBadge, MacroRingBadge } from './MacroBadge'
+import { MacroBadge } from './MacroBadge'
 import { GlassSurface } from '../glass/GlassSurface'
 
 /**
@@ -37,9 +37,9 @@ export function RecipeCard({ recipe, onView }: { recipe: Recipe; onView: () => v
       <div className="mt-3 flex items-center gap-2">
         <button className="press-target flex min-w-0 flex-1 flex-wrap gap-1.5 text-left" onClick={onView}>
           <MacroBadge type="kcal" value={recipe.nutrition.kcal} size="sm" />
-          <MacroRingBadge type="protein" value={recipe.nutrition.protein} size="sm" />
-          <MacroRingBadge type="carbs" value={recipe.nutrition.carbs} size="sm" />
-          <MacroRingBadge type="fat" value={recipe.nutrition.fat} size="sm" />
+          <MacroBadge type="protein" value={recipe.nutrition.protein} size="sm" />
+          <MacroBadge type="carbs" value={recipe.nutrition.carbs} size="sm" />
+          <MacroBadge type="fat" value={recipe.nutrition.fat} size="sm" />
         </button>
         {confirmingDelete ? (
           <div className="flex shrink-0 gap-1">

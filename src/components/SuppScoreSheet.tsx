@@ -21,20 +21,19 @@ function buildCalendarGrid(year: number, month: number): Date[] {
 }
 
 /**
- * The Supplementscore's own destination — a Sheet now, not a routed page
- * (`/supplements/score` used to exist; both entry points below open this
- * same component instead). Two things the "Heute" tab never showed: the
- * score broken down per supplement side by side (that lived squeezed into
- * SupplementScoreCard already, but with no room to breathe), and a calendar
- * of which days actually had at least one supplement taken at all, across
- * the whole routine — the shape of a habit over a month, which a single
- * running number can't show on its own.
+ * The Supp-Score's own content: the running total, a per-supplement
+ * breakdown, and a calendar of which days had any intake at all — the shape
+ * of a habit over a month, which a single running number can't show alone.
  *
- * Reached from two places, both rendering this same sheet locally: the
- * Statistik card (SupplementScoreCard) and a dedicated trophy button in the
- * Supplements page header, next to the Katalog button.
+ * Global brainstorm round (v2.1): split out of SuppScoreSheet so the exact
+ * same content can render two ways — inside a Sheet (SuppScoreSheet below,
+ * still how the Statistik card's SupplementScoreCard reaches it) and inline
+ * as one of the Supps page's own tabs (its own trophy header button is
+ * gone; "Score" is now a tab picked from the same expandable pill as
+ * Heute/Vorschläge/Katalog, see SupplementsPage.tsx). Content and chrome
+ * were never actually coupled — this just makes that explicit.
  */
-export function SuppScoreSheet({ onClose }: { onClose: () => void }) {
+export function SuppScoreContent() {
   const score = useSupplementScore()
 
   const today = new Date()
@@ -60,6 +59,108 @@ export function SuppScoreSheet({ onClose }: { onClose: () => void }) {
   const todayKey = toLocalDateKey(today)
 
   return (
+    <div className="flex flex-col gap-4">
+      <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 text-center shadow-sm shadow-black/5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Gesamt, seit Beginn</p>
+        {score?.overallScore != null ? (
+          <p className="mt-1 flex items-baseline justify-center gap-1.5">
+            <span className="hero-num text-4xl text-accent">{score.overallScore}</span>
+            <span className="text-sm font-medium text-ink-soft">/ 100</span>
+          </p>
+        ) : (
+          <p className="mt-1 text-sm text-ink-soft">–</p>
+        )}
+      </GlassSurface>
+
+      <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
+        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Pro Supp</h3>
+        {score === undefined ? (
+          <p className="py-4 text-center text-sm text-ink-soft">Lädt…</p>
+        ) : score.rows.length === 0 ? (
+          <p className="py-4 text-center text-sm text-ink-soft">Noch keine Supps auf der Liste.</p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {score.rows.map((r) => {
+              const rowScore = r.totalSlots > 0 ? Math.round((r.checkedSlots / r.totalSlots) * 100) : null
+              const pct = r.totalSlots > 0 ? Math.min(100, (r.checkedSlots / r.totalSlots) * 100) : 0
+              return (
+                <div key={r.id}>
+                  <div className="mb-1 flex items-center justify-between gap-3 text-sm">
+                    <span className="min-w-0 truncate text-ink">{r.name}</span>
+                    <span className="shrink-0 text-xs text-ink-soft">
+                      {rowScore === null ? '–' : `${r.checkedSlots}/${r.totalSlots} · ${rowScore} Pkt.`}
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-line/60">
+                    <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </GlassSurface>
+
+      <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
+        <div className="mb-3 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => shiftMonth(-1)}
+            aria-label="Vorheriger Monat"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-bg text-ink-soft hover:bg-line"
+          >
+            <ChevronIcon direction="left" className="h-3.5 w-3.5" />
+          </button>
+          <span className="text-sm font-medium text-ink">
+            {FULL_MONTH_LABELS[viewMonth - 1]} {viewYear}
+          </span>
+          <button
+            type="button"
+            onClick={() => shiftMonth(1)}
+            aria-label="Nächster Monat"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-bg text-ink-soft hover:bg-line"
+          >
+            <ChevronIcon direction="right" className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-ink-faint">
+          {WEEKDAY_LABELS.map((w) => (
+            <div key={w} className="py-1">
+              {w}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {grid.map((date) => {
+            const key = toLocalDateKey(date)
+            const inMonth = date.getMonth() + 1 === viewMonth
+            const isToday = key === todayKey
+            const hasIntake = daysWithIntake.has(key)
+            return (
+              <div
+                key={key}
+                className={`relative flex h-9 flex-col items-center justify-center rounded-full text-sm ${
+                  inMonth ? 'text-ink' : 'text-ink-faint'
+                } ${isToday ? 'ring-1 ring-inset ring-accent' : ''}`}
+              >
+                {date.getDate()}
+                {hasIntake && <span className="absolute bottom-1 h-1 w-1 rounded-full bg-accent" />}
+              </div>
+            )
+          })}
+        </div>
+      </GlassSurface>
+    </div>
+  )
+}
+
+/**
+ * The Supp-Score as a Sheet — still how SupplementScoreCard (the Statistik
+ * page's own card) reaches it; the Supps page itself now renders
+ * SuppScoreContent inline as a tab instead of opening this.
+ */
+export function SuppScoreSheet({ onClose }: { onClose: () => void }) {
+  return (
     <Sheet onClose={onClose} sheetClassName="glass flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl">
       <div className="flex shrink-0 items-center justify-between border-b border-line/60 px-5 py-4">
         <h2 className="font-display text-lg font-semibold text-ink">Supp-Score</h2>
@@ -73,97 +174,8 @@ export function SuppScoreSheet({ onClose }: { onClose: () => void }) {
         </button>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
-        <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 text-center shadow-sm shadow-black/5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Gesamt, seit Beginn</p>
-          {score?.overallScore != null ? (
-            <p className="mt-1 flex items-baseline justify-center gap-1.5">
-              <span className="hero-num text-4xl text-accent">{score.overallScore}</span>
-              <span className="text-sm font-medium text-ink-soft">/ 100</span>
-            </p>
-          ) : (
-            <p className="mt-1 text-sm text-ink-soft">–</p>
-          )}
-        </GlassSurface>
-
-        <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Pro Supp</h3>
-          {score === undefined ? (
-            <p className="py-4 text-center text-sm text-ink-soft">Lädt…</p>
-          ) : score.rows.length === 0 ? (
-            <p className="py-4 text-center text-sm text-ink-soft">Noch keine Supps auf der Liste.</p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {score.rows.map((r) => {
-                const rowScore = r.totalSlots > 0 ? Math.round((r.checkedSlots / r.totalSlots) * 100) : null
-                const pct = r.totalSlots > 0 ? Math.min(100, (r.checkedSlots / r.totalSlots) * 100) : 0
-                return (
-                  <div key={r.id}>
-                    <div className="mb-1 flex items-center justify-between gap-3 text-sm">
-                      <span className="min-w-0 truncate text-ink">{r.name}</span>
-                      <span className="shrink-0 text-xs text-ink-soft">
-                        {rowScore === null ? '–' : `${r.checkedSlots}/${r.totalSlots} · ${rowScore} Pkt.`}
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-line/60">
-                      <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </GlassSurface>
-
-        <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
-          <div className="mb-3 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => shiftMonth(-1)}
-              aria-label="Vorheriger Monat"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-bg text-ink-soft hover:bg-line"
-            >
-              <ChevronIcon direction="left" className="h-3.5 w-3.5" />
-            </button>
-            <span className="text-sm font-medium text-ink">
-              {FULL_MONTH_LABELS[viewMonth - 1]} {viewYear}
-            </span>
-            <button
-              type="button"
-              onClick={() => shiftMonth(1)}
-              aria-label="Nächster Monat"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-bg text-ink-soft hover:bg-line"
-            >
-              <ChevronIcon direction="right" className="h-3.5 w-3.5" />
-            </button>
-          </div>
-          <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-ink-faint">
-            {WEEKDAY_LABELS.map((w) => (
-              <div key={w} className="py-1">
-                {w}
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-1">
-            {grid.map((date) => {
-              const key = toLocalDateKey(date)
-              const inMonth = date.getMonth() + 1 === viewMonth
-              const isToday = key === todayKey
-              const hasIntake = daysWithIntake.has(key)
-              return (
-                <div
-                  key={key}
-                  className={`relative flex h-9 flex-col items-center justify-center rounded-full text-sm ${
-                    inMonth ? 'text-ink' : 'text-ink-faint'
-                  } ${isToday ? 'ring-1 ring-inset ring-accent' : ''}`}
-                >
-                  {date.getDate()}
-                  {hasIntake && <span className="absolute bottom-1 h-1 w-1 rounded-full bg-accent" />}
-                </div>
-              )
-            })}
-          </div>
-        </GlassSurface>
+      <div className="min-h-0 flex-1 overflow-y-auto p-5">
+        <SuppScoreContent />
       </div>
     </Sheet>
   )

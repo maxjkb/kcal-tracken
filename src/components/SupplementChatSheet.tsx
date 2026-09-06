@@ -23,18 +23,25 @@ import { InfoButton } from './InfoButton'
  */
 export function SupplementChatSheet({ suggestion, onClose }: { suggestion: SupplementRecommendation; onClose: () => void }) {
   const [ready, setReady] = useState(false)
+  // Global brainstorm round (v2.1): openSupplementChat now always creates a
+  // fresh row instead of resuming one keyed by supplement name, so this
+  // sheet has to track exactly *which* row it opened and read that one back
+  // by id — querying by supplementKey again would risk picking up an older
+  // thread for the same supplement (Dexie's `.first()` on a non-unique
+  // index has no guarantee of returning the newest match).
+  const [chatId, setChatId] = useState<string | null>(null)
   const [question, setQuestion] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Creates the thread (idempotent) the first time this sheet ever opens for
-  // this supplement — see openSupplementChat's own doc comment for why a
-  // second open just returns the same thread instead of duplicating it.
   useEffect(() => {
     let cancelled = false
-    void openSupplementChat(suggestion).then(() => {
-      if (!cancelled) setReady(true)
+    void openSupplementChat(suggestion).then((chat) => {
+      if (!cancelled) {
+        setChatId(chat.id)
+        setReady(true)
+      }
     })
     return () => {
       cancelled = true
@@ -43,10 +50,7 @@ export function SupplementChatSheet({ suggestion, onClose }: { suggestion: Suppl
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const chat: SupplementChat | undefined = useLiveQuery(
-    () => db.supplementChats.where('supplementKey').equals(suggestion.supplementName.trim().toLowerCase()).first(),
-    [suggestion.supplementName],
-  )
+  const chat: SupplementChat | undefined = useLiveQuery(() => (chatId ? db.supplementChats.get(chatId) : undefined), [chatId])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })

@@ -35,7 +35,7 @@ import { AutoGrowTextarea } from './AutoGrowTextarea'
 import { ChevronIcon } from './ChevronIcon'
 import { StaggeredList } from './StaggeredList'
 import { BouncingDots } from './BouncingDots'
-import { MacroBadge, MacroRingBadge } from './MacroBadge'
+import { MacroBadge } from './MacroBadge'
 import { Link } from 'react-router-dom'
 import { Sheet } from './Sheet'
 import { useSheetClose } from '../hooks/useSheetClose'
@@ -1009,9 +1009,9 @@ function MealEditorContent({
                           </div>
                           <div className="mt-1.5 flex flex-wrap gap-1.5">
                             <MacroBadge type="kcal" value={ing.kcal} size="sm" />
-                            <MacroRingBadge type="protein" value={ing.protein} size="sm" />
-                            <MacroRingBadge type="carbs" value={ing.carbs} size="sm" />
-                            <MacroRingBadge type="fat" value={ing.fat} size="sm" />
+                            <MacroBadge type="protein" value={ing.protein} size="sm" />
+                            <MacroBadge type="carbs" value={ing.carbs} size="sm" />
+                            <MacroBadge type="fat" value={ing.fat} size="sm" />
                           </div>
                           {ing.note && <p className="mt-1.5 text-xs italic text-ink-soft">{ing.note}</p>}
                         </div>
@@ -1142,9 +1142,9 @@ function MealSuggestions({
                     point of the list. */}
                 <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
                   <MacroBadge type="kcal" value={s.nutrition.kcal} size="sm" />
-                  <MacroRingBadge type="protein" value={s.nutrition.protein} size="sm" />
-                  <MacroRingBadge type="carbs" value={s.nutrition.carbs} size="sm" />
-                  <MacroRingBadge type="fat" value={s.nutrition.fat} size="sm" />
+                  <MacroBadge type="protein" value={s.nutrition.protein} size="sm" />
+                  <MacroBadge type="carbs" value={s.nutrition.carbs} size="sm" />
+                  <MacroBadge type="fat" value={s.nutrition.fat} size="sm" />
                 </span>
               </span>
               <span className="shrink-0 text-ink-faint">

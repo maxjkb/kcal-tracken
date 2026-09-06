@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
 import {
   SUPPLEMENT_CATEGORY_LABELS,
   SUPPLEMENT_TIME_LABELS,
@@ -24,125 +23,56 @@ import { dismissalKey, dismissHintForToday, isHintDismissedToday } from '../lib/
 import { SupplementChecklistRow } from '../components/SupplementChecklist'
 import { SupplementFormSheet } from '../components/SupplementFormSheet'
 import { SupplementDetailSheet } from '../components/SupplementDetailSheet'
-import { SupplementCatalogSheet } from '../components/SupplementCatalogSheet'
-import { SuppScoreSheet } from '../components/SuppScoreSheet'
-import { CoachChatSheet } from '../components/CoachChatSheet'
+import { SupplementCatalogContent } from '../components/SupplementCatalogContent'
+import { SuppScoreContent } from '../components/SuppScoreSheet'
 import { SupplementCategoryBadge } from '../components/SupplementCategoryBadge'
 import { InfoButton } from '../components/InfoButton'
-import { HeaderButton } from '../components/PageHeader'
-import { SPRING_SNAPPY } from '../lib/motionTokens'
+import { ExpandablePicker } from '../components/ExpandablePicker'
 import { GlassSurface } from '../glass/GlassSurface'
 
-type Tab = 'today' | 'suggestions'
+type Tab = 'today' | 'suggestions' | 'score' | 'catalog'
 const TABS: { key: Tab; label: string }[] = [
   { key: 'today', label: 'Heute' },
   { key: 'suggestions', label: 'Vorschläge' },
+  { key: 'score', label: 'Supp-Score' },
+  { key: 'catalog', label: 'Katalog' },
 ]
 
 export function SupplementsPage() {
   const [tab, setTab] = useState<Tab>('today')
-  // Katalog used to be a third tab here — now a sheet, reached from the
-  // header like Einstellungen/+ already are. It doesn't belong to either
-  // "Heute" or "Vorschläge": browsing/adding from the catalog is an action
-  // you take *from* those views, not a view of its own you'd sit in.
-  const [catalogOpen, setCatalogOpen] = useState(false)
-  // Same reasoning as the Katalog button below: the Supp-Score used to be
-  // its own routed page, reached only via the Statistik card. A trophy
-  // button right beside Katalog gets there directly from Supplements too,
-  // without a detour through Statistik.
-  const [scoreOpen, setScoreOpen] = useState(false)
-  // The one app-wide coach chat (lib/coachChat.ts) — unlike a recommendation
-  // card's own KI-Chat-Button, not scoped to a single supplement, so it
-  // lives in the page's own toolbar instead, alongside Supp-Score/Katalog.
-  const [coachOpen, setCoachOpen] = useState(false)
-  const prefersReducedMotion = useReducedMotion()
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-28">
-      <PageHeader
-        title="Supps"
-        actions={
-          <>
-            <HeaderButton onClick={() => setCoachOpen(true)} label="Coach-Chat">
-              <ChatIcon />
-            </HeaderButton>
-            <HeaderButton onClick={() => setScoreOpen(true)} label="Supp-Score">
-              <TrophyIcon />
-            </HeaderButton>
-            <HeaderButton onClick={() => setCatalogOpen(true)} label="Katalog">
-              <CatalogIcon />
-            </HeaderButton>
-          </>
-        }
-      />
+      {/* Global brainstorm round (v2.1): Supp-Score and Katalog used to be
+          separate header-icon buttons opening their own Sheets, and Heute/
+          Vorschläge a permanently-expanded two-tab row below the header —
+          explicit request to fold all four into one picker that defaults
+          to collapsed (just "Heute"), so the header goes back to only
+          Einstellungen/Plus (PageHeader supplies those itself) like every
+          other main page. */}
+      <PageHeader title="Supps" />
 
-      {/* Full .glass, not .glass-subtle — a segmented control is navigation
-          the same way BottomNav is, so it gets the same material. */}
-      <GlassSurface rim={22} className="glass mb-5 flex gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5">
-        {TABS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`relative flex-1 rounded-full py-3 text-sm font-medium transition-colors ${
-              tab === key ? 'text-ink' : 'text-ink-soft hover:text-ink'
-            }`}
-          >
-            {tab === key && (
-              <motion.span
-                layoutId="supplements-tab-pill"
-                className="absolute inset-0 rounded-full bg-section-20"
-                transition={prefersReducedMotion ? { duration: 0 } : SPRING_SNAPPY}
-              />
-            )}
-            <span className="relative z-10">{label}</span>
-          </button>
-        ))}
-      </GlassSurface>
+      <ExpandablePicker options={TABS} value={tab} onChange={setTab} label="Ansicht" />
 
       {tab === 'today' && <TodayTab />}
       {tab === 'suggestions' && <SuggestionsTab />}
+      {tab === 'score' && <SuppScoreContent />}
+      {tab === 'catalog' && <SupplementCatalogContent />}
 
       {/* Was a permanently-visible paragraph — now behind an "i" like every
-          other disclaimer in the app, per explicit request. */}
-      <div className="mt-8 flex justify-center">
-        <InfoButton label="Hinweis zu den Supp-Vorschlägen" title="Hinweis">
-          Diese Vorschläge basieren auf deinen geloggten Daten und allgemein bekannten Zusammenhängen — sie sind
-          keine medizinische Beratung. Bei Vorerkrankungen, Medikamenten oder Schwangerschaft vorher ärztlich
-          abklären.
-        </InfoButton>
-      </div>
-
-      {catalogOpen && <SupplementCatalogSheet onClose={() => setCatalogOpen(false)} />}
-      {scoreOpen && <SuppScoreSheet onClose={() => setScoreOpen(false)} />}
-      {coachOpen && <CoachChatSheet onClose={() => setCoachOpen(false)} />}
+          other disclaimer in the app, per explicit request. Only meaningful
+          on the Vorschläge tab, so it only shows there now that Score/
+          Katalog share this same page. */}
+      {tab === 'suggestions' && (
+        <div className="mt-8 flex justify-center">
+          <InfoButton label="Hinweis zu den Supp-Vorschlägen" title="Hinweis">
+            Diese Vorschläge basieren auf deinen geloggten Daten und allgemein bekannten Zusammenhängen — sie sind
+            keine medizinische Beratung. Bei Vorerkrankungen, Medikamenten oder Schwangerschaft vorher ärztlich
+            abklären.
+          </InfoButton>
+        </div>
+      )}
     </div>
-  )
-}
-
-function ChatIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-[1.15rem] w-[1.15rem]">
-      <rect x="4" y="4" width="16" height="12" rx="3" strokeLinejoin="round" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16v4l4-4" />
-    </svg>
-  )
-}
-
-function CatalogIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-[1.15rem] w-[1.15rem]">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 0 4 21.5v-16Z" />
-      <path strokeLinecap="round" d="M4 18.5A2.5 2.5 0 0 1 6.5 16H20" />
-    </svg>
-  )
-}
-
-function TrophyIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-[1.15rem] w-[1.15rem]">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8 4h8v4a4 4 0 0 1-8 0V4Z" />
-      <path strokeLinecap="round" d="M8 5H5a3 3 0 0 0 3 4M16 5h3a3 3 0 0 1-3 4M12 12v3M9 19h6M10 19v-2.5a2 2 0 0 1 4 0V19" />
-    </svg>
   )
 }
 

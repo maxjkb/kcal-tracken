@@ -17,6 +17,18 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '2.1.0',
+    date: '2026-09-06',
+    highlights: [
+      'App-Icon und Hintergrundmuster tragen jetzt das neue Design statt der alten Ring-Optik: das Icon zeigt ein eigenes „t"-Zeichen, der Hintergrund ein gekacheltes „t"-Muster, größtenteils in Tinte mit einzelnen Buchstaben in den vier Makro-Farben.',
+      'Tageszeiten-Farben (Frühstück/Mittag/Abend/Snack) sind neu abgestimmt auf die erweiterte Farbpalette, statt der alten, nicht mehr passenden Pastelltöne — und ohne doppelte Bedeutung mit den Makro-Farben.',
+      'Nährwerte stehen jetzt überall (Mahlzeiten, Rezepte, global) als einheitlich große, farbige Pille mit Icon statt als Ring, ohne Einheit dahinter.',
+      'Rezept-Kacheln zeigen die Anzahl der Rezepte jetzt als farbige Zahl statt als Füllstandsbalken.',
+      'Der Coach-Chat-Button sitzt jetzt in der unteren Bedienleiste statt in den Supps, direkt neben Statistik; das Gespräch setzt sich automatisch zurück, wenn es 24 Stunden lang ruhte. Der Chat-Button zu einem einzelnen Supp startet dagegen immer ein neues Gespräch.',
+      'Supps und Statistik zeigen ihre Reiter (Heute/Vorschläge/Supp-Score/Katalog bzw. Woche/Monat/Jahr) jetzt in einer aufklappbaren Pille statt einer dauerhaft ausgeklappten Leiste — antippen und wischen wählt aus, wie beim Foto/Video-Umschalter der Kamera-App. Supp-Score und Katalog sind dadurch aus eigenen Sheets in echte Reiter der Supps-Seite gewandert.',
+    ],
+  },
+  {
     version: '2.0.0',
     date: '2026-09-06',
     highlights: [

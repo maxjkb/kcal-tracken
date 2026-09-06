@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { formatIngredientAmount, mealPhotos, MEAL_TYPE_LABELS, MICRONUTRIENT_LABELS, type Meal } from '../lib/db'
 import { getBodyProfile } from '../lib/bodyProfile'
 import { notableMicronutrients } from '../lib/micronutrients'
-import { MacroBadge, MacroRingBadge } from './MacroBadge'
+import { MacroBadge } from './MacroBadge'
 import { Sheet } from './Sheet'
 import { Collapse } from './Collapse'
 import { InfoButton } from './InfoButton'
@@ -68,9 +68,9 @@ function MealDetailContent({ meal, onEdit }: { meal: Meal; onEdit: () => void })
 
       <div className="mb-5 flex flex-wrap items-center gap-2.5">
         <MacroBadge type="kcal" value={meal.nutrition.kcal} />
-        <MacroRingBadge type="protein" value={meal.nutrition.protein} />
-        <MacroRingBadge type="carbs" value={meal.nutrition.carbs} />
-        <MacroRingBadge type="fat" value={meal.nutrition.fat} />
+        <MacroBadge type="protein" value={meal.nutrition.protein} />
+        <MacroBadge type="carbs" value={meal.nutrition.carbs} />
+        <MacroBadge type="fat" value={meal.nutrition.fat} />
       </div>
 
       {/* Mikronährstoffe treated as meal-detail-only information rather

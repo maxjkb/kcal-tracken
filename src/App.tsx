@@ -4,10 +4,11 @@ import { BottomNav } from './components/BottomNav'
 import { SwipeNavigator } from './components/SwipeNavigator'
 import { RecipesPage, StatsPage, SupplementsPage } from './components/SectionPreview'
 import { AddMealContext } from './hooks/useAddMeal'
+import { CoachChatContext } from './hooks/useCoachChat'
+import { CoachChatSheet } from './components/CoachChatSheet'
 import { SwipeProgressProvider } from './lib/swipeProgress'
 import { preloadSection, registerSectionLoaders } from './lib/preloadSection'
 import { AmbientBackground } from './components/AmbientBackground'
-import { BackgroundRings } from './components/BackgroundRings'
 import { FeedPage } from './pages/FeedPage'
 import { SettingsSheet } from './components/SettingsSheet'
 import { SettingsSheetContext } from './hooks/useSettingsSheet'
@@ -70,6 +71,7 @@ function sectionForPath(pathname: string): Section | null {
 
 export default function App() {
   const [addingMeal, setAddingMeal] = useState(false)
+  const [coachChatOpen, setCoachChatOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
   // Not component state: the Einstellungen sheet opens full pages from inside
@@ -128,6 +130,7 @@ export default function App() {
 
   return (
     <AddMealContext.Provider value={() => setAddingMeal(true)}>
+    <CoachChatContext.Provider value={() => setCoachChatOpen(true)}>
     <SettingsSheetContext.Provider value={() => navigate({ search: '?sheet=settings' })}>
       <SwipeProgressProvider>
       {/* Rendered outside the min-h-screen wrapper below, and that wrapper's
@@ -136,13 +139,16 @@ export default function App() {
           negative-z-index fixed element regardless of z-index, since that's
           a later, non-positioned paint step that simply covers whatever's
           behind it; body's own canvas-level background doesn't have that
-          problem, it's always the bottom-most layer. */}
-      <BackgroundRings />
-      {/* Mounted unconditionally, not just inside the four main areas — a
+          problem, it's always the bottom-most layer.
+          Mounted unconditionally, not just inside the four main areas — a
           Sheet portalled to document.body from Einstellungen or anywhere
-          else always has the same neutral dot-grid texture behind it to
-          blur (see AmbientBackground/.ambient-bg — no area-specific colour
-          left to be conditional about since the rebrand). */}
+          else always has the same "t"-pattern texture behind it to blur
+          (see AmbientBackground/.ambient-bg — no area-specific colour left
+          to be conditional about since the rebrand). BackgroundRings, the
+          decorative app-icon echo that used to sit alongside this, is gone
+          — the icon itself dropped the ring motif for the "t" mark this
+          pattern already carries, so the echo would have pointed at a
+          design that no longer exists. */}
       <AmbientBackground />
       {/* Disabled (was unconditionally on in v1.14.3): the WebGL layer tracks
           each flow-positioned card's position by reading getBoundingClientRect()
@@ -234,6 +240,7 @@ export default function App() {
             onClose={() => setAddingMeal(false)}
           />
         )}
+        {coachChatOpen && <CoachChatSheet onClose={() => setCoachChatOpen(false)} />}
         {/* Kept mounted across the search param going away, so the sheet
             gets to slide out before it leaves the tree; `dismiss` starts that
             slide and the unmount happens on the sheet's own onClose. The
@@ -253,6 +260,7 @@ export default function App() {
       </div>
       </SwipeProgressProvider>
     </SettingsSheetContext.Provider>
+    </CoachChatContext.Provider>
     </AddMealContext.Provider>
   )
 }
