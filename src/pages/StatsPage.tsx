@@ -493,6 +493,11 @@ function RingTile({
   // SVG-free glyph with no text content at all, and removing its only
   // description along with the visible words would have silently broken it
   // for a screen-reader user tapping through the stat row.
+  //
+  // Was ConcentricRings (see git history) until the Big-Number-Redesign
+  // replaced every ring/percentage device app-wide with the same
+  // .hero-rule bar used everywhere else a value tracks against a target —
+  // one visual language instead of two, per the redesign's own point 1.
   const values: Record<'kcal' | 'protein' | 'carbs' | 'fat', number> = { kcal, protein, carbs, fat }
   const colors = {
     kcal: 'var(--color-kcal)',
