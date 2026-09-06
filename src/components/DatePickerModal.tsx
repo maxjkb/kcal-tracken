@@ -140,7 +140,7 @@ export function DayPickerModal({
               onClick={() => onSelect(key)}
               className={`relative flex h-9 flex-col items-center justify-center rounded-full text-sm transition ${
                 isSelected
-                  ? 'bg-accent font-semibold text-white'
+                  ? 'bg-accent font-semibold text-bg'
                   : inMonth
                     ? 'text-ink hover:bg-bg'
                     : 'text-ink-faint hover:bg-bg'
@@ -149,7 +149,12 @@ export function DayPickerModal({
               {date.getDate()}
               {hasMeal && (
                 <span
-                  className={`absolute bottom-1 h-1 w-1 rounded-full ${isSelected ? 'bg-white' : 'bg-accent'}`}
+                  // bg-bg, not a hardcoded bg-white: --color-accent inverts
+                  // per theme now (index.css), so the selected cell's fill
+                  // is near-white in dark mode — a literal white dot there
+                  // would vanish the same way this file's own text-bg labels
+                  // would if they'd been left as text-white.
+                  className={`absolute bottom-1 h-1 w-1 rounded-full ${isSelected ? 'bg-bg' : 'bg-accent'}`}
                 />
               )}
             </button>
@@ -187,7 +192,7 @@ export function MonthPickerModal({
               key={label}
               onClick={() => onSelect(viewYear, month)}
               className={`rounded-xl py-3 text-sm font-medium transition ${
-                isSelected ? 'bg-accent text-white' : 'bg-bg text-ink hover:bg-line'
+                isSelected ? 'bg-accent text-bg' : 'bg-bg text-ink hover:bg-line'
               }`}
             >
               {label}
@@ -227,7 +232,7 @@ export function YearPickerModal({
             key={year}
             onClick={() => onSelect(year)}
             className={`rounded-xl py-3 text-sm font-medium transition ${
-              year === selectedYear ? 'bg-accent text-white' : 'bg-bg text-ink hover:bg-line'
+              year === selectedYear ? 'bg-accent text-bg' : 'bg-bg text-ink hover:bg-line'
             }`}
           >
             {year}

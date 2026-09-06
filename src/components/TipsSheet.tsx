@@ -12,11 +12,15 @@ import { BouncingDots } from './BouncingDots'
 import { MacroIcon, type MacroType } from './MacroIcon'
 import { StaggeredList } from './StaggeredList'
 
+// Same fixed-contrast pairing as MacroBadge.tsx's BADGE_TEXT (see its
+// comment) — kcal's fill flips brightness per theme so its text does too
+// (text-bg), the other three stay a fixed dark ink (text-badge-ink)
+// regardless of theme.
 const FOCUS_BG: Record<TipSuggestion['focus'], string> = {
-  kcal: 'bg-kcal text-white',
-  protein: 'bg-protein text-white',
-  carbs: 'bg-carbs text-white',
-  fat: 'bg-fat text-ink',
+  kcal: 'bg-kcal text-bg',
+  protein: 'bg-protein text-badge-ink',
+  carbs: 'bg-carbs text-badge-ink',
+  fat: 'bg-fat text-badge-ink',
   general: 'bg-accent/15 text-accent',
 }
 

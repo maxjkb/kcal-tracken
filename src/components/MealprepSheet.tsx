@@ -104,7 +104,7 @@ function MealprepSheetContent({ recipe }: { recipe: Recipe }) {
         type="button"
         onClick={handleGenerate}
         disabled={generating || !hasApiKey || !targetDescription.trim()}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-3 text-sm font-semibold text-bg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {generating ? (
           <>

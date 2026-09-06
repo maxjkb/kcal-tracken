@@ -248,7 +248,7 @@ export function SyncSettingsPage() {
                 Abbrechen
               </button>
             </div>
-            {configError && <p className="mt-3 text-xs text-red-500">{configError}</p>}
+            {configError && <p className="mt-3 text-xs text-danger">{configError}</p>}
           </>
         ) : (
           <div className="flex items-center justify-between rounded-xl bg-bg px-3 py-2.5">
@@ -258,7 +258,7 @@ export function SyncSettingsPage() {
             <button
               type="button"
               onClick={() => (isCustom ? handleRemoveConfig() : setShowOverrideForm(true))}
-              className={`-my-3.5 py-3.5 text-xs font-medium ${isCustom ? 'text-red-500' : 'text-accent'}`}
+              className={`-my-3.5 py-3.5 text-xs font-medium ${isCustom ? 'text-danger' : 'text-accent'}`}
             >
               {isCustom ? 'Entfernen' : 'Anderes Projekt'}
             </button>
@@ -302,7 +302,7 @@ export function SyncSettingsPage() {
           <>
             <p className="mb-3 text-sm text-ink">
               Angemeldet als <span className="font-medium">{user.email}</span>.{' '}
-              <span className={`text-xs ${getSyncStatus() === 'error' ? 'text-red-500' : 'text-ink-soft'}`}>
+              <span className={`text-xs ${getSyncStatus() === 'error' ? 'text-danger' : 'text-ink-soft'}`}>
                 {getSyncStatus() === 'syncing'
                   ? 'Synchronisation aktiv.'
                   : getSyncStatus() === 'error'
@@ -320,7 +320,7 @@ export function SyncSettingsPage() {
               </button>
               <button
                 onClick={handleSignOut}
-                className="flex-1 rounded-xl bg-bg py-2.5 text-sm font-medium text-red-500 hover:bg-line"
+                className="flex-1 rounded-xl bg-bg py-2.5 text-sm font-medium text-danger hover:bg-line"
               >
                 Abmelden
               </button>
@@ -383,7 +383,7 @@ export function SyncSettingsPage() {
           </>
         )}
 
-        {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
+        {error && <p className="mt-3 text-xs text-danger">{error}</p>}
       </GlassSurface>
 
       {user && (

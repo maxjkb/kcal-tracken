@@ -97,7 +97,7 @@ export function DictationButton({
           never collides with the text field the transcript eventually lands
           in. */}
       {listening && interim && (
-        <span className="absolute bottom-full right-0 mb-2 max-w-[16rem] rounded-2xl bg-ink px-3 py-2 text-xs text-white shadow-lg">
+        <span className="absolute bottom-full right-0 mb-2 max-w-[16rem] rounded-2xl bg-ink px-3 py-2 text-xs text-bg shadow-lg">
           {interim}
         </span>
       )}

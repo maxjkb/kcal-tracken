@@ -643,7 +643,7 @@ function MealEditorContent({
         <button
           type="button"
           onClick={requestClose}
-          className="mt-2 w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-white hover:opacity-90"
+          className="mt-2 w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-bg hover:opacity-90"
         >
           Fertig
         </button>

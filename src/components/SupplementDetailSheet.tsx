@@ -117,7 +117,7 @@ export function SupplementDetailSheet(props: SupplementDetailSheetProps) {
               onClick={() => setChatOpen(true)}
               aria-label="KI Chat"
               title="KI Chat"
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-white transition hover:opacity-90 active:scale-95"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-bg transition hover:opacity-90 active:scale-95"
             >
               <ChatIcon />
             </button>

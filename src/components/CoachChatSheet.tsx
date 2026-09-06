@@ -89,7 +89,7 @@ export function CoachChatSheet({ onClose }: { onClose: () => void }) {
             <div
               key={i}
               className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                m.role === 'user' ? 'self-end bg-accent text-white' : 'self-start bg-bg text-ink'
+                m.role === 'user' ? 'self-end bg-accent text-bg' : 'self-start bg-bg text-ink'
               }`}
             >
               {m.text}
@@ -125,7 +125,7 @@ export function CoachChatSheet({ onClose }: { onClose: () => void }) {
             onClick={() => void handleSend()}
             disabled={!chat || sending || !question.trim()}
             aria-label="Senden"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-white transition disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-bg transition disabled:cursor-not-allowed disabled:opacity-40"
           >
             <SendIcon />
           </button>

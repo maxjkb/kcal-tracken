@@ -96,10 +96,29 @@
   /* Was a bright, generic #ffcc00 (still literally the color --color-carbs'
      old green sat next to, "Apple Health yellow") — the Vision Board's own
      amber reads as chosen rather than inherited from a system palette, and
-     is dark enough to still need --color-ink text on top of it, unlike the
+     is dark enough to still need dark text on top of it, unlike the
      old yellow which needed the opposite (a documented inconsistency the
      old MacroBadge had to special-case). */
   --color-fat: #d98d00;
+
+  /* Global audit (v2.0.0): a fixed dark ink for text sitting directly on a
+     saturated color fill — a macro badge (bg-protein/-carbs/-fat), a tip
+     chip — never redefined in the dark-mode block below, unlike
+     --color-ink itself. That distinction matters now that --color-accent
+     inverts per theme: --color-ink is "whatever reads against the page's
+     own canvas" (dark in light mode, light in dark mode — wrong on a badge,
+     whose fill stays roughly the same saturated brightness in both
+     themes), while this token means "the dark text that reads against a
+     bright color chip," full stop, regardless of theme. Solving each
+     mac­ro's own fill for real contrast (WCAG relative-luminance, not
+     eyeballed) is what caught this: bg-carbs/text-white measured ~2:1 in
+     light mode and ~2:1 again in dark — nowhere near AA's 4.5:1 — while
+     this same dark ink clears 6.6:1/9.5:1 on those exact fills. Kcal is the
+     one exception (its fill genuinely swaps from a darker blue in light
+     mode to a lighter one in dark mode, so it still needs a text colour
+     that flips too) — that one keeps using var(--color-bg) instead, same
+     trick as .glass-accent below. */
+  --color-badge-ink: #101114;
 
   /* One colour per meal type. Lunch/snack still deliberately reuse
      fat's/carbs' exact hues (ring outlines with a glyph vs. filled
@@ -235,6 +254,12 @@ body {
   @apply antialiased;
   background: var(--color-bg);
   color: var(--color-ink);
+  /* Vision Board design intent, applied globally rather than only inside
+     .hero-num: "Zahlen überall in Tabellenziffern, damit nichts beim
+     Wechseln wandert" — every digit in the app gets a fixed width, not just
+     the big hero figures, so a kcal/macro/dosage value updating in place
+     never reflows the text around it. */
+  font-variant-numeric: tabular-nums;
   /* Rebrand (v2.0.0): permanently equals --color-accent now — App.tsx no
      longer sets a per-route override at all (there is no more per-area
      value to override it with). Kept as its own property rather than having
