@@ -29,10 +29,13 @@
  *   variation" rather than perfect uniformity or a directional gradient.
  * - Accent (macro-color) cells are always full-opacity/full-strength — no
  *   more dimming a color down to "a hint of it".
- * - The plain-ink cells switch *style*, not just color, per theme: solid
- *   black fill in light mode, white-outlined (stroke only, no fill) in dark
- *   mode — handled by the .amb-ink CSS rule below, not JS, since it's a
- *   flip of two static rules rather than something to compute per render.
+ *
+ * Round 3 (v2.3): the plain-ink cells started out solid-filled in light mode
+ * (only dark mode was outlined) — feedback wanted light mode outlined too,
+ * for the same reason dark mode already was: a solid fill at this density
+ * reads as noisier/heavier than an outline carrying the same texture. Both
+ * themes now just stroke var(--color-ink) with no fill — one static CSS
+ * rule (.amb-ink in index.css) instead of a per-theme fill/stroke split.
  */
 const CELL = 11
 const TILE_SIZE = CELL * 5

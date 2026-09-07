@@ -28,6 +28,7 @@ import { SuppScoreContent } from '../components/SuppScoreSheet'
 import { SupplementCategoryBadge } from '../components/SupplementCategoryBadge'
 import { InfoButton } from '../components/InfoButton'
 import { ExpandablePicker } from '../components/ExpandablePicker'
+import { MessageTile } from '../components/MessageTile'
 import { GlassSurface } from '../glass/GlassSurface'
 
 type Tab = 'today' | 'suggestions' | 'score' | 'catalog'
@@ -120,7 +121,9 @@ function TodayTab() {
   return (
     <div className="flex flex-col gap-2.5">
       {mySupplements === undefined || logEntries === undefined ? (
-        <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
+        <div className="flex justify-center py-10">
+          <MessageTile>Lädt…</MessageTile>
+        </div>
       ) : mySupplements.length === 0 ? (
         <GlassSurface rim={26} className="glass-subtle glass-subtle-themed flex flex-col items-center gap-3 rounded-3xl px-6 py-10 text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/12 text-accent">
@@ -236,13 +239,19 @@ function SuggestionsTab() {
 
   if (!hasApiKey) {
     return (
-      <p className="py-8 text-center text-sm text-ink-soft">
-        Für Vorschläge wird ein Gemini-API-Key benötigt — in den Einstellungen eintragen.
-      </p>
+      <div className="flex justify-center py-8">
+        <MessageTile>Für Vorschläge wird ein Gemini-API-Key benötigt — in den Einstellungen eintragen.</MessageTile>
+      </div>
     )
   }
 
-  if (run === undefined) return <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
+  if (run === undefined) {
+    return (
+      <div className="flex justify-center py-10">
+        <MessageTile>Lädt…</MessageTile>
+      </div>
+    )
+  }
 
   // Same name-normalization addSuggestionToMyList itself matches an existing
   // catalog entry by. Only filters out kind="new" suggestions — "consistency"
@@ -268,23 +277,29 @@ function SuggestionsTab() {
   return (
     <div className="flex flex-col gap-4">
       {run && (
-        <p className="text-xs text-ink-soft">
-          Stand {formatRunDate(run.date)} · aktualisiert sich einmal täglich automatisch
-        </p>
+        <div className="flex justify-center">
+          <MessageTile className="text-xs">
+            Stand {formatRunDate(run.date)} · aktualisiert sich einmal täglich automatisch
+          </MessageTile>
+        </div>
       )}
 
-      {error && <p className="text-sm font-medium text-danger">{error}</p>}
+      {error && (
+        <div className="flex justify-center">
+          <MessageTile className="font-medium text-danger">{error}</MessageTile>
+        </div>
+      )}
 
       {run === null && !error && (
-        <p className="py-6 text-center text-sm text-ink-soft">
-          Noch keine Vorschläge. Sie werden beim nächsten Start der App automatisch erstellt.
-        </p>
+        <div className="flex justify-center py-6">
+          <MessageTile>Noch keine Vorschläge. Sie werden beim nächsten Start der App automatisch erstellt.</MessageTile>
+        </div>
       )}
 
       {run !== null && suggestions.length === 0 && (
-        <p className="py-6 text-center text-sm text-ink-soft">
-          Aktuell keine Vorschläge — deine Ernährung und deine Supp-Routine geben gerade nichts her.
-        </p>
+        <div className="flex justify-center py-6">
+          <MessageTile>Aktuell keine Vorschläge — deine Ernährung und deine Supp-Routine geben gerade nichts her.</MessageTile>
+        </div>
       )}
 
       <StaggeredList className="flex flex-col gap-4">

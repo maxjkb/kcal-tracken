@@ -494,16 +494,16 @@ body {
    the *shape* the feedback asked for, so this needs its own rule rather
    than reusing the color token alone. Accent (macro-color) cells aren't
    touched here — they stay a plain filled var(--color-kcal/…) at full
-   strength in both themes, set inline in AmbientBackground.tsx. */
+   strength in both themes, set inline in AmbientBackground.tsx.
+
+   Round 3 (v2.3): light mode dropped its solid fill too — outlined in both
+   themes now, just the outline color flips (var(--color-ink), already dark
+   in light mode / light in dark mode). A solid-filled glyph at this density
+   read as too heavy/noisy next to actual page text; an outline carries the
+   same texture at a fraction of the ink coverage. */
 .ambient-bg .amb-ink {
-  fill: var(--color-ink);
-  stroke: none;
-}
-@media (prefers-color-scheme: dark) {
-  .ambient-bg .amb-ink {
-    fill: none;
-    stroke: var(--color-ink);
-  }
+  fill: none;
+  stroke: var(--color-ink);
 }
 /* The caption sizes below text-xs are one-off arbitrary values (the ring
    labels, the badge numbers), so they can't carry tracking through the theme

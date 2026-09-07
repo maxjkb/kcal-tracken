@@ -17,6 +17,7 @@ import { rankFrequentIngredients, SUGGESTION_HISTORY_DAYS } from '../lib/mealSug
 import { MEAL_TYPE_COLOR } from '../lib/mealTypeColor'
 import { GlassSurface } from '../glass/GlassSurface'
 import { InfoButton } from '../components/InfoButton'
+import { MessageTile } from '../components/MessageTile'
 
 /** How many recently logged meals "Zuletzt" shows — three fits comfortably below the four
   * category tiles without the page feeling crowded; picked over showing all/many since these are
@@ -73,7 +74,17 @@ export function RecipesPage() {
 
         {recentMeals && recentMeals.length > 0 && (
           <div className="mt-7">
-            <h2 className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-ink-soft">Zuletzt</h2>
+            {/* Round 3 (v2.3): section eyebrows used to be plain text on the
+                ambient background — same "no floating text" pass as the
+                Feed meal-type headers, just narrower since there's no
+                chevron/badge to share the row with here. */}
+            <GlassSurface
+              as="h2"
+              rim={14}
+              className="glass-subtle glass-subtle-themed mb-2.5 inline-block rounded-xl px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-ink-soft shadow-sm shadow-black/5"
+            >
+              Zuletzt
+            </GlassSurface>
             <div className="flex flex-col gap-2.5">
               {recentMeals.map((meal) => (
                 <GlassSurface
@@ -221,7 +232,14 @@ function SuggestionsSection({ onPick }: { onPick: (seed: RecipeSeed) => void }) 
 
   return (
     <div className="mt-7">
-      <div className="mb-2.5 flex items-center justify-between gap-3">
+      {/* Round 3 (v2.3): same tile treatment as "Zuletzt" above — this row
+          keeps its own two-sided layout (icon+label left, refresh action
+          right) since the button needs to stay a sibling tap target inside
+          the same tile, not a second floating element next to it. */}
+      <GlassSurface
+        rim={14}
+        className="glass-subtle glass-subtle-themed mb-2.5 flex items-center justify-between gap-3 rounded-xl py-1 pl-3 pr-1 shadow-sm shadow-black/5"
+      >
         <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-soft">
           <SparkleIcon className="h-3.5 w-3.5 text-section" />
           Vorschläge
@@ -230,16 +248,26 @@ function SuggestionsSection({ onPick }: { onPick: (seed: RecipeSeed) => void }) 
           type="button"
           onClick={handleRefresh}
           disabled={loading || !hasApiKey}
-          className="-my-3.5 flex items-center gap-1 py-3.5 text-xs font-medium text-accent disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex items-center gap-1 px-2.5 py-2 text-xs font-medium text-accent disabled:cursor-not-allowed disabled:opacity-40"
         >
           {loading ? <BouncingDots /> : suggestions ? 'Aktualisieren' : 'Ideen abrufen'}
         </button>
-      </div>
+      </GlassSurface>
 
-      {!hasApiKey && <p className="text-xs text-ink-soft">Kein API-Key hinterlegt — in den Einstellungen eintragen.</p>}
-      {error && <p className="text-sm font-medium text-danger">{error}</p>}
+      {!hasApiKey && (
+        <div className="flex justify-center">
+          <MessageTile className="text-xs">Kein API-Key hinterlegt — in den Einstellungen eintragen.</MessageTile>
+        </div>
+      )}
+      {error && (
+        <div className="flex justify-center">
+          <MessageTile className="font-medium text-danger">{error}</MessageTile>
+        </div>
+      )}
       {suggestions !== null && suggestions.length === 0 && (
-        <p className="py-4 text-center text-xs text-ink-soft">Aktuell keine neuen Ideen.</p>
+        <div className="flex justify-center py-4">
+          <MessageTile className="text-xs">Aktuell keine neuen Ideen.</MessageTile>
+        </div>
       )}
 
       {suggestions && suggestions.length > 0 && (

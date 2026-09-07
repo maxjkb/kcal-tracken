@@ -28,6 +28,7 @@ import {
 } from '../lib/stats'
 
 import { ExpandablePicker } from '../components/ExpandablePicker'
+import { MessageTile } from '../components/MessageTile'
 
 const PERIODS: { key: Period; label: string }[] = [
   { key: 'day', label: 'Tag' },
@@ -203,10 +204,13 @@ export function StatsPage() {
       {/* The prev/next arrow tile is gone — the calendar sheet (a second tap
           on the active pill above) is now the only way to change the shown
           period, so there was nothing left for a dedicated navigator bar to
-          do besides report where those arrows used to point. This plain
-          line still does that reporting job, just without a card or a
-          control either side of it. */}
-      <p className="mb-4 text-center text-sm font-medium text-ink-soft">{formatPeriodLabel(period, anchorKey)}</p>
+          do besides report where those arrows used to point. This still does
+          that reporting job, just without arrows or a tap target either
+          side of it — a tile now (Round 3, v2.3), not bare text, per the
+          "no floating text" pass. */}
+      <div className="mb-4 flex justify-center">
+        <MessageTile className="font-medium">{formatPeriodLabel(period, anchorKey)}</MessageTile>
+      </div>
 
       <div className="mb-6 grid grid-cols-3 gap-2">
         {/* Tag keeps the plain daily total. Woche/Monat/Jahr swap it for a

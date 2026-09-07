@@ -12,6 +12,7 @@ import { SlideInPage } from '../components/SlideInPage'
 import { Collapse } from '../components/Collapse'
 import { MEAL_TYPE_COLOR } from '../lib/mealTypeColor'
 import { GlassSurface } from '../glass/GlassSurface'
+import { MessageTile } from '../components/MessageTile'
 
 function ChevronDown({ open }: { open: boolean }) {
   return (
@@ -96,7 +97,9 @@ export function RecipeDetailPage() {
     return (
       <SlideInPage>
         <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
-          <p className="py-10 text-center text-sm text-ink-soft">Dieses Rezept gibt es nicht mehr.</p>
+          <div className="mb-4 flex justify-center">
+            <MessageTile>Dieses Rezept gibt es nicht mehr.</MessageTile>
+          </div>
           <Link to="/recipes" className="block text-center text-sm font-semibold text-accent">
             Zurück zu den Rezepten
           </Link>
@@ -108,7 +111,9 @@ export function RecipeDetailPage() {
   if (!recipe) {
     return (
       <div className="mx-auto max-w-lg px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
-        <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
+        <div className="flex justify-center py-10">
+          <MessageTile>Lädt…</MessageTile>
+        </div>
       </div>
     )
   }
