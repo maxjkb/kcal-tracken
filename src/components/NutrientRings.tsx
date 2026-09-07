@@ -354,53 +354,8 @@ export function ConcentricRings({
   )
 }
 
-const MINI_ORDER: Nutrient[] = ['kcal', 'protein', 'carbs', 'fat']
-
-/**
- * A compact row of permanently-closed rings (icon + absolute number, no
- * label) — used under a collapsed Feed meal-type heading (Frühstück/Mittag/
- * Abend/Snack) to show that category's totals for the day without the
- * space a full NutrientRings grid would need. Disappears again once the
- * section is expanded, since the meal cards themselves show the numbers then.
- */
-export function MiniNutrientRings({
-  kcal,
-  protein,
-  carbs,
-  fat,
-}: {
-  kcal: number
-  protein: number
-  carbs: number
-  fat: number
-}) {
-  const values: Record<Nutrient, number> = { kcal, protein, carbs, fat }
-  const size = 56
-  const r = 22
-  const cx = size / 2
-  const cy = size / 2
-  const strokeWidth = 8 // 6 -> 8 (+30%), same reasoning as the main Ring above
-
-  return (
-    <div className="flex flex-wrap gap-2">
-      {MINI_ORDER.map((type) => {
-        const color = RING_COLORS[type]
-        const value = values[type]
-        return (
-          <div key={type} className="relative shrink-0" style={{ width: size, height: size }}>
-            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-              <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={strokeWidth} />
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5" style={{ color }}>
-              <MacroIcon type={type} className="h-3 w-3" />
-              <span className="text-[10px] font-bold text-ink">
-                {Math.round(value)}
-                {type !== 'kcal' && 'g'}
-              </span>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
+// Round 2 (v2.2): the compact ring row that used to live here (shown under a
+// collapsed Feed meal-type heading) is retired — that spot now renders the
+// same MacroBadge pills every other macro display in the app uses (see
+// FeedPage.tsx), per explicit feedback that the pill treatment should be
+// used everywhere macros show up, not just in individual meal/recipe cards.

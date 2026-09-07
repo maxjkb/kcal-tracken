@@ -5,7 +5,7 @@ import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, toLocalDateKey, type Meal, type Meal
 import { MealCard } from '../components/MealCard'
 import { MealEditor } from '../components/MealEditor'
 import { MealDetail } from '../components/MealDetail'
-import { MiniNutrientRings } from '../components/NutrientRings'
+import { MacroBadge } from '../components/MacroBadge'
 import { RemainingHero } from '../components/RemainingHero'
 import { DayPickerModal } from '../components/DatePickerModal'
 import { Collapse } from '../components/Collapse'
@@ -147,12 +147,26 @@ export function FeedPage() {
                     ))}
                   </div>
                 </Collapse>
-                {/* Collapsed sections still show at a glance what was logged, as a
-                    compact ring row summing this category's totals for the day —
-                    it disappears again once expanded, since the meal cards below
-                    then show the same numbers. */}
+                {/* Collapsed sections still show at a glance what was logged, as
+                    the same macro pills MealCard itself uses (Round 2, v2.2:
+                    this used to switch to a separate ring-style summary here —
+                    explicit feedback wanted the pill treatment applied
+                    everywhere macros show up, this row included) summing this
+                    category's totals for the day — it disappears again once
+                    expanded, since the meal cards below then show the same
+                    numbers per-meal. */}
                 <Collapse open={!isOpen && typeMeals.length > 0}>
-                  <MiniNutrientRings {...sumNutrition(typeMeals)} />
+                  {(() => {
+                    const totals = sumNutrition(typeMeals)
+                    return (
+                      <div className="flex flex-wrap gap-1.5">
+                        <MacroBadge type="kcal" value={totals.kcal} size="sm" />
+                        <MacroBadge type="protein" value={totals.protein} size="sm" />
+                        <MacroBadge type="carbs" value={totals.carbs} size="sm" />
+                        <MacroBadge type="fat" value={totals.fat} size="sm" />
+                      </div>
+                    )
+                  })()}
                 </Collapse>
               </section>
             )
