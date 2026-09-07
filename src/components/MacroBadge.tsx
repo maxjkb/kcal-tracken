@@ -1,26 +1,22 @@
 import { MacroIcon, type MacroType } from './MacroIcon'
 
+// Round 2 (v2.2): protein/carbs/fat get their own darker badge-only fills
+// (--color-badge-protein/-carbs/-fat, index.css) instead of the plain
+// --color-protein/-carbs/-fat used everywhere else — explicit ask for
+// "kraftvoll" pills with text that flips white-in-light/black-in-dark like
+// kcal's already did, which the lighter, more-pastel general-purpose fills
+// couldn't clear 4.5:1 with (see index.css's comment on the exact numbers).
 const BADGE_BG: Record<MacroType, string> = {
   kcal: 'bg-kcal',
-  protein: 'bg-protein',
-  carbs: 'bg-carbs',
-  fat: 'bg-fat',
+  protein: 'bg-badge-protein',
+  carbs: 'bg-badge-carbs',
+  fat: 'bg-badge-fat',
 }
 
-// Global audit (v2.0.0): computed by actual WCAG contrast against each
-// fill, not eyeballed — kcal is the one macro whose fill genuinely swaps
-// brightness per theme (darker blue in light mode, lighter in dark), so it
-// alone needs text that flips too (var(--color-bg), same trick as
-// .glass-accent in index.css). Protein/carbs/fat stay a fixed dark ink in
-// both themes (--color-badge-ink, index.css) — their fills don't invert,
-// and white text on any of them measured well under the 4.5:1 minimum
-// (bg-carbs+white was ~2:1 in both themes).
-const BADGE_TEXT: Record<MacroType, string> = {
-  kcal: 'text-bg',
-  protein: 'text-badge-ink',
-  carbs: 'text-badge-ink',
-  fat: 'text-badge-ink',
-}
+// All four now flip with theme the same way (var(--color-bg): off-white
+// text in light mode, near-black in dark) — the darker badge fills above
+// are what makes that clear 4.5:1 for all four, not just kcal anymore.
+const BADGE_TEXT = 'text-bg'
 
 /**
  * A solid-colored pill: icon + plain number, no unit.
@@ -51,7 +47,7 @@ export function MacroBadge({
   const icon = size === 'sm' ? 'h-2.5 w-2.5' : 'h-3 w-3'
   return (
     <span
-      className={`inline-flex items-center justify-center gap-1 rounded-full font-semibold ${BADGE_BG[type]} ${BADGE_TEXT[type]} ${width} ${text} ${className}`}
+      className={`inline-flex items-center justify-center gap-1 rounded-full font-semibold ${BADGE_BG[type]} ${BADGE_TEXT} ${width} ${text} ${className}`}
     >
       <MacroIcon type={type} className={icon} />
       {Math.round(value)}

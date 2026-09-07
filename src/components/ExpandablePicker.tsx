@@ -27,6 +27,17 @@ export interface PickerOption<T extends string> {
  * recreation of the Camera app's actual dial. That covers what was asked
  * ("durch Wischen der Pille kann ich dies dann auswählen") without the
  * much larger engineering lift a physically-accurate port would take.
+ *
+ * Round 2 (v2.2): the collapsed state used to be a plain button sized and
+ * positioned like any other inline element — left-aligned in the row it
+ * sat in, with no animation swapping it for the expanded row. Explicit
+ * feedback wanted a real camera-app dial: collapsed, it should shrink to a
+ * pill *centered* in its row, and the switch between pill and full row
+ * should visibly morph rather than cut. Both states now live inside one
+ * `motion.div` with the `layout` prop — Framer measures the box before and
+ * after whichever branch rendered and animates the difference, so the
+ * outer shape smoothly resizes between "small centered pill" and "full
+ * row" regardless of how different their actual children are.
  */
 export function ExpandablePicker<T extends string>({
   options,
@@ -99,62 +110,72 @@ export function ExpandablePicker<T extends string>({
     setLiveIndex(null)
   }
 
-  if (!expanded) {
-    return (
-      <button
-        type="button"
-        onClick={() => setExpanded(true)}
-        aria-label={label}
-        className="glass-subtle glass-subtle-themed mb-5 inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold text-ink shadow-sm shadow-black/5"
-      >
-        {options[currentIndex]?.label}
-        <ChevronsIcon />
-      </button>
-    )
-  }
-
   return (
-    <div
-      ref={containerRef}
-      role="tablist"
-      aria-label={label}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerCancel}
-      // Full .glass, not .glass-subtle — a segmented control is navigation
-      // the same way BottomNav is, so it gets the same material (matches
-      // what this replaced).
-      className="glass mb-5 flex touch-none gap-1.5 rounded-full p-1.5 shadow-sm shadow-black/5"
-    >
-      {options.map((o, i) => (
-        <button
-          key={o.key}
-          type="button"
-          role="tab"
-          aria-selected={i === currentIndex}
-          // Only reachable via keyboard/assistive activation now — the
-          // pointer path above (down/move/up on the row itself) already
-          // handles a plain tap the same way it handles a drag, since a
-          // tap is just a drag with zero distance.
-          onClick={() => {
-            onChange(o.key)
-            setExpanded(false)
-          }}
-          className={`relative flex-1 rounded-full py-3 text-sm font-medium transition-colors ${
-            i === highlightIndex ? 'text-ink' : 'text-ink-soft'
-          }`}
-        >
-          {i === highlightIndex && (
-            <motion.span
-              layoutId="expandable-picker-pill"
-              className="absolute inset-0 rounded-full bg-section-20"
-              transition={prefersReducedMotion ? { duration: 0 } : SPRING_SNAPPY}
-            />
-          )}
-          <span className="relative z-10">{o.label}</span>
-        </button>
-      ))}
+    <div className="mb-5 flex justify-center">
+      <motion.div
+        layout
+        transition={prefersReducedMotion ? { duration: 0 } : SPRING_SNAPPY}
+        className={
+          expanded
+            ? // Full .glass, not .glass-subtle — a segmented control is
+              // navigation the same way BottomNav is, so it gets the same
+              // material (matches what this replaced).
+              'glass w-full overflow-hidden rounded-full p-1.5 shadow-sm shadow-black/5'
+            : 'glass-subtle glass-subtle-themed overflow-hidden rounded-full px-4 py-2.5 shadow-sm shadow-black/5'
+        }
+      >
+        {!expanded ? (
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            aria-label={label}
+            className="flex items-center gap-1.5 text-sm font-semibold text-ink"
+          >
+            {options[currentIndex]?.label}
+            <ChevronsIcon />
+          </button>
+        ) : (
+          <div
+            ref={containerRef}
+            role="tablist"
+            aria-label={label}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+            className="flex touch-none gap-1.5"
+          >
+            {options.map((o, i) => (
+              <button
+                key={o.key}
+                type="button"
+                role="tab"
+                aria-selected={i === currentIndex}
+                // Only reachable via keyboard/assistive activation now — the
+                // pointer path above (down/move/up on the row itself) already
+                // handles a plain tap the same way it handles a drag, since a
+                // tap is just a drag with zero distance.
+                onClick={() => {
+                  onChange(o.key)
+                  setExpanded(false)
+                }}
+                className={`relative flex-1 rounded-full py-3 text-sm font-medium transition-colors ${
+                  i === highlightIndex ? 'text-ink' : 'text-ink-soft'
+                }`}
+              >
+                {i === highlightIndex && (
+                  <motion.span
+                    layoutId="expandable-picker-pill"
+                    className="absolute inset-0 rounded-full bg-section-20"
+                    transition={prefersReducedMotion ? { duration: 0 } : SPRING_SNAPPY}
+                  />
+                )}
+                <span className="relative z-10">{o.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </motion.div>
     </div>
   )
 }

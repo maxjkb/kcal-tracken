@@ -26,23 +26,44 @@ import { useGlassSurface } from './glassSurfaces'
  * Small keeps the middle flat so text sitting on it stays undistorted —
  * see glassSurfaces.ts's own doc comment on why that matters more than it
  * sounds like it would.
+ *
+ * `webgl`: opt-in, default off. GlassStage was disabled outright (App.tsx,
+ * `enabled={false}`) after real-world use showed the WebGL layer visibly
+ * lagging/drifting during native scroll — it reads every surface's position
+ * once per animation frame, but the browser's compositor thread can already
+ * be a few pixels further into the scroll by the time that frame actually
+ * paints, and a canvas overlay tracking DOM scroll from the main thread
+ * can't fully close that gap. Round 2 (v2.2): re-enabled, but scoped to
+ * exactly the surfaces that don't have this problem in the first place —
+ * `position: fixed` chrome that never moves under a scroll (BottomNav) —
+ * rather than every flow-positioned card again. Every existing call site
+ * left this prop unset when GlassStage was re-enabled, which is deliberate:
+ * they stay plain CSS glass (this component's behavior for them is
+ * unchanged either way `enabled` is set), and only the few sites that
+ * explicitly pass `webgl` register with the WebGL layer at all.
  */
 export function GlassSurface({
   as: Tag = 'div',
   rim = 22,
+  webgl = false,
   className = '',
   children,
   ...rest
 }: {
   as?: ElementType
   rim?: number
+  webgl?: boolean
   className?: string
   children?: ReactNode
   [key: string]: unknown
 }) {
-  const ref = useGlassSurface<HTMLDivElement>(rim)
+  // Always called (rules of hooks) — only attached to the rendered element
+  // when `webgl` is set, so a surface that opts out never actually
+  // registers (its ref stays null, and useGlassSurface's effect no-ops on
+  // a null ref) rather than registering-but-being-ignored.
+  const glRef = useGlassSurface<HTMLDivElement>(rim)
   return (
-    <Tag ref={ref} className={`gl-surface ${className}`} {...rest}>
+    <Tag ref={webgl ? glRef : undefined} className={`${webgl ? 'gl-surface' : ''} ${className}`} {...rest}>
       {children}
     </Tag>
   )

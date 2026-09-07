@@ -4,6 +4,7 @@ import { motion, useMotionValue, useReducedMotion, useTransform } from 'motion/r
 import { SECTION_TABS, sectionIndexForPath } from '../lib/sections'
 import { useSwipeProgress } from '../hooks/useSwipeProgress'
 import { useCoachChat } from '../hooks/useCoachChat'
+import { GlassSurface } from '../glass/GlassSurface'
 
 /** Tab hit area (h-11 = 44px) plus the gap-1 between them — the stride the selection pill travels per tab. */
 const TAB_STRIDE_PX = 48
@@ -28,7 +29,12 @@ export function BottomNav() {
     // visible pill: otherwise the transparent strip around the pill still
     // intercepts taps on whatever page content happens to sit behind it.
     <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pointer-events-none">
-      <div className="glass pointer-events-auto mx-4 flex gap-1 rounded-full p-1.5">
+      {/* Round 2 (v2.2): the one surface opted into real WebGL glass
+          (GlassSurface's `webgl` prop, App.tsx's own comment on why) — this
+          bar is `position: fixed` and never moves under a scroll, so it
+          doesn't have the drift problem that got GlassStage disabled in the
+          first place. */}
+      <GlassSurface webgl className="glass pointer-events-auto mx-4 flex gap-1 rounded-full p-1.5">
         <div className="relative flex gap-1">
           {activeIndex !== -1 && <SelectionPill progress={progress} activeIndex={activeIndex} />}
           {SECTION_TABS.map(({ to, label, end }, i) => {
@@ -61,7 +67,7 @@ export function BottomNav() {
         >
           <ChatIcon />
         </button>
-      </div>
+      </GlassSurface>
     </nav>
   )
 }

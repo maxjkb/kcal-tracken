@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { BottomNav } from './components/BottomNav'
 import { SwipeNavigator } from './components/SwipeNavigator'
@@ -25,7 +25,7 @@ import { lazyRetry } from './lib/lazyRetry'
 import { toLocalDateKey } from './lib/db'
 import { guessMealType } from './lib/mealTypeGuess'
 import { GlassStage } from './glass/GlassStage'
-import type { LightState } from './glass/useLightSource'
+import { useLightSource } from './glass/useLightSource'
 
 const loadRecipeCategory = () => import('./pages/RecipeCategoryPage').then((m) => ({ default: m.RecipeCategoryPage }))
 const loadRecipeDetail = () => import('./pages/RecipeDetailPage').then((m) => ({ default: m.RecipeDetailPage }))
@@ -91,13 +91,13 @@ export default function App() {
   const [settingsMounted, setSettingsMounted] = useState(false)
   if (settingsOpen && !settingsMounted) setSettingsMounted(true)
   const section = sectionForPath(location.pathname)
-  // A static stand-in, not useLightSource(): that hook runs its own
-  // pointer/device-orientation tracking loop purely to feed GlassStage's
-  // light uniform, which is now disabled below and never reads it. Kept as
-  // an inert ref only to satisfy GlassStage's prop type — no tracking loop
-  // means no wasted work. useLightSource() itself is untouched; /lab's own
-  // pages still use it live for the WebGL/CSS/SVG comparison.
-  const lightRef = useRef<LightState>({ azimuth: 0, elevation: 0, x: 0, y: 0, z: 1 })
+  // Round 2 (v2.2): GlassStage is back on (see its own mount below), scoped
+  // to the few `webgl`-opted-in surfaces (GlassSurface.tsx) that don't have
+  // the scroll-drift problem the original revert was about. Real pointer/
+  // device-orientation tracking again, not the earlier inert stand-in —
+  // `setContainer` goes on the same full-app wrapper /lab's own pages
+  // attach it to, so the light follows a finger/pointer anywhere in the app.
+  const { setContainer, lightRef } = useLightSource()
 
   // Rebrand (v2.0.0): this used to set --color-section/-icon on <body> to a
   // per-area blue-scale value on every route change (Sheets portal straight
@@ -150,26 +150,35 @@ export default function App() {
           pattern already carries, so the echo would have pointed at a
           design that no longer exists. */}
       <AmbientBackground />
-      {/* Disabled (was unconditionally on in v1.14.3): the WebGL layer tracks
-          each flow-positioned card's position by reading getBoundingClientRect()
-          once per requestAnimationFrame and redrawing the canvas there — but
-          native scroll is driven by the browser's compositor thread, which
-          can already be several pixels further along than whatever position
-          the main thread last read by the time that frame actually paints.
-          That gap is the "lags behind and drifts during scroll" the WebGL
-          glass visibly showed under real use — architectural, not a bug in
-          this call site, and not something a canvas overlay tracking DOM
-          scroll from the main thread can fully close. CSS backdrop-filter
-          glass doesn't have this problem: it composites in the same native
-          layer that scrolls, with no separate read-and-redraw step to lag
-          behind. `enabled={false}` here is the whole revert — GlassStage
-          itself already treats "disabled" identically to "WebGL2 missing":
-          it removes .glass-gl-active and steps back, and every .gl-surface
-          simply renders its original CSS material again, unchanged. The
-          GlassStage/GlassSurface machinery and the /lab prototype are left
-          in place rather than deleted, in case this is revisited. */}
+      {/* Was unconditionally on in v1.14.3, then disabled (v2.1): the WebGL
+          layer tracked each flow-positioned card's position by reading
+          getBoundingClientRect() once per requestAnimationFrame and
+          redrawing the canvas there — but native scroll is driven by the
+          browser's compositor thread, which can already be several pixels
+          further along than whatever position the main thread last read by
+          the time that frame actually paints. That gap was the "lags behind
+          and drifts during scroll" the WebGL glass visibly showed under
+          real use, for any surface that scrolls with the page.
+
+          Round 2 (v2.2) tried re-enabling this scoped to `position: fixed`
+          chrome only (GlassSurface's `webgl` prop below) — those don't move
+          under a scroll, so the drift problem above can't apply to them.
+          That part is sound and stays in place (BottomNav opts in). But
+          turning `enabled` on at all surfaced a second, unrelated problem:
+          appGlassShader.ts's scene() doesn't refract the real page — a
+          fragment shader can't sample arbitrary DOM, so it paints its OWN
+          hardcoded stand-in backdrop (still the pre-rebrand look: four
+          colored nutrient rings + a top gradient, see its own doc comment)
+          and refracts glass surfaces against *that*. With `enabled` on,
+          that stand-in paints full-screen behind everything, well past
+          just the opted-in surfaces — visibly wrong now that the real
+          background is the neutral canvas + "t"-pattern texture, not that
+          scene. Fixing that means teaching scene() to reproduce the
+          *current* background (procedurally regenerating the "t"-tile
+          texture in GLSL, not a quick tweak) before this can go back on —
+          left disabled again until that's done on its own. */}
       <GlassStage lightRef={lightRef} enabled={false} />
-      <div className="min-h-screen">
+      <div ref={setContainer} className="min-h-screen">
         <SwipeNavigator>
           <Routes>
             <Route path="/" element={<FeedPage />} />

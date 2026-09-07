@@ -16,6 +16,13 @@ während diese Datei ab 1.14.0 liegen blieb; damit stehen beide wieder auf demse
 Stand. Die Git-Tags aus dem Absatz darüber sind in demselben Zeitraum ebenfalls
 ausgeblieben: der letzte gesetzte ist `v1.2.1`.
 
+## [2.1.1] - 2026-09-07
+
+- Hintergrundmuster überarbeitet: engmaschigeres, kräftigeres „t"-Feinraster mit leichter Größenvariation statt des gröberen, blasseren Musters aus 2.1.0 — Standard-„t" jetzt hell schwarz gefüllt, dunkel weiß umrandet, Makro-Farben durchgehend kraftvoll statt gedämpft.
+- Nährwert-Pillen für Protein/Carbs/Fett haben jetzt eigene, kräftigere Farben, damit ihr Text wie bei Kalorien hell/dunkel-abhängig zwischen Weiß und Schwarz wechselt.
+- Die aufklappbare Auswahl-Pille (Supps/Statistik) schrumpft eingeklappt jetzt zu einer echten, zentrierten Pille statt linksbündig zu stehen, und der Wechsel zwischen Pille und voller Zeile ist animiert.
+- Eingeklappte Mahlzeiten-Gruppen im Feed zeigen jetzt dieselben Nährwert-Pillen wie einzelne Mahlzeiten statt der alten Ring-Zusammenfassung.
+
 ## [2.1.0] - 2026-09-06
 
 - App-Icon und Hintergrundmuster tragen jetzt das neue Design statt der alten Ring-Optik: das Icon zeigt ein eigenes „t"-Zeichen, der Hintergrund ein gekacheltes „t"-Muster, größtenteils in Tinte mit einzelnen Buchstaben in den vier Makro-Farben.
