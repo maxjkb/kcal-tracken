@@ -6,6 +6,7 @@ import { MealCard } from '../components/MealCard'
 import { MealEditor } from '../components/MealEditor'
 import { MealDetail } from '../components/MealDetail'
 import { MacroBadge } from '../components/MacroBadge'
+import { MessageTile } from '../components/MessageTile'
 import { RemainingHero } from '../components/RemainingHero'
 import { DayPickerModal } from '../components/DatePickerModal'
 import { Collapse } from '../components/Collapse'
@@ -106,12 +107,14 @@ export function FeedPage() {
         onTitleClick={() => setPickerOpen(true)}
       />
 
-      <GlassSurface rim={26} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-5 shadow-sm shadow-black/5">
+      <GlassSurface refract rim={26} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-5 shadow-sm shadow-black/5">
         <RemainingHero kcal={totals.kcal} protein={totals.protein} carbs={totals.carbs} fat={totals.fat} targets={targets} />
       </GlassSurface>
 
       {meals === undefined ? (
-        <p className="text-center text-sm text-ink-soft">Lädt…</p>
+        <div className="flex justify-center">
+          <MessageTile>Lädt…</MessageTile>
+        </div>
       ) : (
         <div className="flex flex-col gap-6">
           {MEAL_TYPE_ORDER.map((type) => {
@@ -119,14 +122,23 @@ export function FeedPage() {
             const isOpen = !collapsed[type]
             return (
               <section key={type}>
-                <div className="mb-2 flex items-center gap-2">
+                {/* Round 3 (v2.3): used to be plain text directly on the
+                    ambient background — explicit feedback that no text
+                    should float free of a tile now that the background
+                    pattern is busier. Same glass-subtle material every
+                    other card in the app uses, not a one-off. */}
+                <GlassSurface
+                  refract
+                  rim={18}
+                  className="glass-subtle glass-subtle-themed mb-2 flex items-center gap-2 rounded-2xl py-1 pl-3 pr-1 shadow-sm shadow-black/5"
+                >
                   <MealTypeBadge type={type} size="sm" />
                   <h2 className="text-lg font-semibold text-ink">{MEAL_TYPE_LABELS[type]}</h2>
                   {typeMeals.length > 0 && (
                     <button
                       onClick={() => setCollapsed((c) => ({ ...c, [type]: !c[type] }))}
                       aria-label={isOpen ? `${MEAL_TYPE_LABELS[type]} einklappen` : `${MEAL_TYPE_LABELS[type]} ausklappen`}
-                      className="flex h-11 w-11 items-center justify-center rounded-full text-ink-soft hover:bg-bg"
+                      className="ml-auto flex h-11 w-11 items-center justify-center rounded-full text-ink-soft"
                     >
                       <svg
                         viewBox="0 0 24 24"
@@ -139,7 +151,7 @@ export function FeedPage() {
                       </svg>
                     </button>
                   )}
-                </div>
+                </GlassSurface>
                 <Collapse open={isOpen && typeMeals.length > 0}>
                   <div className="flex flex-col gap-2">
                     {typeMeals.map((meal) => (

@@ -28,6 +28,7 @@ import {
 } from '../lib/stats'
 
 import { ExpandablePicker } from '../components/ExpandablePicker'
+import { MessageTile } from '../components/MessageTile'
 
 const PERIODS: { key: Period; label: string }[] = [
   { key: 'day', label: 'Tag' },
@@ -203,10 +204,13 @@ export function StatsPage() {
       {/* The prev/next arrow tile is gone — the calendar sheet (a second tap
           on the active pill above) is now the only way to change the shown
           period, so there was nothing left for a dedicated navigator bar to
-          do besides report where those arrows used to point. This plain
-          line still does that reporting job, just without a card or a
-          control either side of it. */}
-      <p className="mb-4 text-center text-sm font-medium text-ink-soft">{formatPeriodLabel(period, anchorKey)}</p>
+          do besides report where those arrows used to point. This still does
+          that reporting job, just without arrows or a tap target either
+          side of it — a tile now (Round 3, v2.3), not bare text, per the
+          "no floating text" pass. */}
+      <div className="mb-4 flex justify-center">
+        <MessageTile className="font-medium">{formatPeriodLabel(period, anchorKey)}</MessageTile>
+      </div>
 
       <div className="mb-6 grid grid-cols-3 gap-2">
         {/* Tag keeps the plain daily total. Woche/Monat/Jahr swap it for a
@@ -251,7 +255,7 @@ export function StatsPage() {
               still the number people check first on a given day, with the
               micronutrient picture as the deeper, second-glance layer below
               it rather than the very first thing on the page. */}
-          <GlassSurface rim={24} className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
+          <GlassSurface refract rim={24} className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Makronährstoffe</h3>
             {meals === undefined ? (
               <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
@@ -268,7 +272,7 @@ export function StatsPage() {
               />
             )}
           </GlassSurface>
-          <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
+          <GlassSurface refract rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Mikronährstoffe</h3>
             <MicronutrientBars overview={microOverview} />
           </GlassSurface>
@@ -279,7 +283,7 @@ export function StatsPage() {
               same rings, same colours, same percent-of-target readout, so the
               number in the tile above and the detail below are visibly the
               same thing at two levels of zoom. */}
-          <GlassSurface rim={24} className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
+          <GlassSurface refract rim={24} className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Makronährstoffe</h3>
             {meals === undefined ? (
               <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
@@ -293,13 +297,13 @@ export function StatsPage() {
               />
             )}
           </GlassSurface>
-          <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
+          <GlassSurface refract rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Mikronährstoffe</h3>
             <MicronutrientBars overview={microOverview} />
           </GlassSurface>
         </>
       ) : (
-        <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-4 shadow-sm shadow-black/5">
+        <GlassSurface refract rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-4 shadow-sm shadow-black/5">
           {/* The "i" sits on the same line as this card's own heading, per
               explicit request — even on Jahr, which has no heading text of
               its own, `justify-between` still pushes it to the right. */}
@@ -424,7 +428,7 @@ function StatTile({
 
   if (!onSelect) {
     return (
-      <GlassSurface rim={24} className={`glass-subtle glass-subtle-themed ${shell}`}>
+      <GlassSurface refract rim={24} className={`glass-subtle glass-subtle-themed ${shell}`}>
         {body}
       </GlassSurface>
     )
@@ -432,6 +436,7 @@ function StatTile({
   return (
     <GlassSurface
       as="button"
+      refract
       rim={24}
       type="button"
       onClick={onSelect}
@@ -508,7 +513,7 @@ function RingTile({
 
   if (!onSelect) {
     return (
-      <GlassSurface rim={24} role="img" aria-label={caption} className={`glass-subtle glass-subtle-themed ${shell}`}>
+      <GlassSurface refract rim={24} role="img" aria-label={caption} className={`glass-subtle glass-subtle-themed ${shell}`}>
         {body}
       </GlassSurface>
     )
@@ -516,6 +521,7 @@ function RingTile({
   return (
     <GlassSurface
       as="button"
+      refract
       rim={24}
       type="button"
       onClick={onSelect}

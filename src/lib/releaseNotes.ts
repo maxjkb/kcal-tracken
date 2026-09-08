@@ -17,6 +17,15 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '2.2.0',
+    date: '2026-09-08',
+    highlights: [
+      'Kacheln haben jetzt echte Glasbrechung statt reinem Milchglas-Blur: ein SVG-Filter bricht und beleuchtet eine live mitlaufende Kopie des Hintergrundmusters, sichtbar als Kantenverzerrung und Glanzlicht — ohne das WebGL-Problem, beim Scrollen hinter der echten Ansicht herzuhinken. Angewendet auf die auffälligen, freistehenden Kacheln pro Seite (Hero-Karten, Sektionsköpfe, Kategorie-Kacheln, Seitentitel, kurze Status-Texte).',
+      'Texte, die bisher frei auf dem Hintergrundmuster schwebten (Lade-/Fehler-/Leer-Zustände, Seitentitel, Abschnittsüberschriften), sitzen jetzt durchgehend in einer Kachel statt direkt auf dem Muster — spürbar mehr Kontrast und Ruhe, u. a. ändert sich dadurch die Optik der Mahlzeiten-Abschnitte im Feed.',
+      'Das schwarze „t" im Hintergrundmuster ist im Hellmodus jetzt nur noch umrandet statt voll ausgefüllt, wie im Dunkelmodus auch — zusammen mit der Kachel-Umstellung oben deutlich ruhiger und kontrastreicher.',
+    ],
+  },
+  {
     version: '2.1.1',
     date: '2026-09-07',
     highlights: [

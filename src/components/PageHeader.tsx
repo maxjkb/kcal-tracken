@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { useAddMeal } from '../hooks/useAddMeal'
 import { useSettingsSheet } from '../hooks/useSettingsSheet'
+import { GlassSurface } from '../glass/GlassSurface'
 
 /** Scroll distance over which the edge effect fades in — short enough to feel immediate, long enough not to flicker. */
 const EDGE_FADE_PX = 28
@@ -90,14 +91,29 @@ export function PageHeader({
         style={{ opacity: edgeOpacity }}
       />
       <div className="relative flex items-center justify-between gap-3">
+        {/* Round 3 (v2.3): the title used to sit directly on the page's own
+            background, deliberately bare at rest per the scroll-edge-effect
+            design above — fine against the old flat canvas, but explicit
+            feedback that no text should float free of a tile now that the
+            background carries a busier "t"-texture. The title gets its own
+            small, permanent tile rather than losing the edge effect above:
+            that full-width bar still does its job for the icon buttons and
+            for content passing underneath on scroll, this is just the title
+            itself no longer riding bare on the pattern before any scroll
+            has happened. */}
         <h1 className="font-display text-2xl font-bold tracking-tight text-ink">
-          {onTitleClick ? (
-            <button type="button" onClick={onTitleClick} className="text-left active:opacity-70">
-              {title}
-            </button>
-          ) : (
-            title
-          )}
+          <GlassSurface
+            as={onTitleClick ? 'button' : 'span'}
+            rim={16}
+            refract
+            type={onTitleClick ? 'button' : undefined}
+            onClick={onTitleClick}
+            className={`glass-subtle glass-subtle-themed inline-block rounded-2xl px-3 py-1 shadow-sm shadow-black/5 ${
+              onTitleClick ? 'text-left active:opacity-70' : ''
+            }`}
+          >
+            {title}
+          </GlassSurface>
         </h1>
         <div className="flex shrink-0 items-center gap-2">
           {actions}

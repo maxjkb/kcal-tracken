@@ -10,6 +10,7 @@ import { MealTypeBadge } from '../components/MealTypeBadge'
 import { MEAL_TYPE_COLOR } from '../lib/mealTypeColor'
 import { useRegisterBackSwipe } from '../lib/backSwipe'
 import { GlassSurface } from '../glass/GlassSurface'
+import { MessageTile } from '../components/MessageTile'
 
 function isMealType(value: string | undefined): value is MealType {
   return !!value && (MEAL_TYPE_ORDER as string[]).includes(value)
@@ -68,9 +69,11 @@ export function RecipeCategoryPage() {
         </div>
 
         {recipes === undefined ? (
-          <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
+          <div className="flex justify-center py-10">
+            <MessageTile>Lädt…</MessageTile>
+          </div>
         ) : recipes.length === 0 ? (
-          <GlassSurface rim={26} className="glass-subtle glass-subtle-themed flex flex-col items-center gap-3 rounded-3xl px-6 py-10 text-center">
+          <GlassSurface refract rim={26} className="glass-subtle glass-subtle-themed flex flex-col items-center gap-3 rounded-3xl px-6 py-10 text-center">
             <MealTypeBadge type={cat} size="lg" />
             <p className="text-sm text-ink-soft">Noch keine Rezepte in dieser Kategorie.</p>
           </GlassSurface>
