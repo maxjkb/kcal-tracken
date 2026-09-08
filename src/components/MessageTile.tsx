@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { GlassSurface } from '../glass/GlassSurface'
 
 /**
  * A short status/placeholder line ("Lädt…", "Keine Mahlzeiten an diesem
@@ -13,13 +14,22 @@ import type { ReactNode } from 'react'
  * the recurring "short, muted, centered message" case; page titles and
  * section headers get their own tiles inline instead, since those carry
  * icons/actions alongside the text that this one-size shape doesn't fit.
+ *
+ * `refract`: every instance of this component sits directly on the plain
+ * ambient background (never over other content), which is exactly the
+ * case GlassSurface's real-refraction mode needs — see its own doc
+ * comment. Applied here rather than left opt-in per call site since
+ * that's true for literally every current use.
  */
 export function MessageTile({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <p
+    <GlassSurface
+      as="p"
+      rim={14}
+      refract
       className={`glass-subtle glass-subtle-themed inline-block rounded-2xl px-4 py-2.5 text-center text-sm text-ink-soft shadow-sm shadow-black/5 ${className}`}
     >
       {children}
-    </p>
+    </GlassSurface>
   )
 }
