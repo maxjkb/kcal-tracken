@@ -16,6 +16,12 @@ während diese Datei ab 1.14.0 liegen blieb; damit stehen beide wieder auf demse
 Stand. Die Git-Tags aus dem Absatz darüber sind in demselben Zeitraum ebenfalls
 ausgeblieben: der letzte gesetzte ist `v1.2.1`.
 
+## [2.2.0] - 2026-09-08
+
+- Kacheln haben jetzt echte Glasbrechung statt reinem Milchglas-Blur: ein SVG-Filter bricht und beleuchtet eine live mitlaufende Kopie des Hintergrundmusters, sichtbar als Kantenverzerrung und Glanzlicht — ohne das WebGL-Problem, beim Scrollen hinter der echten Ansicht herzuhinken. Angewendet auf die auffälligen, freistehenden Kacheln pro Seite (Hero-Karten, Sektionsköpfe, Kategorie-Kacheln, Seitentitel, kurze Status-Texte).
+- Texte, die bisher frei auf dem Hintergrundmuster schwebten (Lade-/Fehler-/Leer-Zustände, Seitentitel, Abschnittsüberschriften), sitzen jetzt durchgehend in einer Kachel statt direkt auf dem Muster — spürbar mehr Kontrast und Ruhe, u. a. ändert sich dadurch die Optik der Mahlzeiten-Abschnitte im Feed.
+- Das schwarze „t" im Hintergrundmuster ist im Hellmodus jetzt nur noch umrandet statt voll ausgefüllt, wie im Dunkelmodus auch — zusammen mit der Kachel-Umstellung oben deutlich ruhiger und kontrastreicher.
+
 ## [2.1.1] - 2026-09-07
 
 - Hintergrundmuster überarbeitet: engmaschigeres, kräftigeres „t"-Feinraster mit leichter Größenvariation statt des gröberen, blasseren Musters aus 2.1.0 — Standard-„t" jetzt hell schwarz gefüllt, dunkel weiß umrandet, Makro-Farben durchgehend kraftvoll statt gedämpft.
