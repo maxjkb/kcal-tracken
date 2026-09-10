@@ -183,7 +183,7 @@ const BACKFILL_MAX_PER_LAUNCH = 60
  * average forever, which for an established user is most of their history.
  *
  * Best-effort like the other background refreshes in this app
- * (refreshTipsIfStale, refreshAdvisorIfStale): no API key or a failed
+ * (refreshAdvisorIfStale): no API key or a failed
  * request just means it tries again next launch, never a visible error for
  * something the user never asked to see.
  */

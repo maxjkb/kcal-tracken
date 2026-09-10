@@ -5,7 +5,7 @@ import { db, type MealprepVersion } from '../lib/db'
  * All Mealprep versions saved for one recipe, newest first.
  *
  * Not synced across devices (unlike meals/recipes/profile — see lib/sync.ts):
- * same precedent as supplementAdvisorRuns/tipRuns/dailyTargetSnapshots —
+ * same precedent as supplementAdvisorRuns/sickDays/dailyTargetSnapshots —
  * generated, device-local convenience data rather than something the user
  * deliberately curated, so it doesn't carry the sync machinery's weight.
  */

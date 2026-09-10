@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMealsInRange } from '../hooks/useMeals'
+import { useSickDaysInRange } from '../lib/illness'
 import { toLocalDateKey } from '../lib/db'
 import { FULL_MONTH_LABELS, MONTH_LABELS, startOfWeek } from '../lib/stats'
 import { ChevronIcon } from './ChevronIcon'
@@ -97,6 +98,10 @@ export function DayPickerModal({
   // logged meal (a small dot) — cheap, and re-runs live as meals change.
   const monthMeals = useMealsInRange(monthStartKey, monthEndKey)
   const daysWithMeals = new Set((monthMeals ?? []).map((m) => m.date))
+  // Sick days get a distinct marker (the date digit itself in red) rather
+  // than the same dot as a logged meal — the two are independent facts about
+  // a day and a day can be both, so they can't share one marker.
+  const sickDays = useSickDaysInRange(monthStartKey, monthEndKey) ?? new Set<string>()
 
   function shiftMonth(delta: number) {
     const d = new Date(viewYear, viewMonth - 1 + delta, 1)
@@ -134,6 +139,7 @@ export function DayPickerModal({
           const isSelected = key === selectedDateKey
           const isToday = key === todayKey
           const hasMeal = daysWithMeals.has(key)
+          const isSick = sickDays.has(key)
           return (
             <button
               key={key}
@@ -146,7 +152,7 @@ export function DayPickerModal({
                     : 'text-ink-faint hover:bg-bg'
               } ${isToday && !isSelected ? 'ring-1 ring-inset ring-accent' : ''}`}
             >
-              {date.getDate()}
+              <span className={isSick && !isSelected ? 'font-semibold text-danger' : ''}>{date.getDate()}</span>
               {hasMeal && (
                 <span
                   // bg-bg, not a hardcoded bg-white: --color-accent inverts

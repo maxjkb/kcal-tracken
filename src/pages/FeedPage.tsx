@@ -12,8 +12,9 @@ import { DayPickerModal } from '../components/DatePickerModal'
 import { Collapse } from '../components/Collapse'
 import { MealTypeBadge } from '../components/MealTypeBadge'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
+import { useSickDay } from '../lib/illness'
 import { PageHeader } from '../components/PageHeader'
-import { TipsButton } from '../components/TipsSheet'
+import { SickDayButton } from '../components/SickDayButton'
 import { GlassSurface } from '../glass/GlassSurface'
 
 function sumNutrition(meals: Meal[]) {
@@ -71,7 +72,6 @@ export function FeedPage() {
     snack: false,
   })
 
-  const isToday = dateKey === toLocalDateKey(new Date())
   const totals = (meals ?? []).reduce(
     (acc, m) => ({
       kcal: acc.kcal + m.nutrition.kcal,
@@ -83,7 +83,14 @@ export function FeedPage() {
   )
 
   const bodyProfile = getBodyProfile()
-  const targets = bodyProfile ? computeDailyTargets(bodyProfile) : null
+  const normalTargets = bodyProfile ? computeDailyTargets(bodyProfile) : null
+  // A sick day's on-request target override (see SickDaySheet) only ever
+  // replaces what THIS page shows for THAT date — computeDailyTargets and
+  // the Statistik page's own historical-target logic (targetHistory.ts)
+  // stay untouched, per an explicit "no Statistik rebuild" constraint.
+  const sickDay = useSickDay(dateKey)
+  const override = sickDay?.adjustTargets ? sickDay.targetOverride : undefined
+  const targets = override ? { kcal: override.kcal, protein: override.protein, carbs: override.carbs, fat: override.fat } : normalTargets
 
   const mealsByType = (meals ?? []).reduce<Record<MealType, Meal[]>>(
     (acc, m) => {
@@ -103,7 +110,7 @@ export function FeedPage() {
           the day is lost along with the line. */}
       <PageHeader
         title={formatDateHeading(dateKey)}
-        actions={isToday && <TipsButton />}
+        actions={<SickDayButton dateKey={dateKey} />}
         onTitleClick={() => setPickerOpen(true)}
       />
 
@@ -120,66 +127,64 @@ export function FeedPage() {
           {MEAL_TYPE_ORDER.map((type) => {
             const typeMeals = mealsByType[type]
             const isOpen = !collapsed[type]
+            const typeTotals = sumNutrition(typeMeals)
             return (
-              <section key={type}>
-                {/* Round 3 (v2.3): used to be plain text directly on the
-                    ambient background — explicit feedback that no text
-                    should float free of a tile now that the background
-                    pattern is busier. Same glass-subtle material every
-                    other card in the app uses, not a one-off. */}
-                <GlassSurface
-                  rim={18}
-                  className="glass-subtle glass-subtle-themed mb-2 flex items-center gap-2 rounded-2xl py-1 pl-3 pr-1 shadow-sm shadow-black/5"
+              // Round 4 (v2.4): the header used to be its own small pill with
+              // the meal list floating separately underneath — explicit
+              // feedback wanted each meal-time to read as ONE tile, and for
+              // all four to be the exact same size collapsed regardless of
+              // whether anything's logged in them. Both come from the same
+              // fix: header and content now share one GlassSurface, and the
+              // collapsed content (the macro row below) always renders —
+              // zeroes when empty — instead of only appearing once there's
+              // something to sum, which is what made empty tiles shorter.
+              <GlassSurface
+                key={type}
+                rim={22}
+                className="glass-subtle glass-subtle-themed rounded-3xl p-4 shadow-sm shadow-black/5"
+              >
+                <button
+                  type="button"
+                  onClick={() => setCollapsed((c) => ({ ...c, [type]: !c[type] }))}
+                  aria-label={isOpen ? `${MEAL_TYPE_LABELS[type]} einklappen` : `${MEAL_TYPE_LABELS[type]} ausklappen`}
+                  className="flex w-full items-center gap-2"
                 >
                   <MealTypeBadge type={type} size="sm" />
                   <h2 className="text-lg font-semibold text-ink">{MEAL_TYPE_LABELS[type]}</h2>
-                  {typeMeals.length > 0 && (
-                    <button
-                      onClick={() => setCollapsed((c) => ({ ...c, [type]: !c[type] }))}
-                      aria-label={isOpen ? `${MEAL_TYPE_LABELS[type]} einklappen` : `${MEAL_TYPE_LABELS[type]} ausklappen`}
-                      className="ml-auto flex h-11 w-11 items-center justify-center rounded-full text-ink-soft"
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={2.2}
-                        className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
-                      </svg>
-                    </button>
-                  )}
-                </GlassSurface>
-                <Collapse open={isOpen && typeMeals.length > 0}>
-                  <div className="flex flex-col gap-2">
-                    {typeMeals.map((meal) => (
-                      <MealCard key={meal.id} meal={meal} onView={() => setEditorState({ mode: 'view', meal })} />
-                    ))}
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2.2}
+                    className={`ml-auto h-4 w-4 shrink-0 text-ink-soft transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+
+                <Collapse open={!isOpen}>
+                  <div className="flex flex-wrap gap-1.5 pt-3">
+                    <MacroBadge type="kcal" value={typeTotals.kcal} size="sm" />
+                    <MacroBadge type="protein" value={typeTotals.protein} size="sm" />
+                    <MacroBadge type="carbs" value={typeTotals.carbs} size="sm" />
+                    <MacroBadge type="fat" value={typeTotals.fat} size="sm" />
                   </div>
                 </Collapse>
-                {/* Collapsed sections still show at a glance what was logged, as
-                    the same macro pills MealCard itself uses (Round 2, v2.2:
-                    this used to switch to a separate ring-style summary here —
-                    explicit feedback wanted the pill treatment applied
-                    everywhere macros show up, this row included) summing this
-                    category's totals for the day — it disappears again once
-                    expanded, since the meal cards below then show the same
-                    numbers per-meal. */}
-                <Collapse open={!isOpen && typeMeals.length > 0}>
-                  {(() => {
-                    const totals = sumNutrition(typeMeals)
-                    return (
-                      <div className="flex flex-wrap gap-1.5">
-                        <MacroBadge type="kcal" value={totals.kcal} size="sm" />
-                        <MacroBadge type="protein" value={totals.protein} size="sm" />
-                        <MacroBadge type="carbs" value={totals.carbs} size="sm" />
-                        <MacroBadge type="fat" value={totals.fat} size="sm" />
+
+                <Collapse open={isOpen}>
+                  <div className="pt-3">
+                    {typeMeals.length > 0 ? (
+                      <div className="flex flex-col gap-2">
+                        {typeMeals.map((meal) => (
+                          <MealCard key={meal.id} meal={meal} onView={() => setEditorState({ mode: 'view', meal })} />
+                        ))}
                       </div>
-                    )
-                  })()}
+                    ) : (
+                      <p className="py-2 text-sm text-ink-soft">Noch keine Mahlzeit eingetragen.</p>
+                    )}
+                  </div>
                 </Collapse>
-              </section>
+              </GlassSurface>
             )
           })}
         </div>
