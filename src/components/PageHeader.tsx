@@ -105,7 +105,6 @@ export function PageHeader({
           <GlassSurface
             as={onTitleClick ? 'button' : 'span'}
             rim={16}
-            refract
             type={onTitleClick ? 'button' : undefined}
             onClick={onTitleClick}
             className={`glass-subtle glass-subtle-themed inline-block rounded-2xl px-3 py-1 shadow-sm shadow-black/5 ${

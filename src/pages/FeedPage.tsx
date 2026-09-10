@@ -107,7 +107,7 @@ export function FeedPage() {
         onTitleClick={() => setPickerOpen(true)}
       />
 
-      <GlassSurface refract rim={26} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-5 shadow-sm shadow-black/5">
+      <GlassSurface rim={26} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-5 shadow-sm shadow-black/5">
         <RemainingHero kcal={totals.kcal} protein={totals.protein} carbs={totals.carbs} fat={totals.fat} targets={targets} />
       </GlassSurface>
 
@@ -128,7 +128,6 @@ export function FeedPage() {
                     pattern is busier. Same glass-subtle material every
                     other card in the app uses, not a one-off. */}
                 <GlassSurface
-                  refract
                   rim={18}
                   className="glass-subtle glass-subtle-themed mb-2 flex items-center gap-2 rounded-2xl py-1 pl-3 pr-1 shadow-sm shadow-black/5"
                 >

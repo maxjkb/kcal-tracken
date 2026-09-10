@@ -27,7 +27,7 @@ import { addMySupplement, toggleSupplementCheck } from '../hooks/useSupplements'
 import { lookupFoodByBarcode } from '../lib/foodDatabase'
 import { DictationButton } from './DictationButton'
 import { DictationWaveform } from './DictationWaveform'
-import { PhotoActionButton, PhotoGallery } from './PhotoInput'
+import { PhotoActionButton } from './PhotoInput'
 import { ActionButton } from './ActionButton'
 import { NutritionFields } from './NutritionFields'
 import { NumberField } from './NumberField'
@@ -238,6 +238,12 @@ function MealEditorContent({
   const [confirmedSupplementIds, setConfirmedSupplementIds] = useState<Set<string>>(new Set())
   const [barcodeStep, setBarcodeStep] = useState<'idle' | 'scanning' | 'looking-up' | 'not-found'>('idle')
   const [barcodeLoadError, setBarcodeLoadError] = useState<string | null>(null)
+  // How many products this session's barcode scans have added — shown as a
+  // badge on the scan button itself (see handleBarcodeDetected below),
+  // never restored from a draft: a resumed draft's ingredients already
+  // reflect any earlier scans, and this is just a running "how many since I
+  // opened the scanner" count, not part of the meal's own data.
+  const [barcodeCount, setBarcodeCount] = useState(0)
   // Loaded on demand rather than imported at the top of this file: pulling
   // in @zxing/library (a barcode-decoding engine, ~250kB) for every meal
   // edit — the vast majority of which never touch the scanner — bloated
@@ -527,6 +533,7 @@ function MealEditorContent({
     setHasResult(true)
     setStep('review')
     setBarcodeStep('idle')
+    setBarcodeCount((c) => c + 1)
   }
 
   async function openBarcodeScanner() {
@@ -746,10 +753,14 @@ function MealEditorContent({
                     scrolling area. The field and the four input-source
                     buttons are docked below it, outside the scroll — that is
                     what keeps both reachable without opening the sheet, and
-                    it is also why neither needs `sticky` any more. */}
-                {photos.length > 0 && (
-                  <PhotoGallery photos={photos} onRemove={(i) => setPhotos((prev) => prev.filter((_, j) => j !== i))} />
-                )}
+                    it is also why neither needs `sticky` any more.
+
+                    Round 4 (v2.4): no photo preview here any more —
+                    explicit feedback that an attached photo shouldn't
+                    appear anywhere while editing, just as a count on the
+                    button that added it (see the camera/library
+                    PhotoActionButtons below, and ActionButton's own `badge`
+                    prop). */}
 
                 {!hasApiKey && (
                   <p className="rounded-2xl bg-fat/15 px-3 py-2 text-xs text-ink">
@@ -896,7 +907,7 @@ function MealEditorContent({
                     </ActionButton>
                     <PhotoActionButton count={photos.length} onAdd={(p) => setPhotos((prev) => [...prev, p])} source="camera" />
                     <PhotoActionButton count={photos.length} onAdd={(p) => setPhotos((prev) => [...prev, p])} source="library" />
-                    <ActionButton label="Barcode scannen" onClick={openBarcodeScanner}>
+                    <ActionButton label="Barcode scannen" badge={barcodeCount} onClick={openBarcodeScanner}>
                       <BarcodeIcon />
                     </ActionButton>
                   </div>
@@ -913,13 +924,6 @@ function MealEditorContent({
               what review actually needed to show. */}
           <div data-sheet-collapse className="w-full shrink-0 overflow-y-auto overflow-x-hidden px-5 pb-5">
             <div className="flex flex-col gap-4">
-              {/* The one place in review a photo was invisible: step 1's own
-                  PhotoGallery lives in step 1's scroll area, which review
-                  doesn't share — attaching a photo, then estimating, landed
-                  on review with no sign it existed at all until save. */}
-              {photos.length > 0 && (
-                <PhotoGallery photos={photos} onRemove={(i) => setPhotos((prev) => prev.filter((_, j) => j !== i))} />
-              )}
 
               <label className="flex flex-col gap-1">
                 <span className="text-xs text-ink-soft">Datum</span>

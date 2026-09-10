@@ -73,7 +73,7 @@ export function RecipeCategoryPage() {
             <MessageTile>Lädt…</MessageTile>
           </div>
         ) : recipes.length === 0 ? (
-          <GlassSurface refract rim={26} className="glass-subtle glass-subtle-themed flex flex-col items-center gap-3 rounded-3xl px-6 py-10 text-center">
+          <GlassSurface rim={26} className="glass-subtle glass-subtle-themed flex flex-col items-center gap-3 rounded-3xl px-6 py-10 text-center">
             <MealTypeBadge type={cat} size="lg" />
             <p className="text-sm text-ink-soft">Noch keine Rezepte in dieser Kategorie.</p>
           </GlassSurface>

@@ -36,33 +36,58 @@
  * reads as noisier/heavier than an outline carrying the same texture. Both
  * themes now just stroke var(--color-ink) with no fill — one static CSS
  * rule (.amb-ink in index.css) instead of a per-theme fill/stroke split.
+ *
+ * Round 4 (v2.4): two more pieces of feedback on this pattern —
+ *
+ * 1. The accent (macro-color) cells were still solid-filled while the ink
+ *    cells had gone outline-only, which read as inconsistent (and heavier
+ *    than everything around it). They're outlined now too, same
+ *    fill:none/stroke treatment as .amb-ink, just with the accent color as
+ *    the stroke instead of var(--color-ink).
+ * 2. A `<pattern>`'s repeat unit tiles identically forever, so whatever
+ *    arrangement the 4 accent cells had within one tile was necessarily
+ *    exactly repeated at every tile boundary — on a phone-sized viewport
+ *    that's roughly 7×15 repeats of the old 55px tile, which reads as an
+ *    obviously regular grid of color no matter how the 4 positions were
+ *    chosen within it. Grown from a 5×5 (25-cell) tile to 8×8 (64 cells):
+ *    the repeat period is large enough on a phone screen that the eye
+ *    stops registering it as a grid, and the 4 accent positions below are
+ *    hand-picked so no two share a row, a column, or a diagonal — nothing
+ *    to visually connect them into a shape, which is what "gesprenkelt"
+ *    (sprinkled) actually needs, more than the positions themselves.
  */
+const GRID = 8
 const CELL = 11
-const TILE_SIZE = CELL * 5
+const TILE_SIZE = CELL * GRID
 const BASE_FONT = CELL * 0.62
 
-/** Index → macro color var. Spread across the 5×5 grid, not clustered. */
+/**
+ * Index → macro color var, in an 8×8 (0–63) grid. row = ⌊i/8⌋, col = i%8.
+ * Chosen so rows {0,3,5,6}, columns {2,6,0,4}, and both diagonal sums
+ * (row+col: 2,9,5,10) and differences (row−col: −2,−3,5,2) are all
+ * pairwise distinct — no shared axis for the eye to pick out.
+ */
 const ACCENT_CELLS: Record<number, string> = {
-  6: 'var(--color-kcal)',
-  13: 'var(--color-protein)',
-  18: 'var(--color-carbs)',
-  22: 'var(--color-fat)',
+  2: 'var(--color-kcal)', // row 0, col 2
+  30: 'var(--color-protein)', // row 3, col 6
+  40: 'var(--color-carbs)', // row 5, col 0
+  52: 'var(--color-fat)', // row 6, col 4
 }
 
 /**
- * Per-cell size multiplier — hand-authored, not randomized, so the tile
- * stays exactly reproducible: a deterministic wobble around 1.0 (0.85–1.12)
- * that reads as "a bit of variation" without a visible repeat or a
- * directional trend.
+ * Per-cell size multiplier — a deterministic wobble around 1.0, same intent
+ * as the original hand-typed 25-value array (reproducible, no per-build
+ * randomness, no directional trend), just generated instead of hand-copied
+ * now that the grid holds 64 cells rather than 25. The golden-angle step
+ * (~137.5°) is the standard trick for a sequence that never lines up into
+ * a visible repeat over a small span, which a plain low-frequency sine
+ * would.
  */
-const FONT_SCALE = [
-  1.0, 0.85, 1.1, 0.95, 1.05, 0.9, 1.12, 1.0, 0.85, 1.05, 1.0, 0.95, 1.1, 0.9,
-  1.0, 1.05, 0.85, 1.12, 0.95, 1.0, 0.9, 1.1, 1.0, 0.85, 1.05,
-]
+const FONT_SCALE = Array.from({ length: GRID * GRID }, (_, i) => 1 + 0.13 * Math.sin(i * 2.399963))
 
-const TILE_LETTERS = Array.from({ length: 25 }, (_, i) => {
-  const row = Math.floor(i / 5)
-  const col = i % 5
+const TILE_LETTERS = Array.from({ length: GRID * GRID }, (_, i) => {
+  const row = Math.floor(i / GRID)
+  const col = i % GRID
   return {
     x: col * CELL + CELL / 2,
     y: row * CELL + CELL / 2,
@@ -89,7 +114,7 @@ export function AmbientBackground() {
                   fontWeight={800}
                   fontSize={fontSize}
                   className={accent ? undefined : 'amb-ink'}
-                  style={accent ? { fill: accent } : { strokeWidth: fontSize * 0.1 }}
+                  style={accent ? { fill: 'none', stroke: accent, strokeWidth: fontSize * 0.1 } : { strokeWidth: fontSize * 0.1 }}
                 >
                   t
                 </text>

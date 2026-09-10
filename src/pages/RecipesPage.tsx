@@ -80,7 +80,6 @@ export function RecipesPage() {
                 chevron/badge to share the row with here. */}
             <GlassSurface
               as="h2"
-              refract
               rim={14}
               className="glass-subtle glass-subtle-themed mb-2.5 inline-block rounded-xl px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-ink-soft shadow-sm shadow-black/5"
             >
@@ -168,7 +167,6 @@ function CategoryTile({ type, count }: { type: MealType; count: number; maxCount
     <GlassSurface
       as={Link}
       to={`/recipes/${type}`}
-      refract
       rim={26}
       aria-label={`${MEAL_TYPE_LABELS[type]}: ${count === 0 ? 'noch keine Rezepte' : count === 1 ? '1 Rezept' : `${count} Rezepte`}`}
       className="press-card glass-subtle glass-subtle-themed flex flex-col gap-3 rounded-3xl p-4 shadow-sm shadow-black/5"
@@ -239,7 +237,6 @@ function SuggestionsSection({ onPick }: { onPick: (seed: RecipeSeed) => void }) 
           right) since the button needs to stay a sibling tap target inside
           the same tile, not a second floating element next to it. */}
       <GlassSurface
-        refract
         rim={14}
         className="glass-subtle glass-subtle-themed mb-2.5 flex items-center justify-between gap-3 rounded-xl py-1 pl-3 pr-1 shadow-sm shadow-black/5"
       >
