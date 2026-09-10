@@ -40,12 +40,21 @@ export function KcalTrendChart({
   targets,
   emptyLabel,
   onSelectBucket,
+  lineColor = LINE_COLOR,
 }: {
   data: ChartBucket[]
   targets: DailyTargets | null
   emptyLabel: string
   /** Drilling deeper from the popup (a day in the Woche view, a month in Jahr). */
   onSelectBucket?: (bucket: StatBucket) => void
+  /**
+   * The "actual" line's color — defaults to kcal's own identity blue.
+   * Round 5 (v2.5): MacroTrendCard reuses this whole chart for protein/
+   * carbs/fat too, and those already have their own identity color
+   * everywhere else in the app (pink/green/amber) — keeping the line blue
+   * there would read as "this is kcal" on a chart that isn't.
+   */
+  lineColor?: string
 }) {
   // The key, not the bucket. Deriving the bucket during render means a period
   // change that drops it simply resolves to null — no effect chasing state
@@ -109,6 +118,7 @@ export function KcalTrendChart({
           hasTargetLine={hasTargetLine}
           selectedKey={selectedKey}
           onSelect={toggleSelected}
+          lineColor={lineColor}
         />
       </div>
 
@@ -224,12 +234,14 @@ function TrendPlot({
   hasTargetLine,
   selectedKey,
   onSelect,
+  lineColor,
 }: {
   data: ChartBucket[]
   average: number
   hasTargetLine: boolean
   selectedKey: string | null
   onSelect: (key: string) => void
+  lineColor: string
 }) {
   const hostRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState<{ w: number; h: number } | null>(null)
@@ -383,7 +395,7 @@ function TrendPlot({
           <path
             d={geometry.kcalPath}
             fill="none"
-            stroke={LINE_COLOR}
+            stroke={lineColor}
             strokeWidth={2.5}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -398,8 +410,8 @@ function TrendPlot({
             return (
               <g key={data[i].key} cursor="pointer" onClick={() => onSelect(data[i].key)}>
                 <circle cx={p.x} cy={p.y} r={TAP_RADIUS} fill="transparent" />
-                {isSelected && <circle cx={p.x} cy={p.y} r={10} fill={LINE_COLOR} fillOpacity={0.2} />}
-                <circle cx={p.x} cy={p.y} r={isSelected ? 6 : 3.5} fill={LINE_COLOR} />
+                {isSelected && <circle cx={p.x} cy={p.y} r={10} fill={lineColor} fillOpacity={0.2} />}
+                <circle cx={p.x} cy={p.y} r={isSelected ? 6 : 3.5} fill={lineColor} />
               </g>
             )
           })}

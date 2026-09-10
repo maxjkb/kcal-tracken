@@ -72,16 +72,17 @@ export function SickDayButton({ dateKey }: { dateKey: string }) {
           isMarked ? 'bg-danger text-white' : 'glass-subtle glass-subtle-themed text-section'
         }`}
       >
-        <ThermometerIcon />
+        <ThermometerIcon className="h-[1.15rem] w-[1.15rem]" />
       </button>
       {sheetOpen && <SickDaySheet dateKey={dateKey} onClose={() => setSheetOpen(false)} />}
     </>
   )
 }
 
-function ThermometerIcon() {
+/** Exported — also the icon for the Statistik page's Krankheits-Diagramm (same "krank" concept, one glyph for it). */
+export function ThermometerIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-[1.15rem] w-[1.15rem]">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 14.5V5a2 2 0 1 0-4 0v9.5a4 4 0 1 0 4 0Z" />
       <path strokeLinecap="round" d="M10 8h2" />
     </svg>
