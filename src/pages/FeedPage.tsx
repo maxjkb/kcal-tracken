@@ -13,6 +13,7 @@ import { Collapse } from '../components/Collapse'
 import { MealTypeBadge } from '../components/MealTypeBadge'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { useSickDay } from '../lib/illness'
+import { ALL_COLLAPSED, getFeedCollapse, setFeedCollapse } from '../lib/feedCollapse'
 import { PageHeader } from '../components/PageHeader'
 import { SickDayButton } from '../components/SickDayButton'
 import { GlassSurface } from '../glass/GlassSurface'
@@ -65,12 +66,27 @@ export function FeedPage() {
   // while the query is still resolving, so there's no loading flash.
   const viewedMeal = useMeal(editorState.mode === 'view' ? editorState.meal.id : undefined)
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [collapsed, setCollapsed] = useState<Record<MealType, boolean>>({
-    breakfast: false,
-    lunch: false,
-    dinner: false,
-    snack: false,
-  })
+  // Persisted per the currently-viewed date (see lib/feedCollapse.ts) rather
+  // than a fixed default — re-derived whenever `dateKey` itself changes
+  // (switching days via the calendar, or a fresh mount on a new day), never
+  // on a wall-clock tick, so a day already open on screen is never yanked
+  // shut while someone is actively looking at it. Reset during render (the
+  // documented React pattern for "this state depends on a key that just
+  // changed") rather than in an effect, which would render once with the
+  // stale day's state before correcting itself a frame later.
+  const [collapsedForDate, setCollapsedForDate] = useState(dateKey)
+  const [collapsed, setCollapsedState] = useState<Record<MealType, boolean>>(() => getFeedCollapse(dateKey) ?? ALL_COLLAPSED)
+  if (dateKey !== collapsedForDate) {
+    setCollapsedForDate(dateKey)
+    setCollapsedState(getFeedCollapse(dateKey) ?? ALL_COLLAPSED)
+  }
+  function setCollapsed(updater: (prev: Record<MealType, boolean>) => Record<MealType, boolean>) {
+    setCollapsedState((prev) => {
+      const next = updater(prev)
+      setFeedCollapse(dateKey, next)
+      return next
+    })
+  }
 
   const totals = (meals ?? []).reduce(
     (acc, m) => ({
