@@ -96,6 +96,7 @@ export function PhotoActionButton({
               : 'Foto aus der Galerie wählen'
         }
         active={count > 0}
+        badge={count}
         disabled={atLimit}
         onClick={() => inputRef.current?.click()}
       >
@@ -129,53 +130,16 @@ function LibraryIcon() {
 }
 
 /**
- * The taken photo(s) with a per-photo remove control — rendered by callers
- * that show the picker elsewhere. A single photo keeps the previous
- * full-width, taller treatment (this is overwhelmingly the common case);
- * more than one becomes a horizontal-scroll strip of smaller tiles, each
- * individually removable, rather than shrinking to fit a grid.
+ * Round 4 (v2.4): this used to be PhotoGallery, a per-photo image preview
+ * (single photo full-width, several as a horizontal-scroll strip) rendered
+ * by MealEditor below the input row. Removed outright, not just
+ * unmounted — explicit feedback that an attached photo shouldn't appear
+ * anywhere while editing a meal, only as a count (see ActionButton's own
+ * `badge` prop, and PhotoActionButton below passing it `count`). A photo
+ * added by mistake has no per-photo undo any more as a result — the
+ * trade-off that comment made explicitly, not an oversight; closing and
+ * reopening the editor is the fallback until/unless that's asked for.
  */
-export function PhotoGallery({ photos, onRemove }: { photos: string[]; onRemove: (index: number) => void }) {
-  if (photos.length === 1) {
-    return (
-      <div className="relative w-full">
-        <img src={photos[0]} alt="Foto der Mahlzeit" className="h-40 w-full rounded-2xl object-cover" />
-        <button
-          type="button"
-          onClick={() => onRemove(0)}
-          className="absolute right-2 top-2 rounded-full bg-ink/70 px-2.5 py-1 text-xs font-medium text-white"
-        >
-          Entfernen
-        </button>
-      </div>
-    )
-  }
-  return (
-    <div className="flex w-full gap-2 overflow-x-auto pb-0.5">
-      {photos.map((photo, i) => (
-        <div key={i} className="relative h-28 w-28 shrink-0">
-          <img src={photo} alt={`Foto ${i + 1} der Mahlzeit`} className="h-28 w-28 rounded-2xl object-cover" />
-          <button
-            type="button"
-            onClick={() => onRemove(i)}
-            aria-label={`Foto ${i + 1} entfernen`}
-            className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-ink/70 text-white"
-          >
-            <RemoveIcon />
-          </button>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function RemoveIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-3.5 w-3.5">
-      <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
-    </svg>
-  )
-}
 
 function CameraIcon() {
   return (

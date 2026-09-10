@@ -40,6 +40,33 @@ function clampPct(ratio: number): number {
  * the day's per-meal average. Shown as a small extra line rather than a
  * second ring-in-ring, since a closed/non-progress ring was itself part of
  * what this component replaces.
+ *
+ * Round 4 (v2.4): the "kcal übrig heute" / "kcal über dem Ziel" caption (and
+ * the macro strip's own "übrig" / "über Ziel") is gone — explicit feedback
+ * that spelling out the state in words was redundant with the number itself
+ * and just added clutter. Two iterations on what replaces it:
+ *
+ * - First pass: number stayed plain ink always, a colored ring drew around
+ *   it on overage instead. Explicit follow-up feedback: didn't like it —
+ *   read as fussy, and risked the ring's own padding subtly resizing the
+ *   tile between states.
+ * - This pass: the big number itself IS the state, the same "überschritten
+ *   = rot" idea task #49 first established for kcal, just recolored and
+ *   extended to the macro strip. Ink while still under target (its meaning:
+ *   how much is still open), `--color-warning` once over (its meaning
+ *   flips to how much over) — one dedicated color for "over" everywhere in
+ *   this card, kcal and all three macros alike, not each macro's own
+ *   identity color: color already carries that macro's *identity*
+ *   elsewhere on this same tile (icon, bar) — reusing it to also signal
+ *   *state* would make it mean two things on the one tile where both
+ *   happen to be visible together. No ring, no padding/shape change
+ *   between states — same box, same padding, just a color swap.
+ *
+ * The actual total consumed — lost when the big number switched fully to
+ * "remaining", and specifically asked back — now sits as a small caption
+ * underneath, always on, deliberately never capped at the target: capping
+ * it would make the caption read the same target-ish number every time
+ * you're over, which is exactly the case it exists to cover.
  */
 export function RemainingHero({
   kcal,
@@ -57,11 +84,7 @@ export function RemainingHero({
   perMeal?: Totals
 }) {
   const kcalRemaining = targets ? targets.kcal - kcal : null
-  // Same "überschritten = rot" convention as everywhere else kcal balance is
-  // shown (task #49) — exceeding the target flips the hero red instead of
-  // reading as more progress toward a goal.
   const over = kcalRemaining !== null && kcalRemaining < 0
-  const kcalColor = over ? 'var(--color-danger)' : 'var(--color-kcal)'
   const kcalRatio = targets ? kcal / targets.kcal : 0
 
   const strip = (['protein', 'carbs', 'fat'] as const).map((type) => {
@@ -71,21 +94,31 @@ export function RemainingHero({
     return { type, value, target, remaining }
   })
 
+  // Always on once there's a target: the number above only ever shows
+  // "how much" (remaining, or over) — this is what still answers "how much
+  // did I actually eat", which the remaining-only number stopped covering
+  // on its own once it started counting down instead of up. Never capped
+  // at the target (see this component's own doc comment on why).
+  const kcalCaption = targets ? `${Math.round(kcal).toLocaleString('de-DE')} kcal gesamt` : null
+
   return (
     <div>
       <div className="flex items-baseline gap-1.5">
-        <span className="hero-num text-5xl" style={{ color: kcalColor }}>
+        <span className="hero-num text-5xl" style={{ color: over ? 'var(--color-warning)' : 'var(--color-ink)' }}>
           {Math.round(Math.abs(kcalRemaining ?? kcal)).toLocaleString('de-DE')}
         </span>
         <span className="text-lg font-semibold text-ink-soft">kcal</span>
       </div>
-      <p className="mt-0.5 text-xs font-medium text-ink-soft">
-        {targets ? (over ? 'kcal über dem Ziel' : 'kcal übrig heute') : 'kcal heute'}
-        {perMeal && ` · Ø ${Math.round(perMeal.kcal)} pro Mahlzeit`}
-      </p>
+      {!targets && <p className="mt-0.5 text-xs font-medium text-ink-soft">kcal heute</p>}
+      {kcalCaption && (
+        <p className="mt-0.5 text-xs font-medium text-ink-soft">
+          {kcalCaption}
+          {perMeal && ` · Ø ${Math.round(perMeal.kcal)} pro Mahlzeit`}
+        </p>
+      )}
       {targets && (
         <div className="hero-rule mt-3">
-          <i style={{ width: `${clampPct(kcalRatio)}%`, background: kcalColor }} />
+          <i style={{ width: `${clampPct(kcalRatio)}%`, background: over ? 'var(--color-warning)' : 'var(--color-kcal)' }} />
         </div>
       )}
 
@@ -94,6 +127,12 @@ export function RemainingHero({
           const color = MACRO_COLOR[type]
           const macroOver = remaining !== null && remaining < 0
           const perMealValue = perMeal?.[type]
+          const caption =
+            target !== undefined
+              ? `${Math.round(value)}g gesamt${perMealValue !== undefined ? ` · Ø ${Math.round(perMealValue)}g` : ''}`
+              : perMealValue !== undefined
+                ? `Ø ${Math.round(perMealValue)}g`
+                : null
           return (
             <div key={type} className="rounded-2xl bg-bg/70 p-3">
               <div className="flex items-center gap-1.5" style={{ color }}>
@@ -102,14 +141,16 @@ export function RemainingHero({
                   {MACRO_LABEL[type]}
                 </span>
               </div>
-              <div className="hero-num mt-1 text-lg text-ink">{Math.round(Math.abs(remaining ?? value))}g</div>
-              <div className="text-[10px] text-ink-soft">
-                {target !== undefined ? (macroOver ? 'über Ziel' : 'übrig') : ''}
-                {perMealValue !== undefined && ` · Ø ${Math.round(perMealValue)}g`}
+              <div
+                className="hero-num mt-1 text-lg"
+                style={{ color: macroOver ? 'var(--color-warning)' : 'var(--color-ink)' }}
+              >
+                {Math.round(Math.abs(remaining ?? value))}g
               </div>
+              {caption && <div className="text-[10px] text-ink-soft">{caption}</div>}
               {target !== undefined && (
                 <div className="hero-rule mt-1.5" style={{ height: 2 }}>
-                  <i style={{ width: `${clampPct(value / target)}%`, background: color }} />
+                  <i style={{ width: `${clampPct(value / target)}%`, background: macroOver ? 'var(--color-warning)' : color }} />
                 </div>
               )}
             </div>

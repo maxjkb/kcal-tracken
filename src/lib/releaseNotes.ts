@@ -17,6 +17,17 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '2.3.0',
+    date: '2026-09-10',
+    highlights: [
+      'Hintergrund komplett neu: die bisherigen Wiederholmuster (Punkte-, dann Buchstabenraster) sind weg — jetzt ein einziges riesiges, kaum sichtbares „t" am Bildschirmrand plus eine spärliche Streuung kleiner Punkte in den vier Makrofarben. Nichts wiederholt sich mehr, dadurch liest sich der Hintergrund nicht mehr als Muster.',
+      'Kacheln sind wieder klassisches, deutlich blickdichteres Milchglas statt der SVG-Glasbrechung aus 2.2.0 — die machte auf echten Geräten fast alles unlesbar.',
+      'Bei Kalorien und allen drei Makros: die große Zahl ist schwarz, solange noch Luft zum Ziel ist, und wird gelb, sobald überschritten — kein Text wie „übrig"/„über Ziel" mehr. Darunter steht klein und grau immer die tatsächlich verzehrte Gesamtmenge, unabhängig vom Ziel.',
+      'Die aufklappbare Auswahl-Pille (Statistik/Supps) nimmt eingeklappt jetzt die volle Zeilenbreite ein statt einer kleinen mittigen Pille, und die Auf-/Ab-Pfeile sind weg.',
+      'Im Mahlzeiten-Editor zeigen Kamera-, Galerie- und Barcode-Button jetzt einen kleinen Zähler statt einer Bildvorschau — man sieht auf einen Blick, wie viele Fotos bzw. gescannte Produkte schon dabei sind, ohne dass ein Foto irgendwo groß angezeigt wird.',
+    ],
+  },
+  {
     version: '2.2.0',
     date: '2026-09-08',
     highlights: [

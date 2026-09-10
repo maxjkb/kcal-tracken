@@ -156,6 +156,19 @@
   --color-meal-snack: #954d6e;
 
   --color-danger: #ff3b30;
+  /* Round 4 (v2.4): "over target" for kcal/macros in RemainingHero — a
+   * dedicated warning amber, not a reuse of --color-fat even though both
+   * land in the same amber family. Deliberate: --color-fat means "this is
+   * the fat row" wherever it appears (icon, bar, badge); this token means
+   * "you're over" and applies uniformly across kcal/protein/carbs/fat
+   * alike, the same way --color-danger used to mean "over" for kcal alone.
+   * A color meaning two different things is exactly the cost this
+   * codebase's own palette comments elsewhere argue against paying.
+   * Contrast-checked against --color-bg the same way as every other token
+   * here: 5.23:1 light (as large hero-num text, not just body copy),
+   * 12.68:1 dark.
+   */
+  --color-warning: #8f6100;
   /* Positive/"good source of" accent — MealDetail's per-meal micronutrient
      badges. Deliberately its own token rather than reusing --color-carbs,
      even though they're the same green: the two contexts (a meal-detail
@@ -343,6 +356,7 @@ body {
     --color-meal-dinner: #8f7ddb;
     --color-meal-snack: #d4839f;
     --color-danger: #ff453a;
+    --color-warning: #ffc94d;
     --color-good: #4ecf8a;
 
     /* v2: same hues as the light-mode block above, solved for ≥9:1 contrast
@@ -454,14 +468,17 @@ body {
    Rebrand (v2.0.0): this used to be three large, heavily blurred colored
    circles (two following the now-retired --color-section, one fixed on
    --color-fat) — a "Farbverlauf" the explicit feedback named directly as
-   part of why the app still read as the old one. Replaced with the Vision
-   Board's own body-background rule verbatim (design-demo/
-   vision-board-big-number.html): a faint 22px dot grid at 5% ink over the
-   plain canvas, no color, no blur, no per-route variation. Liquid Glass
-   still gets something to frost — a repeating texture refracts under blur
-   just as a color wash did — it's just neutral now instead of a hue. Fixed
-   + deeply negative z-index, same stacking approach as before: ordinary
-   page content simply paints over it. */
+   part of why the app still read as the old one. Fixed + deeply negative
+   z-index: ordinary page content simply paints over it.
+
+   Rounds 2.1–2.3 replaced that with a tiled lowercase "t" pattern, tuned
+   across several passes (letter density, outline vs fill, accent-cell
+   placement) — see git history. Round 4 (v2.4) drops the idea of a
+   repeating texture entirely; AmbientBackground.tsx's own comment has the
+   reasoning. What's left here is deliberately small: a fixed canvas color,
+   the giant watermark letter, and the confetti dots — no per-theme asset,
+   no SVG, no pattern tiling math, since both pieces just read their colors
+   from the existing theme tokens directly. */
 .ambient-bg {
   position: fixed;
   inset: 0;
@@ -470,40 +487,31 @@ body {
   background: var(--color-bg);
   pointer-events: none;
 }
-/* Global brainstorm round (v2.1): the plain dot grid above is gone in favor
-   of the actual texture requested — a tiled lowercase "t" (Unbounded, the
-   same face the app's own name-mark reads in) instead of an anonymous dot,
-   mostly ink at low opacity with a handful per tile in the macro colors for
-   the "auffälliger als ein Punkt" ask. Drawn by AmbientBackground.tsx as a
-   real inline <svg><pattern> in the DOM rather than a CSS background-image:
-   an externally-referenced SVG (background-image/mask-image) renders in its
-   own document context with no access to this page's @font-face, so the
-   glyph would silently fall back to Times/serif in most browsers — inline
-   SVG is a DOM node like any other and picks up loaded page fonts
-   correctly. */
-.ambient-bg svg {
+/* The single watermark "t" — cropped into the bottom-right corner, sized
+   off the viewport so it scales with the device rather than being a fixed
+   pixel size that reads differently on a small vs. large phone. Solid fill
+   (not the outline-only treatment the old tiled letters used): at this
+   size and opacity a stroke would be imperceptibly thin, and unlike a dense
+   repeating texture, one huge shape at ~4.5% opacity doesn't read as
+   "heavy" the way many small filled ones did. */
+.amb-watermark {
   position: absolute;
-  inset: 0;
-  height: 100%;
-  width: 100%;
+  right: -8%;
+  bottom: -6%;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(320px, 85vh, 820px);
+  line-height: 0.8;
+  color: var(--color-ink);
+  opacity: 0.045;
+  user-select: none;
 }
-/* Round 2 (v2.2): the plain-ink "t" cells switch style, not just color, per
-   theme — solid black fill in light mode, a white outline (stroke only, no
-   fill) in dark mode. A plain var(--color-ink) fill would have flipped the
-   *color* automatically like everything else in this file does, but not
-   the *shape* the feedback asked for, so this needs its own rule rather
-   than reusing the color token alone. Accent (macro-color) cells aren't
-   touched here — they stay a plain filled var(--color-kcal/…) at full
-   strength in both themes, set inline in AmbientBackground.tsx.
-
-   Round 3 (v2.3): light mode dropped its solid fill too — outlined in both
-   themes now, just the outline color flips (var(--color-ink), already dark
-   in light mode / light in dark mode). A solid-filled glyph at this density
-   read as too heavy/noisy next to actual page text; an outline carries the
-   same texture at a fraction of the ink coverage. */
-.ambient-bg .amb-ink {
-  fill: none;
-  stroke: var(--color-ink);
+/* One confetti dot — position/size/color/opacity all come from
+   AmbientBackground.tsx's own CONFETTI array (inline styles), this just
+   supplies the shape. */
+.amb-fleck {
+  position: absolute;
+  border-radius: 999px;
 }
 /* The caption sizes below text-xs are one-off arbitrary values (the ring
    labels, the badge numbers), so they can't carry tracking through the theme
@@ -672,15 +680,25 @@ input[type="number"] {
    functional layer — .glass above), so it gets the same specular-highlight
    treatment at a gentler intensity, and no drift animation of its own: a
    dozen cards all quietly shimmering at once would read as busy rather than
-   alive. */
+   alive.
+
+   Round 4: bumped from 0.55 to 0.78 base opacity (and the blur from 22px to
+   28px) after the SVG-refraction experiment was pulled back out (see
+   GlassSurface.tsx's own comment) — explicit feedback that on a real device,
+   against the busier "t" background this file's pattern grew into over
+   several rounds, cards had gotten hard to read no matter which glass
+   mechanism sat under them. This is the actual fix: a heavier frost that
+   reliably separates content from the pattern, at the cost of a little of
+   the "you can still tell there's a pattern back there" translucency —
+   explicitly the trade the feedback asked for ("Kompromiss"). */
 .glass-subtle {
   background:
-    radial-gradient(140% 140% at 15% -20%, rgba(255, 255, 255, 0.5), transparent 55%),
-    radial-gradient(110% 110% at 90% 115%, rgba(255, 255, 255, 0.2), transparent 50%),
-    rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+    radial-gradient(140% 140% at 15% -20%, rgba(255, 255, 255, 0.55), transparent 55%),
+    radial-gradient(110% 110% at 90% 115%, rgba(255, 255, 255, 0.25), transparent 50%),
+    rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
   /* Same Safari press-transform/backdrop-filter fix as .glass above — this
      is the class the Statistik tiles (kcal/Mahlzeit, Nährwerte-Ring, …) use,
      which is exactly where the "tile disappears after tapping it" report
@@ -697,71 +715,6 @@ input[type="number"] {
    Einstellungen/editors, which should stay visually untouched. */
 .glass-subtle-themed {
   border-color: color-mix(in srgb, var(--color-section) 45%, white 55%);
-}
-
-/**
- * A standalone-document copy of AmbientBackground.tsx's own "t" pattern —
- * same tile math (25-cell 5×5 grid, CELL=11px, the FONT_SCALE size
- * variation, the four accent cells), same outline-in-both-themes styling,
- * same Unbounded face — baked once as a data-URI SVG and used only as the
- * `background-image` GlassSurface's `refract` mode bends (see its own doc
- * comment on why a filter needs an actual paintable copy, not a reference
- * to the live pattern mounted elsewhere in the DOM).
- *
- * Has to match the live pattern exactly, or the glass would visibly bend a
- * *different* picture than what's actually behind it — generated from the
- * same TILE_SIZE/CELL/FONT_SCALE/ACCENT_CELLS constants
- * AmbientBackground.tsx uses, not hand-copied, for exactly that reason.
- *
- * `background-attachment: fixed` is what makes this line up with the real
- * background with zero position math: .ambient-bg is itself `position:
- * fixed`, so it never moves under a scroll — a `fixed`-attached copy of
- * the same image is therefore always showing the same slice of it that's
- * really behind any element on screen, at any scroll position, without a
- * single pixel of JS involved.
- *
- * Font note: a `background-image` SVG renders in its own document context
- * with no access to the page's own loaded fonts (the same reasoning
- * AmbientBackground.tsx's own comment gives for why *that* pattern is
- * inline DOM, not a CSS background) — so this SVG carries its own
- * `@font-face` pointing at the same Google Fonts URL index.html already
- * loads Unbounded from. The browser fetches it once either way.
- */
-:root {
-  --ambient-pattern: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1NSIgaGVpZ2h0PSI1NSI+PGRlZnM+PHN0eWxlPkBmb250LWZhY2V7Zm9udC1mYW1pbHk6J1VuYm91bmRlZCc7Zm9udC13ZWlnaHQ6ODAwO3NyYzp1cmwoJ2h0dHBzOi8vZm9udHMuZ3N0YXRpYy5jb20vcy91bmJvdW5kZWQvdjEyL1lxNkYtTE9UWENiMDRxMzJ4bHBhdC02dVI0MlhUcXRHNjVqMjQ0ck5nZHlPVjBjMWJRLndvZmYyJykgZm9ybWF0KCd3b2ZmMicpO308L3N0eWxlPjxwYXR0ZXJuIGlkPSJwIiB3aWR0aD0iNTUiIGhlaWdodD0iNTUiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiPjx0ZXh0IHg9IjUuNSIgeT0iNS41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI2LjgyIiBmaWxsPSJub25lIiBzdHJva2U9IiMxMDExMTQiIHN0cm9rZS13aWR0aD0iMC42OCI+dDwvdGV4dD48dGV4dCB4PSIxNi41IiB5PSI1LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0iVW5ib3VuZGVkIiBmb250LXdlaWdodD0iODAwIiBmb250LXNpemU9IjUuODAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzEwMTExNCIgc3Ryb2tlLXdpZHRoPSIwLjU4Ij50PC90ZXh0Pjx0ZXh0IHg9IjI3LjUiIHk9IjUuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJVbmJvdW5kZWQiIGZvbnQtd2VpZ2h0PSI4MDAiIGZvbnQtc2l6ZT0iNy41MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTAxMTE0IiBzdHJva2Utd2lkdGg9IjAuNzUiPnQ8L3RleHQ+PHRleHQgeD0iMzguNSIgeT0iNS41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI2LjQ4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxMDExMTQiIHN0cm9rZS13aWR0aD0iMC42NSI+dDwvdGV4dD48dGV4dCB4PSI0OS41IiB5PSI1LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0iVW5ib3VuZGVkIiBmb250LXdlaWdodD0iODAwIiBmb250LXNpemU9IjcuMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzEwMTExNCIgc3Ryb2tlLXdpZHRoPSIwLjcyIj50PC90ZXh0Pjx0ZXh0IHg9IjUuNSIgeT0iMTYuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJVbmJvdW5kZWQiIGZvbnQtd2VpZ2h0PSI4MDAiIGZvbnQtc2l6ZT0iNi4xNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTAxMTE0IiBzdHJva2Utd2lkdGg9IjAuNjEiPnQ8L3RleHQ+PHRleHQgeD0iMTYuNSIgeT0iMTYuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJVbmJvdW5kZWQiIGZvbnQtd2VpZ2h0PSI4MDAiIGZvbnQtc2l6ZT0iNy42NCIgZmlsbD0iIzJmNmJmZiI+dDwvdGV4dD48dGV4dCB4PSIyNy41IiB5PSIxNi41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI2LjgyIiBmaWxsPSJub25lIiBzdHJva2U9IiMxMDExMTQiIHN0cm9rZS13aWR0aD0iMC42OCI+dDwvdGV4dD48dGV4dCB4PSIzOC41IiB5PSIxNi41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI1LjgwIiBmaWxsPSJub25lIiBzdHJva2U9IiMxMDExMTQiIHN0cm9rZS13aWR0aD0iMC41OCI+dDwvdGV4dD48dGV4dCB4PSI0OS41IiB5PSIxNi41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI3LjE2IiBmaWxsPSJub25lIiBzdHJva2U9IiMxMDExMTQiIHN0cm9rZS13aWR0aD0iMC43MiI+dDwvdGV4dD48dGV4dCB4PSI1LjUiIHk9IjI3LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0iVW5ib3VuZGVkIiBmb250LXdlaWdodD0iODAwIiBmb250LXNpemU9IjYuODIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzEwMTExNCIgc3Ryb2tlLXdpZHRoPSIwLjY4Ij50PC90ZXh0Pjx0ZXh0IHg9IjE2LjUiIHk9IjI3LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0iVW5ib3VuZGVkIiBmb250LXdlaWdodD0iODAwIiBmb250LXNpemU9IjYuNDgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzEwMTExNCIgc3Ryb2tlLXdpZHRoPSIwLjY1Ij50PC90ZXh0Pjx0ZXh0IHg9IjI3LjUiIHk9IjI3LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0iVW5ib3VuZGVkIiBmb250LXdlaWdodD0iODAwIiBmb250LXNpemU9IjcuNTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzEwMTExNCIgc3Ryb2tlLXdpZHRoPSIwLjc1Ij50PC90ZXh0Pjx0ZXh0IHg9IjM4LjUiIHk9IjI3LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0iVW5ib3VuZGVkIiBmb250LXdlaWdodD0iODAwIiBmb250LXNpemU9IjYuMTQiIGZpbGw9IiNmZjM3NWYiPnQ8L3RleHQ+PHRleHQgeD0iNDkuNSIgeT0iMjcuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJVbmJvdW5kZWQiIGZvbnQtd2VpZ2h0PSI4MDAiIGZvbnQtc2l6ZT0iNi44MiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTAxMTE0IiBzdHJva2Utd2lkdGg9IjAuNjgiPnQ8L3RleHQ+PHRleHQgeD0iNS41IiB5PSIzOC41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI3LjE2IiBmaWxsPSJub25lIiBzdHJva2U9IiMxMDExMTQiIHN0cm9rZS13aWR0aD0iMC43MiI+dDwvdGV4dD48dGV4dCB4PSIxNi41IiB5PSIzOC41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI1LjgwIiBmaWxsPSJub25lIiBzdHJva2U9IiMxMDExMTQiIHN0cm9rZS13aWR0aD0iMC41OCI+dDwvdGV4dD48dGV4dCB4PSIyNy41IiB5PSIzOC41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI3LjY0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxMDExMTQiIHN0cm9rZS13aWR0aD0iMC43NiI+dDwvdGV4dD48dGV4dCB4PSIzOC41IiB5PSIzOC41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI2LjQ4IiBmaWxsPSIjMmZhZTYzIj50PC90ZXh0Pjx0ZXh0IHg9IjQ5LjUiIHk9IjM4LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0iVW5ib3VuZGVkIiBmb250LXdlaWdodD0iODAwIiBmb250LXNpemU9IjYuODIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzEwMTExNCIgc3Ryb2tlLXdpZHRoPSIwLjY4Ij50PC90ZXh0Pjx0ZXh0IHg9IjUuNSIgeT0iNDkuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJVbmJvdW5kZWQiIGZvbnQtd2VpZ2h0PSI4MDAiIGZvbnQtc2l6ZT0iNi4xNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTAxMTE0IiBzdHJva2Utd2lkdGg9IjAuNjEiPnQ8L3RleHQ+PHRleHQgeD0iMTYuNSIgeT0iNDkuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJVbmJvdW5kZWQiIGZvbnQtd2VpZ2h0PSI4MDAiIGZvbnQtc2l6ZT0iNy41MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTAxMTE0IiBzdHJva2Utd2lkdGg9IjAuNzUiPnQ8L3RleHQ+PHRleHQgeD0iMjcuNSIgeT0iNDkuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJVbmJvdW5kZWQiIGZvbnQtd2VpZ2h0PSI4MDAiIGZvbnQtc2l6ZT0iNi44MiIgZmlsbD0iI2Q5OGQwMCI+dDwvdGV4dD48dGV4dCB4PSIzOC41IiB5PSI0OS41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI1LjgwIiBmaWxsPSJub25lIiBzdHJva2U9IiMxMDExMTQiIHN0cm9rZS13aWR0aD0iMC41OCI+dDwvdGV4dD48dGV4dCB4PSI0OS41IiB5PSI0OS41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI3LjE2IiBmaWxsPSJub25lIiBzdHJva2U9IiMxMDExMTQiIHN0cm9rZS13aWR0aD0iMC43MiI+dDwvdGV4dD48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjcCkiLz48L3N2Zz4=");
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ambient-pattern: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1NSIgaGVpZ2h0PSI1NSI+PGRlZnM+PHN0eWxlPkBmb250LWZhY2V7Zm9udC1mYW1pbHk6J1VuYm91bmRlZCc7Zm9udC13ZWlnaHQ6ODAwO3NyYzp1cmwoJ2h0dHBzOi8vZm9udHMuZ3N0YXRpYy5jb20vcy91bmJvdW5kZWQvdjEyL1lxNkYtTE9UWENiMDRxMzJ4bHBhdC02dVI0MlhUcXRHNjVqMjQ0ck5nZHlPVjBjMWJRLndvZmYyJykgZm9ybWF0KCd3b2ZmMicpO308L3N0eWxlPjxwYXR0ZXJuIGlkPSJwIiB3aWR0aD0iNTUiIGhlaWdodD0iNTUiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiPjx0ZXh0IHg9IjUuNSIgeT0iNS41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI2LjgyIiBmaWxsPSJub25lIiBzdHJva2U9IiNmNWY1ZjMiIHN0cm9rZS13aWR0aD0iMC42OCI+dDwvdGV4dD48dGV4dCB4PSIxNi41IiB5PSI1LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0iVW5ib3VuZGVkIiBmb250LXdlaWdodD0iODAwIiBmb250LXNpemU9IjUuODAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1ZjVmMyIgc3Ryb2tlLXdpZHRoPSIwLjU4Ij50PC90ZXh0Pjx0ZXh0IHg9IjI3LjUiIHk9IjUuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJVbmJvdW5kZWQiIGZvbnQtd2VpZ2h0PSI4MDAiIGZvbnQtc2l6ZT0iNy41MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjVmNWYzIiBzdHJva2Utd2lkdGg9IjAuNzUiPnQ8L3RleHQ+PHRleHQgeD0iMzguNSIgeT0iNS41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI2LjQ4IiBmaWxsPSJub25lIiBzdHJva2U9IiNmNWY1ZjMiIHN0cm9rZS13aWR0aD0iMC42NSI+dDwvdGV4dD48dGV4dCB4PSI0OS41IiB5PSI1LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0iVW5ib3VuZGVkIiBmb250LXdlaWdodD0iODAwIiBmb250LXNpemU9IjcuMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1ZjVmMyIgc3Ryb2tlLXdpZHRoPSIwLjcyIj50PC90ZXh0Pjx0ZXh0IHg9IjUuNSIgeT0iMTYuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJVbmJvdW5kZWQiIGZvbnQtd2VpZ2h0PSI4MDAiIGZvbnQtc2l6ZT0iNi4xNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjVmNWYzIiBzdHJva2Utd2lkdGg9IjAuNjEiPnQ8L3RleHQ+PHRleHQgeD0iMTYuNSIgeT0iMTYuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJVbmJvdW5kZWQiIGZvbnQtd2VpZ2h0PSI4MDAiIGZvbnQtc2l6ZT0iNy42NCIgZmlsbD0iIzVjOGRmZiI+dDwvdGV4dD48dGV4dCB4PSIyNy41IiB5PSIxNi41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI2LjgyIiBmaWxsPSJub25lIiBzdHJva2U9IiNmNWY1ZjMiIHN0cm9rZS13aWR0aD0iMC42OCI+dDwvdGV4dD48dGV4dCB4PSIzOC41IiB5PSIxNi41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI1LjgwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmNWY1ZjMiIHN0cm9rZS13aWR0aD0iMC41OCI+dDwvdGV4dD48dGV4dCB4PSI0OS41IiB5PSIxNi41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI3LjE2IiBmaWxsPSJub25lIiBzdHJva2U9IiNmNWY1ZjMiIHN0cm9rZS13aWR0aD0iMC43MiI+dDwvdGV4dD48dGV4dCB4PSI1LjUiIHk9IjI3LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0iVW5ib3VuZGVkIiBmb250LXdlaWdodD0iODAwIiBmb250LXNpemU9IjYuODIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1ZjVmMyIgc3Ryb2tlLXdpZHRoPSIwLjY4Ij50PC90ZXh0Pjx0ZXh0IHg9IjE2LjUiIHk9IjI3LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0iVW5ib3VuZGVkIiBmb250LXdlaWdodD0iODAwIiBmb250LXNpemU9IjYuNDgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1ZjVmMyIgc3Ryb2tlLXdpZHRoPSIwLjY1Ij50PC90ZXh0Pjx0ZXh0IHg9IjI3LjUiIHk9IjI3LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0iVW5ib3VuZGVkIiBmb250LXdlaWdodD0iODAwIiBmb250LXNpemU9IjcuNTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1ZjVmMyIgc3Ryb2tlLXdpZHRoPSIwLjc1Ij50PC90ZXh0Pjx0ZXh0IHg9IjM4LjUiIHk9IjI3LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0iVW5ib3VuZGVkIiBmb250LXdlaWdodD0iODAwIiBmb250LXNpemU9IjYuMTQiIGZpbGw9IiNmZjZiOGEiPnQ8L3RleHQ+PHRleHQgeD0iNDkuNSIgeT0iMjcuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJVbmJvdW5kZWQiIGZvbnQtd2VpZ2h0PSI4MDAiIGZvbnQtc2l6ZT0iNi44MiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjVmNWYzIiBzdHJva2Utd2lkdGg9IjAuNjgiPnQ8L3RleHQ+PHRleHQgeD0iNS41IiB5PSIzOC41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI3LjE2IiBmaWxsPSJub25lIiBzdHJva2U9IiNmNWY1ZjMiIHN0cm9rZS13aWR0aD0iMC43MiI+dDwvdGV4dD48dGV4dCB4PSIxNi41IiB5PSIzOC41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI1LjgwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmNWY1ZjMiIHN0cm9rZS13aWR0aD0iMC41OCI+dDwvdGV4dD48dGV4dCB4PSIyNy41IiB5PSIzOC41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI3LjY0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmNWY1ZjMiIHN0cm9rZS13aWR0aD0iMC43NiI+dDwvdGV4dD48dGV4dCB4PSIzOC41IiB5PSIzOC41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI2LjQ4IiBmaWxsPSIjNGVjZjhhIj50PC90ZXh0Pjx0ZXh0IHg9IjQ5LjUiIHk9IjM4LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiBmb250LWZhbWlseT0iVW5ib3VuZGVkIiBmb250LXdlaWdodD0iODAwIiBmb250LXNpemU9IjYuODIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1ZjVmMyIgc3Ryb2tlLXdpZHRoPSIwLjY4Ij50PC90ZXh0Pjx0ZXh0IHg9IjUuNSIgeT0iNDkuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJVbmJvdW5kZWQiIGZvbnQtd2VpZ2h0PSI4MDAiIGZvbnQtc2l6ZT0iNi4xNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjVmNWYzIiBzdHJva2Utd2lkdGg9IjAuNjEiPnQ8L3RleHQ+PHRleHQgeD0iMTYuNSIgeT0iNDkuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJVbmJvdW5kZWQiIGZvbnQtd2VpZ2h0PSI4MDAiIGZvbnQtc2l6ZT0iNy41MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjVmNWYzIiBzdHJva2Utd2lkdGg9IjAuNzUiPnQ8L3RleHQ+PHRleHQgeD0iMjcuNSIgeT0iNDkuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIGZvbnQtZmFtaWx5PSJVbmJvdW5kZWQiIGZvbnQtd2VpZ2h0PSI4MDAiIGZvbnQtc2l6ZT0iNi44MiIgZmlsbD0iI2YwYWMzYSI+dDwvdGV4dD48dGV4dCB4PSIzOC41IiB5PSI0OS41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI1LjgwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmNWY1ZjMiIHN0cm9rZS13aWR0aD0iMC41OCI+dDwvdGV4dD48dGV4dCB4PSI0OS41IiB5PSI0OS41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgZm9udC1mYW1pbHk9IlVuYm91bmRlZCIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI3LjE2IiBmaWxsPSJub25lIiBzdHJva2U9IiNmNWY1ZjMiIHN0cm9rZS13aWR0aD0iMC43MiI+dDwvdGV4dD48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjcCkiLz48L3N2Zz4=");
-  }
-}
-
-/**
- * GlassSurface's `refract` mode (GlassSurface.tsx has the full mechanism —
- * this is just the two small CSS pieces it needs).
- *
- * `.gl-refract-bg` paints the background copy the filter bends — sized and
- * positioned by GlassSurface itself (inline style, since that depends on
- * the per-instance displacement-map padding), this only supplies the image.
- *
- * `.gl-refract-active` goes on the surface itself once refraction is
- * actually rendering: `.glass`/`.glass-subtle`'s own background/
- * backdrop-filter would otherwise sit underneath the lens effect, reading
- * as a blurred, tinted lens rather than a clear one — this clears exactly
- * those two properties and nothing else, so the border/shadow/shimmer
- * every other glass surface has stay intact.
- */
-.gl-refract-bg {
-  background-image: var(--ambient-pattern);
-  background-size: 55px 55px;
-  background-repeat: repeat;
-  background-attachment: fixed;
-}
-.gl-refract-active.glass,
-.gl-refract-active.glass-subtle {
-  background: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
 }
 
 /* The Mahlzeiten-Editor's docked field+actions row (and anything similar):
@@ -926,11 +879,12 @@ input[type="number"] {
       inset 0 -12px 20px -16px rgba(0, 0, 0, 0.5);
   }
 
+  /* Same Round 4 opacity bump as the light-mode rule above — 0.55 → 0.76. */
   .glass-subtle {
     background:
-      radial-gradient(140% 140% at 15% -20%, rgba(255, 255, 255, 0.07), transparent 55%),
-      radial-gradient(110% 110% at 90% 115%, rgba(255, 255, 255, 0.04), transparent 50%),
-      rgba(28, 28, 30, 0.55);
+      radial-gradient(140% 140% at 15% -20%, rgba(255, 255, 255, 0.08), transparent 55%),
+      radial-gradient(110% 110% at 90% 115%, rgba(255, 255, 255, 0.05), transparent 50%),
+      rgba(28, 28, 30, 0.76);
     border-color: rgba(255, 255, 255, 0.1);
   }
 

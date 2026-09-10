@@ -38,6 +38,16 @@ export interface PickerOption<T extends string> {
  * after whichever branch rendered and animates the difference, so the
  * outer shape smoothly resizes between "small centered pill" and "full
  * row" regardless of how different their actual children are.
+ *
+ * Round 4 (v2.4): the "small centered pill" from Round 2 turned out to read
+ * as a stray, oddly-placed pill rather than a control belonging to the row
+ * — explicit feedback wanted the collapsed state to span the row's full
+ * width like the expanded one does, just shorter. Both branches are
+ * `w-full` now; `layout` still animates the height/content difference
+ * between them, so expanding still visibly grows rather than cuts. The
+ * up/down chevron glyph on the collapsed pill is gone too — explicit ask,
+ * it read as a dropdown affordance this isn't (tap-to-expand-in-place, not
+ * a list overlay).
  */
 export function ExpandablePicker<T extends string>({
   options,
@@ -121,7 +131,7 @@ export function ExpandablePicker<T extends string>({
               // navigation the same way BottomNav is, so it gets the same
               // material (matches what this replaced).
               'glass w-full overflow-hidden rounded-full p-1.5 shadow-sm shadow-black/5'
-            : 'glass-subtle glass-subtle-themed overflow-hidden rounded-full px-4 py-2.5 shadow-sm shadow-black/5'
+            : 'glass-subtle glass-subtle-themed w-full overflow-hidden rounded-full px-4 py-2.5 shadow-sm shadow-black/5'
         }
       >
         {!expanded ? (
@@ -129,10 +139,9 @@ export function ExpandablePicker<T extends string>({
             type="button"
             onClick={() => setExpanded(true)}
             aria-label={label}
-            className="flex items-center gap-1.5 text-sm font-semibold text-ink"
+            className="flex w-full items-center justify-center text-sm font-semibold text-ink"
           >
             {options[currentIndex]?.label}
-            <ChevronsIcon />
           </button>
         ) : (
           <div
@@ -177,13 +186,5 @@ export function ExpandablePicker<T extends string>({
         )}
       </motion.div>
     </div>
-  )
-}
-
-function ChevronsIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3 opacity-60">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l4-4 4 4M8 15l4 4 4-4" />
-    </svg>
   )
 }
