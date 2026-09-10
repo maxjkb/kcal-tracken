@@ -8,7 +8,6 @@ import {
   type SupplementCategory,
   type SupplementRecommendation,
   type SupplementTimeOfDay,
-  type TipSuggestion,
 } from './db'
 
 import { DEFAULT_MODEL, markExhausted, modelOrder } from './geminiModels'
@@ -1200,98 +1199,108 @@ export async function estimateRecipeSuggestions(input: {
   }))
 }
 
-// --- Tipps für jetzt ------------------------------------------------------
+// --- Krankheit: Ziel-Anpassung auf Nachfrage -------------------------------
 
-export type { TipSuggestion } from './db'
+const ILLNESS_CATEGORY_ENUM = ['erkaeltung', 'grippe', 'magen_darm', 'sonstiges'] as const
 
-const TIP_FOCUS_ENUM = ['kcal', 'protein', 'carbs', 'fat', 'general'] as const
-
-const NUTRITION_TIPS_SCHEMA = {
+const ILLNESS_TARGETS_SCHEMA = {
   type: 'OBJECT',
   properties: {
-    tips: {
-      type: 'ARRAY',
+    kcal: { type: 'NUMBER', description: 'Vorgeschlagenes Kalorienziel für diesen kranken Tag.' },
+    protein: { type: 'NUMBER', description: 'Vorgeschlagenes Protein-Ziel in Gramm.' },
+    carbs: { type: 'NUMBER', description: 'Vorgeschlagenes Kohlenhydrat-Ziel in Gramm.' },
+    fat: { type: 'NUMBER', description: 'Vorgeschlagenes Fett-Ziel in Gramm.' },
+    reasoning: {
+      type: 'STRING',
       description:
-        '2 bis 3 kurze, konkrete Tipps, was der Nutzer als Nächstes essen könnte. Lieber ein einziger wirklich passender Tipp als mehrere beliebige — ist die Ernährung des Tages bereits ausgewogen, ist auch eine leere Liste richtig.',
-      items: {
-        type: 'OBJECT',
-        properties: {
-          focus: {
-            type: 'STRING',
-            enum: TIP_FOCUS_ENUM,
-            description: 'Welche Lücke dieser Tipp schließt. "general" nur für Hinweise ohne klaren Makro-Bezug (z.B. Timing, Flüssigkeit).',
-          },
-          suggestion: {
-            type: 'STRING',
-            description:
-              'Kurzer, konkreter Vorschlag mit 2-4 tatsächlichen Lebensmitteln/Zutatenkategorien, z.B. "Thunfisch, Hähnchenbrust oder Hüttenkäse" oder "2 gekochte Eier" — KEIN vollständiges Rezept, keine Zubereitungsschritte.',
-          },
-          reason: {
-            type: 'STRING',
-            description: 'Ein kurzer Satz, warum das jetzt passt (z.B. verbleibende Lücke, Tageszeit).',
-          },
-        },
-        required: ['focus', 'suggestion', 'reason'],
-      },
+        'Kurze, ehrliche Begründung auf Deutsch (2-4 Sätze): was wurde angepasst und warum, inklusive einer kurzen Einordnung, wie belastbar die Evidenz dafür ist (z.B. "gut belegt" vs. "Praxis-Konsens, nicht direkt getestet").',
     },
   },
-  required: ['tips'],
+  required: ['kcal', 'protein', 'carbs', 'fat', 'reasoning'],
 }
 
-const NUTRITION_TIPS_SYSTEM_PROMPT = `Du bist ein Ernährungsassistent. Der Nutzer bekommt "Was jetzt essen"-Tipps angezeigt: kurze, konkrete Vorschläge für Lebensmittel/Zutatenkategorien (keine vollständigen Rezepte), die die noch offenen Tagesziele sinnvoll füllen — passend zur aktuellen Tageszeit.
+const ILLNESS_TARGETS_SYSTEM_PROMPT = `Du bist ein Ernährungsberater. Der Nutzer ist an einem Tag krank (Erkältung, Grippe, Magen-Darm oder Sonstiges — alltägliche, kurzzeitige Erkrankungen, KEINE Verletzungen oder Notfälle) und möchte auf ausdrücklichen Wunsch ein für diesen Tag angepasstes Kalorien-/Makroziel vorgeschlagen bekommen, statt seines normalen Ziels (das z.B. auf einem Aufbau- oder Abnehm-Defizit beruht).
 
-Du bekommst: die aktuelle Tageszeit-Phase (Frühstück/Mittagessen/Nachmittags-Snack/Abendessen), die Tagesziele (kcal/Protein/Kohlenhydrate/Fett), was davon heute schon gegessen wurde, sowie die Titel der heute bereits geloggten Mahlzeiten.
+Du bekommst: die normalen Tagesziele des Nutzers, seine Körperdaten/sein normales Trainingsziel, die Art der Erkrankung plus ggf. eine Notiz zu Symptomen, sowie einen Überblick über seine tatsächlichen Ernährungsgewohnheiten der letzten Wochen (Ø kcal/Makros an normalen Tagen).
 
-Regeln:
-- Rechne die verbleibende Lücke je Makro selbst aus (Ziel minus bereits Gegessenes) und richte die Tipps danach aus. Ist ein Makro schon erreicht oder überschritten, schlage dort nichts Zusätzliches vor.
-- Passe die Tipps an die Tageszeit an: zur Frühstücks-/Mittags-/Abendzeit dürfen es auch zu dieser Mahlzeit passende Ideen sein, nicht nur einzelne Snacks. Snack-Ideen (schnell, ohne Zubereitung) sind dagegen zu JEDER Tageszeit passend und dürfen jederzeit dabei sein.
-- Schlage nichts vor, das laut den bereits geloggten Mahlzeiten-Titeln erkennbar schon gegessen wurde.
-- Nenne konkrete Lebensmittel oder kurze Kombinationen, keine vollständigen Rezepte mit Zubereitungsschritten — das hier ist "was jetzt greifen", nicht "was kochen".
-- Ist die Ernährung des Tages bereits ausgewogen bzw. gibt es keine sinnvolle Lücke mehr, gib eine leere "tips"-Liste zurück statt beliebige Tipps zu erfinden.
-- Halte jeden Tipp kurz (ein Satz Vorschlag, ein Satz Begründung).
+Fachlicher Rahmen (halte dich strikt daran, erfinde nichts darüber hinaus):
+- Ein Kaloriendefizit während einer akuten Erkrankung ist ungünstig für Immunfunktion und Erholung — die übliche Praxis-Empfehlung ist, während der Erkrankung mindestens auf Erhaltungskalorien zu gehen (nicht weiter ins Defizit), auch wenn das normale Ziel ein Aufbau- oder Abnehm-Ziel ist. Ein deutlicher Überschuss ist ebenfalls nicht nötig.
+- Protein sollte tendenziell eher hoch bleiben oder leicht steigen (Immunfunktion, Erhalt der Muskelmasse), nicht sinken.
+- Bei Magen-Darm-Beschwerden ist oft ohnehin weniger Nahrung verträglich — das Ziel darf dann realistisch niedriger liegen, mit Fokus auf Flüssigkeit/Elektrolyten (das Ziel selbst bildet nur kcal/Makros ab, erwähne Flüssigkeit/Elektrolyte im "reasoning").
+- Erfinde keine Supplement-Empfehlungen und keine über diesen Rahmen hinausgehenden medizinischen Behauptungen. Bei ernsteren Anzeichen (hohes Fieber über mehrere Tage, starke Symptome) weise im reasoning kurz darauf hin, dass das kein Ersatz für ärztlichen Rat ist.
+- Nutze die tatsächlichen Ernährungsgewohnheiten des Nutzers als Ausgangspunkt (nicht nur die abstrakte Formel), damit der Vorschlag zu dem passt, was der Nutzer realistisch isst.
 
 Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema, auf Deutsch.`
 
-export interface NutritionTipsInput {
-  /** German label of the current time-of-day slot, e.g. "Frühstück" — freeform text so this file stays decoupled from lib/db.ts's MealType labels. */
-  slotLabel: string
-  dailyTargets: Nutrition | null
-  consumedSoFar: Nutrition
-  /** Titles of meals already logged today, so the model doesn't suggest something already eaten. */
-  loggedTitles: string[]
+export interface IllnessTargetsInput {
+  normalTargets: Nutrition
+  bodyProfile: {
+    sex: string
+    heightCm: number
+    weightKg: number
+    age: number
+    activityLevel: string
+    goal: string
+  } | null
+  category: (typeof ILLNESS_CATEGORY_ENUM)[number] | undefined
+  note: string | undefined
+  /** Average of the user's actually-logged intake over recent normal days — grounds the suggestion in real habits rather than the abstract formula alone. */
+  recentAverage: Nutrition | null
+}
+
+export interface IllnessTargetsResult {
+  kcal: number
+  protein: number
+  carbs: number
+  fat: number
+  reasoning: string
+}
+
+const ILLNESS_CATEGORY_LABELS: Record<(typeof ILLNESS_CATEGORY_ENUM)[number], string> = {
+  erkaeltung: 'Erkältung',
+  grippe: 'Grippe',
+  magen_darm: 'Magen-Darm',
+  sonstiges: 'Sonstiges',
 }
 
 /**
- * Generates 0–3 short "what to eat next" tips grounded in today's actual
- * remaining macro gaps and the current time-of-day slot — food categories,
- * not recipes. Refreshed per time-of-day slot rather than once a day (see
- * lib/tips.ts), since the whole point is that a breakfast-time gap doesn't
- * still get suggested at dinner.
+ * Computes a personalized, for-this-day-only target suggestion for a day
+ * marked sick — ONLY ever called on explicit user request (the Sheet's
+ * "Nährwerte anpassen" toggle), never automatically, per an explicit product
+ * decision: an automatic daily shift felt presumptuous, and the evidence
+ * behind it is practice-consensus rather than directly tested, so the user
+ * should see and confirm it each time rather than have it silently applied.
+ * Grounded in the user's own recent eating habits (see recentAverage), not
+ * just the abstract Mifflin-St Jeor formula in bodyProfile.ts — computeDailyTargets
+ * itself is untouched by this; the result is stored per-day on SickDay and
+ * only overrides the Feed's displayed target for that specific date.
  */
-export async function estimateNutritionTips(input: NutritionTipsInput): Promise<TipSuggestion[]> {
+export async function estimateIllnessTargets(input: IllnessTargetsInput): Promise<IllnessTargetsResult> {
   const lines = [
-    `Aktuelle Tageszeit-Phase: ${input.slotLabel}`,
-    input.dailyTargets
-      ? `Tagesziel: ${Math.round(input.dailyTargets.kcal)} kcal, ${Math.round(input.dailyTargets.protein)}g Protein, ${Math.round(input.dailyTargets.carbs)}g Kohlenhydrate, ${Math.round(input.dailyTargets.fat)}g Fett`
-      : 'Kein Tagesziel hinterlegt (keine Körperwerte eingerichtet) — richte dich an allgemein üblichen Portionen aus.',
-    `Bereits heute gegessen: ${Math.round(input.consumedSoFar.kcal)} kcal, ${Math.round(input.consumedSoFar.protein)}g Protein, ${Math.round(input.consumedSoFar.carbs)}g Kohlenhydrate, ${Math.round(input.consumedSoFar.fat)}g Fett`,
-    input.loggedTitles.length > 0
-      ? `Heute bereits geloggte Mahlzeiten: ${input.loggedTitles.join(', ')}`
-      : 'Heute wurde noch nichts geloggt.',
+    `Normales Tagesziel: ${Math.round(input.normalTargets.kcal)} kcal, ${Math.round(input.normalTargets.protein)}g Protein, ${Math.round(input.normalTargets.carbs)}g Kohlenhydrate, ${Math.round(input.normalTargets.fat)}g Fett`,
+    input.bodyProfile
+      ? `Körperdaten: ${input.bodyProfile.sex === 'male' ? 'männlich' : 'weiblich'}, ${input.bodyProfile.heightCm}cm, ${input.bodyProfile.weightKg}kg, ${input.bodyProfile.age} Jahre, Aktivität: ${input.bodyProfile.activityLevel}, normales Ziel: ${input.bodyProfile.goal}`
+      : 'Keine Körperdaten hinterlegt.',
+    `Art der Erkrankung: ${input.category ? ILLNESS_CATEGORY_LABELS[input.category] : 'nicht angegeben'}`,
+    input.note ? `Notiz zu Symptomen: ${input.note}` : 'Keine weitere Notiz.',
+    input.recentAverage
+      ? `Tatsächlicher Ø der letzten Wochen (normale Tage): ${Math.round(input.recentAverage.kcal)} kcal, ${Math.round(input.recentAverage.protein)}g Protein, ${Math.round(input.recentAverage.carbs)}g Kohlenhydrate, ${Math.round(input.recentAverage.fat)}g Fett`
+      : 'Keine ausreichende Ernährungshistorie vorhanden.',
   ]
 
   const parsed = await callGemini({
-    systemPrompt: NUTRITION_TIPS_SYSTEM_PROMPT,
+    systemPrompt: ILLNESS_TARGETS_SYSTEM_PROMPT,
     parts: [{ text: lines.join('\n') }],
-    responseSchema: NUTRITION_TIPS_SCHEMA,
+    responseSchema: ILLNESS_TARGETS_SCHEMA,
   })
 
-  const raw = Array.isArray(parsed.tips) ? parsed.tips : []
-  return raw.map((t) => ({
-    focus: TIP_FOCUS_ENUM.includes(t.focus) ? t.focus : 'general',
-    suggestion: String(t.suggestion ?? ''),
-    reason: String(t.reason ?? ''),
-  }))
+  return {
+    kcal: Number(parsed.kcal) || input.normalTargets.kcal,
+    protein: Number(parsed.protein) || input.normalTargets.protein,
+    carbs: Number(parsed.carbs) || input.normalTargets.carbs,
+    fat: Number(parsed.fat) || input.normalTargets.fat,
+    reasoning: String(parsed.reasoning ?? ''),
+  }
 }
 
 // --- Mikronährstoff-Backfill für bereits geloggte Mahlzeiten ---------------

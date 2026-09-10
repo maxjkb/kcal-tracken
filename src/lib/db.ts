@@ -408,43 +408,32 @@ export interface SupplementAdvisorRun {
 }
 
 /**
- * One "was jetzt essen"-tip, grounded in today's remaining macro gaps and the
- * current time-of-day slot rather than a full recipe — a food category or two
- * (e.g. "Thunfisch, Hähnchenbrust oder Hüttenkäse"), not a dish to cook.
+ * One day marked as sick — created the moment the sick-day button is toggled
+ * on for that date (see SickDayButton). `category`/`note` and the
+ * target-adjustment fields stay unset until the detail Sheet is actually
+ * filled in (first activation, or a long-press on an already-marked day) —
+ * a bare toggle-on with no further detail is a perfectly valid row, it just
+ * means "sick, no specifics yet".
  */
-export interface TipSuggestion {
-  /** Which target this tip closes — drives the icon shown. 'general' for anything not tied to one macro (e.g. a timing nudge). */
-  focus: 'kcal' | 'protein' | 'carbs' | 'fat' | 'general'
-  /** Short, concrete suggestion naming actual foods. */
-  suggestion: string
-  /** One-sentence reason, e.g. why this closes a gap or fits the time of day. */
-  reason: string
-}
-
-/** What one tips run was based on — kept alongside the tips themselves purely for future reference, never re-sent to the model (unlike the supplement advisor, tips have no "keep the previous wording stable" requirement, so nothing reads this back). */
-export interface TipsContext {
-  slot: MealType
-  dailyTargets: Nutrition | null
-  consumedSoFar: Nutrition
-  loggedTitles: string[]
-}
-
-/**
- * One time-slot's worth of tips, kept for a couple of days.
- *
- * Keyed by (date, slot) rather than just date: refreshing "per meal window"
- * (breakfast/lunch/snack/dinner — the same four buckets lib/mealTypeGuess.ts
- * already uses to default a new meal's type) is the whole point, so a run
- * from this morning must not be mistaken for still current at dinner time.
- */
-export interface TipsRun {
-  id: string
-  /** Local date key (YYYY-MM-DD). */
+export interface SickDay {
+  /** Local date key (YYYY-MM-DD), unique — one row per day. */
   date: string
-  slot: MealType
-  generatedAt: number
-  tips: TipSuggestion[]
-  context: TipsContext
+  category?: 'erkaeltung' | 'grippe' | 'magen_darm' | 'sonstiges'
+  /** Free-text symptom/note, entered in the detail Sheet. */
+  note?: string
+  /** Whether targets should be adjusted for this day at all — set from the Sheet's toggle. The adjustment itself is only computed on request (see estimateIllnessTargets in lib/gemini.ts), never automatically. */
+  adjustTargets?: boolean
+  /** The last on-request AI computation for this day, if one was ever run — kept so re-opening the Sheet shows the previous suggestion instead of a blank state. */
+  targetOverride?: {
+    kcal: number
+    protein: number
+    carbs: number
+    fat: number
+    reasoning: string
+    computedAt: number
+  }
+  createdAt: number
+  updatedAt: number
 }
 
 /**
@@ -558,11 +547,11 @@ class KcalDatabase extends Dexie {
   mySupplements!: EntityTable<MySupplement, 'id'>
   supplementLog!: EntityTable<SupplementLogEntry, 'id'>
   supplementAdvisorRuns!: EntityTable<SupplementAdvisorRun, 'id'>
-  tipRuns!: EntityTable<TipsRun, 'id'>
   dailyTargetSnapshots!: EntityTable<DailyTargetSnapshot, 'date'>
   mealprepVersions!: EntityTable<MealprepVersion, 'id'>
   supplementChats!: EntityTable<SupplementChat, 'id'>
   coachChat!: EntityTable<CoachChat, 'id'>
+  sickDays!: EntityTable<SickDay, 'date'>
 
   constructor() {
     super('kcal-tracker')
@@ -643,6 +632,23 @@ class KcalDatabase extends Dexie {
       supplementChats: 'id, supplementKey, updatedAt',
       coachChat: 'id',
     })
+    // v10: drops tipRuns (the "Tipps für jetzt" feature was removed
+    // entirely — see SickDayButton/the Feed header for what took its UI
+    // slot) and adds sickDays for the illness-tracking feature.
+    this.version(10).stores({
+      meals: 'id, date, mealType, createdAt',
+      recipes: 'id, category, createdAt',
+      supplements: 'id, name, category, createdAt',
+      mySupplements: 'id, supplementId, createdAt',
+      supplementLog: 'id, mySupplementId, date, [mySupplementId+date+timeOfDay]',
+      supplementAdvisorRuns: 'id, date, generatedAt',
+      tipRuns: null,
+      dailyTargetSnapshots: 'date',
+      mealprepVersions: 'id, recipeId, createdAt',
+      supplementChats: 'id, supplementKey, updatedAt',
+      coachChat: 'id',
+      sickDays: 'date',
+    })
   }
 }
 
@@ -669,10 +675,6 @@ export function newSupplementLogId(): string {
 }
 
 export function newSupplementAdvisorRunId(): string {
-  return crypto.randomUUID()
-}
-
-export function newTipsRunId(): string {
   return crypto.randomUUID()
 }
 

@@ -7,7 +7,6 @@ import { requestPersistentStorage } from './lib/persistence.ts'
 import { initSyncIfSignedIn } from './lib/sync.ts'
 import { syncSupplementCatalog } from './lib/supplementSeed.ts'
 import { refreshAdvisorIfStale, watchForNewDay } from './lib/supplementAdvisor.ts'
-import { refreshTipsIfStale } from './lib/tips.ts'
 import { backfillMissingMicronutrients } from './lib/micronutrients.ts'
 import { backfillMissingSupplementContributions } from './hooks/useSupplements.ts'
 import { recordTodaysTargetSnapshot } from './lib/targetHistory.ts'
@@ -29,11 +28,6 @@ void syncSupplementCatalog()
 // suspended/resumed instead of reloaded still picks up a new day.
 void refreshAdvisorIfStale()
 watchForNewDay()
-
-// Fire-and-forget: refreshes the "was jetzt essen"-tips once per meal-time
-// slot (breakfast/lunch/snack/dinner), on the first launch inside that slot,
-// same reasoning and same silence as refreshAdvisorIfStale above.
-void refreshTipsIfStale()
 
 // Fire-and-forget: rough micronutrient estimates for meals logged before
 // that field existed, up to a per-launch cap — see

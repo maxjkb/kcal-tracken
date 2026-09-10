@@ -27,14 +27,15 @@ import {
   type Period,
 } from '../lib/stats'
 
-import { ExpandablePicker } from '../components/ExpandablePicker'
+import { ExpandablePicker, type PickerOption } from '../components/ExpandablePicker'
+import { DayIcon, MonthIcon, WeekIcon, YearIcon } from '../components/PickerIcons'
 import { MessageTile } from '../components/MessageTile'
 
-const PERIODS: { key: Period; label: string }[] = [
-  { key: 'day', label: 'Tag' },
-  { key: 'week', label: 'Woche' },
-  { key: 'month', label: 'Monat' },
-  { key: 'year', label: 'Jahr' },
+const PERIODS: PickerOption<Period>[] = [
+  { key: 'day', label: 'Tag', icon: DayIcon },
+  { key: 'week', label: 'Woche', icon: WeekIcon },
+  { key: 'month', label: 'Monat', icon: MonthIcon },
+  { key: 'year', label: 'Jahr', icon: YearIcon },
 ]
 
 export function StatsPage() {
