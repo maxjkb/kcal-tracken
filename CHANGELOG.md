@@ -16,6 +16,13 @@ während diese Datei ab 1.14.0 liegen blieb; damit stehen beide wieder auf demse
 Stand. Die Git-Tags aus dem Absatz darüber sind in demselben Zeitraum ebenfalls
 ausgeblieben: der letzte gesetzte ist `v1.2.1`.
 
+## [2.4.0] - 2026-09-10
+
+- Neu: Krankheitserfassung. Im Feed-Header ersetzt ein Thermometer-Button die nie genutzten „Tipps für jetzt" — antippen markiert den Tag sofort als krank (Button füllt sich rot), langes Drücken (und die allererste Markierung eines Tages) öffnet ein Sheet für Art (Erkältung/Grippe/Magen-Darm/Sonstiges) und eine Notiz. Dort lässt sich zusätzlich, ausschließlich auf Wunsch, ein für diesen einen Tag angepasstes Kalorien-/Makroziel berechnen — gestützt auf die tatsächliche Ernährungshistorie der letzten Wochen statt nur auf die normale Formel. Kranke Tage bekommen im Kalender eine rote Ziffer, unabhängig vom bestehenden Mahlzeiten-Punkt.
+- Seitentitel haben keine Glas-Kachel mehr um sich, wieder reiner Text.
+- Die Feed-Tageszeiten (Frühstück/Mittag/Abend/Snack) sind jetzt je eine große ausklappbare Kachel statt Kopfzeile plus loser Liste — eingeklappt haben alle vier exakt die gleiche Größe, unabhängig davon ob Mahlzeiten eingetragen sind.
+- Die aufklappbare Auswahl-Pille (Statistik/Supps) ändert beim Auf-/Zuklappen nicht mehr ihre Größe, zeigt ihre Reiter jetzt als Icons statt Wörter, und der aktuell gewählte Reiter steht beim Ausklappen immer mittig.
+
 ## [2.3.0] - 2026-09-10
 
 - Hintergrund komplett neu: die bisherigen Wiederholmuster (Punkte-, dann Buchstabenraster) sind weg — jetzt ein einziges riesiges, kaum sichtbares „t" am Bildschirmrand plus eine spärliche Streuung kleiner Punkte in den vier Makrofarben. Nichts wiederholt sich mehr, dadurch liest sich der Hintergrund nicht mehr als Muster.

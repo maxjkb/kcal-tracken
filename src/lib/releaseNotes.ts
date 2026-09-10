@@ -17,6 +17,16 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '2.4.0',
+    date: '2026-09-10',
+    highlights: [
+      'Neu: Krankheitserfassung. Im Feed-Header ersetzt ein Thermometer-Button die nie genutzten „Tipps für jetzt" — antippen markiert den Tag sofort als krank (Button füllt sich rot), langes Drücken (und die allererste Markierung eines Tages) öffnet ein Sheet für Art und eine Notiz. Dort lässt sich zusätzlich, ausschließlich auf Wunsch, ein für diesen einen Tag angepasstes Kalorien-/Makroziel berechnen — gestützt auf die tatsächliche Ernährungshistorie der letzten Wochen statt nur auf die normale Formel. Kranke Tage bekommen im Kalender eine rote Ziffer.',
+      'Seitentitel haben keine Glas-Kachel mehr um sich, wieder reiner Text.',
+      'Die Feed-Tageszeiten sind jetzt je eine große ausklappbare Kachel — eingeklappt haben alle vier exakt die gleiche Größe, egal ob Mahlzeiten eingetragen sind.',
+      'Die aufklappbare Auswahl-Pille (Statistik/Supps) ändert beim Auf-/Zuklappen nicht mehr ihre Größe, zeigt ihre Reiter als Icons statt Wörter, und der aktuell gewählte Reiter steht beim Ausklappen immer mittig.',
+    ],
+  },
+  {
     version: '2.3.0',
     date: '2026-09-10',
     highlights: [
