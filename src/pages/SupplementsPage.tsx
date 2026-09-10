@@ -27,16 +27,17 @@ import { SupplementCatalogContent } from '../components/SupplementCatalogContent
 import { SuppScoreContent } from '../components/SuppScoreSheet'
 import { SupplementCategoryBadge } from '../components/SupplementCategoryBadge'
 import { InfoButton } from '../components/InfoButton'
-import { ExpandablePicker } from '../components/ExpandablePicker'
+import { ExpandablePicker, type PickerOption } from '../components/ExpandablePicker'
+import { CatalogIcon, SuggestionIcon, TodayIcon, TrophyIcon } from '../components/PickerIcons'
 import { MessageTile } from '../components/MessageTile'
 import { GlassSurface } from '../glass/GlassSurface'
 
 type Tab = 'today' | 'suggestions' | 'score' | 'catalog'
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'today', label: 'Heute' },
-  { key: 'suggestions', label: 'Vorschläge' },
-  { key: 'score', label: 'Supp-Score' },
-  { key: 'catalog', label: 'Katalog' },
+const TABS: PickerOption<Tab>[] = [
+  { key: 'today', label: 'Heute', icon: TodayIcon },
+  { key: 'suggestions', label: 'Vorschläge', icon: SuggestionIcon },
+  { key: 'score', label: 'Supp-Score', icon: TrophyIcon },
+  { key: 'catalog', label: 'Katalog', icon: CatalogIcon },
 ]
 
 export function SupplementsPage() {
