@@ -468,14 +468,17 @@ body {
    Rebrand (v2.0.0): this used to be three large, heavily blurred colored
    circles (two following the now-retired --color-section, one fixed on
    --color-fat) — a "Farbverlauf" the explicit feedback named directly as
-   part of why the app still read as the old one. Replaced with the Vision
-   Board's own body-background rule verbatim (design-demo/
-   vision-board-big-number.html): a faint 22px dot grid at 5% ink over the
-   plain canvas, no color, no blur, no per-route variation. Liquid Glass
-   still gets something to frost — a repeating texture refracts under blur
-   just as a color wash did — it's just neutral now instead of a hue. Fixed
-   + deeply negative z-index, same stacking approach as before: ordinary
-   page content simply paints over it. */
+   part of why the app still read as the old one. Fixed + deeply negative
+   z-index: ordinary page content simply paints over it.
+
+   Rounds 2.1–2.3 replaced that with a tiled lowercase "t" pattern, tuned
+   across several passes (letter density, outline vs fill, accent-cell
+   placement) — see git history. Round 4 (v2.4) drops the idea of a
+   repeating texture entirely; AmbientBackground.tsx's own comment has the
+   reasoning. What's left here is deliberately small: a fixed canvas color,
+   the giant watermark letter, and the confetti dots — no per-theme asset,
+   no SVG, no pattern tiling math, since both pieces just read their colors
+   from the existing theme tokens directly. */
 .ambient-bg {
   position: fixed;
   inset: 0;
@@ -484,40 +487,31 @@ body {
   background: var(--color-bg);
   pointer-events: none;
 }
-/* Global brainstorm round (v2.1): the plain dot grid above is gone in favor
-   of the actual texture requested — a tiled lowercase "t" (Unbounded, the
-   same face the app's own name-mark reads in) instead of an anonymous dot,
-   mostly ink at low opacity with a handful per tile in the macro colors for
-   the "auffälliger als ein Punkt" ask. Drawn by AmbientBackground.tsx as a
-   real inline <svg><pattern> in the DOM rather than a CSS background-image:
-   an externally-referenced SVG (background-image/mask-image) renders in its
-   own document context with no access to this page's @font-face, so the
-   glyph would silently fall back to Times/serif in most browsers — inline
-   SVG is a DOM node like any other and picks up loaded page fonts
-   correctly. */
-.ambient-bg svg {
+/* The single watermark "t" — cropped into the bottom-right corner, sized
+   off the viewport so it scales with the device rather than being a fixed
+   pixel size that reads differently on a small vs. large phone. Solid fill
+   (not the outline-only treatment the old tiled letters used): at this
+   size and opacity a stroke would be imperceptibly thin, and unlike a dense
+   repeating texture, one huge shape at ~4.5% opacity doesn't read as
+   "heavy" the way many small filled ones did. */
+.amb-watermark {
   position: absolute;
-  inset: 0;
-  height: 100%;
-  width: 100%;
+  right: -8%;
+  bottom: -6%;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(320px, 85vh, 820px);
+  line-height: 0.8;
+  color: var(--color-ink);
+  opacity: 0.045;
+  user-select: none;
 }
-/* Round 2 (v2.2): the plain-ink "t" cells switch style, not just color, per
-   theme — solid black fill in light mode, a white outline (stroke only, no
-   fill) in dark mode. A plain var(--color-ink) fill would have flipped the
-   *color* automatically like everything else in this file does, but not
-   the *shape* the feedback asked for, so this needs its own rule rather
-   than reusing the color token alone. Accent (macro-color) cells aren't
-   touched here — they stay a plain filled var(--color-kcal/…) at full
-   strength in both themes, set inline in AmbientBackground.tsx.
-
-   Round 3 (v2.3): light mode dropped its solid fill too — outlined in both
-   themes now, just the outline color flips (var(--color-ink), already dark
-   in light mode / light in dark mode). A solid-filled glyph at this density
-   read as too heavy/noisy next to actual page text; an outline carries the
-   same texture at a fraction of the ink coverage. */
-.ambient-bg .amb-ink {
-  fill: none;
-  stroke: var(--color-ink);
+/* One confetti dot — position/size/color/opacity all come from
+   AmbientBackground.tsx's own CONFETTI array (inline styles), this just
+   supplies the shape. */
+.amb-fleck {
+  position: absolute;
+  border-radius: 999px;
 }
 /* The caption sizes below text-xs are one-off arbitrary values (the ring
    labels, the badge numbers), so they can't carry tracking through the theme
