@@ -156,19 +156,25 @@
   --color-meal-snack: #954d6e;
 
   --color-danger: #ff3b30;
-  /* Round 4 (v2.4): "over target" for kcal/macros in RemainingHero — a
-   * dedicated warning amber, not a reuse of --color-fat even though both
-   * land in the same amber family. Deliberate: --color-fat means "this is
-   * the fat row" wherever it appears (icon, bar, badge); this token means
-   * "you're over" and applies uniformly across kcal/protein/carbs/fat
-   * alike, the same way --color-danger used to mean "over" for kcal alone.
-   * A color meaning two different things is exactly the cost this
-   * codebase's own palette comments elsewhere argue against paying.
-   * Contrast-checked against --color-bg the same way as every other token
-   * here: 5.23:1 light (as large hero-num text, not just body copy),
-   * 12.68:1 dark.
+  /* Round 4 (v2.4): "over target"/"surplus" everywhere it appears — kcal and
+   * macros in RemainingHero, and now the Statistik balance tile's surplus
+   * reading too. Originally an amber (kept separate from --color-fat's own
+   * amber for the same "one color, one meaning" reason below); explicit
+   * follow-up request recolored it to red instead, specifically a red
+   * distinct from every other red already in the palette (--color-danger,
+   * --color-protein/--color-badge-protein, --color-micro-iron all sit in the
+   * same vivid ~0-5° hue band) — a muted brick/rust red at ~6-7° instead,
+   * different enough by saturation and lightness alone to never read as the
+   * same red as those, while still unambiguously reading as "red".
+   * Still its own token rather than a reuse of --color-danger, same
+   * reasoning as when this was amber: --color-danger means "destructive
+   * action" wherever it appears (delete confirmations, error text); this
+   * token means "you're over" — two different meanings, kept independently
+   * adjustable. Contrast-checked against --color-bg the same way as every
+   * other token here: 7.39:1 light (as large hero-num text, not just body
+   * copy), 7.8:1 dark.
    */
-  --color-warning: #8f6100;
+  --color-warning: #943226;
   /* Positive/"good source of" accent — MealDetail's per-meal micronutrient
      badges. Deliberately its own token rather than reusing --color-carbs,
      even though they're the same green: the two contexts (a meal-detail
@@ -356,7 +362,7 @@ body {
     --color-meal-dinner: #8f7ddb;
     --color-meal-snack: #d4839f;
     --color-danger: #ff453a;
-    --color-warning: #ffc94d;
+    --color-warning: #e08f85;
     --color-good: #4ecf8a;
 
     /* v2: same hues as the light-mode block above, solved for ≥9:1 contrast

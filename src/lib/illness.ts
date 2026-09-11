@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db, toLocalDateKey, type Nutrition, type SickDay } from './db'
 import { computeDailyTargets, getBodyProfile } from './bodyProfile'
 import { estimateIllnessTargets } from './gemini'
+import { bucketByDay, bucketByMonth, bucketByWeek, type Period, type StatBucket } from './stats'
 
 /** How far back "recent eating habits" looks when grounding an on-request target suggestion — long enough to smooth over a couple of one-off days, short enough to still reflect how the user eats right now. */
 const RECENT_HABITS_DAYS = 30
@@ -17,6 +18,27 @@ export function useSickDaysInRange(startKey: string, endKey: string): Set<string
     const rows = await db.sickDays.where('date').between(startKey, endKey, true, true).toArray()
     return new Set(rows.map((r) => r.date))
   }, [startKey, endKey])
+}
+
+/**
+ * Sick days in [startKey, endKey], bucketed the exact same way lib/stats.ts
+ * buckets meal nutrition (bucketByDay/Week/Month) — for the Statistik page's
+ * Krankheits-Diagramm. Each sick day counts as 1, folded into a synthetic
+ * per-date Nutrition map (the count rides in the `kcal` field, the only one
+ * the existing bucket functions actually need to sum) purely to reuse that
+ * exact date-bucketing logic rather than re-deriving week/month boundaries a
+ * second time — a bucket's `.kcal` here means "how many sick days", nothing
+ * to do with calories.
+ */
+export function useSickDayBuckets(startKey: string, endKey: string, period: Period): StatBucket[] | undefined {
+  return useLiveQuery(async () => {
+    const rows = await db.sickDays.where('date').between(startKey, endKey, true, true).toArray()
+    const byDate = new Map<string, Nutrition>()
+    for (const r of rows) byDate.set(r.date, { kcal: 1, protein: 0, carbs: 0, fat: 0 })
+    if (period === 'month') return bucketByWeek(startKey, endKey, byDate)
+    if (period === 'year') return bucketByMonth(Number(startKey.slice(0, 4)), byDate)
+    return bucketByDay(startKey, endKey, byDate)
+  }, [startKey, endKey, period])
 }
 
 /**

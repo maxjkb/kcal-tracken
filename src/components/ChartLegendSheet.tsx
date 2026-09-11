@@ -4,25 +4,35 @@ import { Sheet } from './Sheet'
 /**
  * The color key for KcalTrendChart, plus the target-line explanation that
  * used to live in a small inline "Ziel"-chip above the chart. Both moved
- * here, behind the "i" button StatsPage places next to the chart card's own
+ * here, behind the "i" button each chart card places next to its own
  * heading, so the chart itself is left to just the plot and its bare
  * numbers — no legend text competing for the width a full-bleed chart needs.
+ *
+ * Round 5 (v2.5): generalized beyond kcal once the Statistik page grew
+ * matching trend cards for protein/carbs/fat (see MacroTrendCard) —
+ * `metricLabel`/`targetDescription` let each card's own metric name and
+ * target-line caveat show through, defaulting to the original kcal wording.
  */
-export function ChartLegendSheet({ hasTargetLine, onClose }: { hasTargetLine: boolean; onClose: () => void }) {
+export function ChartLegendSheet({
+  hasTargetLine,
+  metricLabel = 'Kalorien',
+  lineColor = LINE_COLOR,
+  targetDescription = 'Dein Tagesziel zum jeweiligen Zeitpunkt. Änderst du dein Ziel, gilt der neue Wert nur für neue Tage — bereits vergangene Tage behalten ihren damaligen Wert.',
+  onClose,
+}: {
+  hasTargetLine: boolean
+  metricLabel?: string
+  lineColor?: string
+  targetDescription?: string
+  onClose: () => void
+}) {
   return (
     <Sheet onClose={onClose} sheetClassName="glass flex w-full max-w-lg flex-col rounded-t-3xl p-5 pt-7 sm:rounded-3xl">
       <h2 className="mb-4 text-lg font-semibold text-ink">Legende</h2>
       <div className="flex flex-col gap-4">
-        <LegendRow color={LINE_COLOR} dashed={false} title="Kalorien" description="Was du in diesem Zeitraum tatsächlich erfasst hast." />
+        <LegendRow color={lineColor} dashed={false} title={metricLabel} description="Was du in diesem Zeitraum tatsächlich erfasst hast." />
         <LegendRow color={TREND_COLOR} dashed title="Durchschnitt" description="Der Ø-Wert über die tatsächlich verstrichenen, dargestellten Punkte." />
-        {hasTargetLine && (
-          <LegendRow
-            color={TARGET_COLOR}
-            dashed={false}
-            title="Ziel"
-            description="Dein Tagesziel zum jeweiligen Zeitpunkt. Änderst du dein Ziel, gilt der neue Wert nur für neue Tage — bereits vergangene Tage behalten ihren damaligen Wert."
-          />
-        )}
+        {hasTargetLine && <LegendRow color={TARGET_COLOR} dashed={false} title="Ziel" description={targetDescription} />}
       </div>
     </Sheet>
   )

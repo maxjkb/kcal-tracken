@@ -147,6 +147,35 @@ export function computeDailyTargets(profile: BodyProfile): DailyTargets {
   }
 }
 
+export type MaintenanceBalance = 'defizit' | 'erhaltung' | 'ueberschuss'
+
+/**
+ * How far the average daily kcal may sit above/below true maintenance (TDEE)
+ * and still read as "Erhaltung" rather than a strict deficit/surplus — an
+ * average within a day's normal logging/estimation noise of maintenance
+ * shouldn't be called out as either. 100 kcal/day is a commonly used rule of
+ * thumb for that noise floor (a slice of bread, roughly).
+ */
+const MAINTENANCE_TOLERANCE_KCAL = 100
+
+/**
+ * Classifies an average daily kcal intake against true maintenance (TDEE) —
+ * deliberately independent of the user's own goal-based target
+ * (computeDailyTargets): a "Muskelaufbau" goal's target already bakes in a
+ * surplus, so judging the SAME average against that target (see the
+ * Statistik page's own "Bilanz" tile, Ziel−Ø) would always read as roughly
+ * on-target even while the user is, physiologically, eating in a real
+ * surplus relative to what their body actually burns. This answers the
+ * separate, honest question "is this number of calories gaining, losing or
+ * holding my weight", regardless of what the user is trying to do.
+ */
+export function classifyMaintenanceBalance(avgKcal: number, tdee: number): MaintenanceBalance {
+  const diff = avgKcal - tdee
+  if (diff > MAINTENANCE_TOLERANCE_KCAL) return 'ueberschuss'
+  if (diff < -MAINTENANCE_TOLERANCE_KCAL) return 'defizit'
+  return 'erhaltung'
+}
+
 /**
  * DACH reference daily intakes for the curated micronutrient set (adult,
  * general population — not pregnancy/age-adjusted). Unisex values, chosen as

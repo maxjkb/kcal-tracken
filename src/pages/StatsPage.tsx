@@ -1,63 +1,48 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useMealSummariesInRange } from '../hooks/useMeals'
-import { MEAL_TYPE_LABELS, toLocalDateKey, type Nutrition } from '../lib/db'
-import { RemainingHero } from '../components/RemainingHero'
-import { DayPickerModal, MonthPickerModal, YearPickerModal } from '../components/DatePickerModal'
-import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
+import { toLocalDateKey, type Nutrition } from '../lib/db'
+import { classifyMaintenanceBalance, computeTDEE, getBodyProfile, type MaintenanceBalance } from '../lib/bodyProfile'
+import { targetKcalAsNutritionMap, targetKcalByBucketKey, useDailyTargetKcalMap } from '../lib/targetHistory'
+import { bucketByDay, computeAverageComparison, computeDailyAverage, computeDailyMacroAverages, formatPeriodLabel, getPeriodRange } from '../lib/stats'
+import { PageHeader } from '../components/PageHeader'
+import { GlassSurface } from '../glass/GlassSurface'
+import { MacroIcon, type MacroType } from '../components/MacroIcon'
+import { MacroTrendCard } from '../components/MacroTrendCard'
+import { IllnessChart } from '../components/IllnessChart'
 import { SupplementScoreCard } from '../components/SupplementScoreCard'
 import { MicronutrientBars } from '../components/MicronutrientBars'
 import { useMicronutrientOverview } from '../hooks/useMicronutrients'
-import { KcalTrendChart, type ChartBucket } from '../components/KcalTrendChart'
-import { ChartLegendSheet } from '../components/ChartLegendSheet'
-import type { StatBucket } from '../lib/stats'
-import { targetKcalAsNutritionMap, targetKcalByBucketKey, useDailyTargetKcalMap } from '../lib/targetHistory'
-import { PageHeader } from '../components/PageHeader'
-import { GlassSurface } from '../glass/GlassSurface'
-import {
-  bucketByDay,
-  bucketByMonth,
-  bucketByWeek,
-  computeAverageComparison,
-  computeDailyAverage,
-  computeDailyMacroAverages,
-  formatPeriodLabel,
-  getPeriodRange,
-  monthHeadingLabel,
-  type Period,
-} from '../lib/stats'
+import { STATS_TILE_META } from '../components/StatsTileMeta'
+import { getStatsLayout, type StatsTileKey } from '../lib/statsLayout'
+import { StatsLayoutSheet } from '../components/StatsLayoutSheet'
 
-import { ExpandablePicker, type PickerOption } from '../components/ExpandablePicker'
-import { DayIcon, MonthIcon, WeekIcon, YearIcon } from '../components/PickerIcons'
-import { MessageTile } from '../components/MessageTile'
+const MAINTENANCE_LABEL: Record<MaintenanceBalance, string> = {
+  defizit: 'Defizit',
+  erhaltung: 'Erhaltung',
+  ueberschuss: 'Überschuss',
+}
 
-const PERIODS: PickerOption<Period>[] = [
-  { key: 'day', label: 'Tag', icon: DayIcon },
-  { key: 'week', label: 'Woche', icon: WeekIcon },
-  { key: 'month', label: 'Monat', icon: MonthIcon },
-  { key: 'year', label: 'Jahr', icon: YearIcon },
-]
-
+/**
+ * Round 5 (v2.5): a full rebuild, not a tune-up. The page used to switch
+ * between four entirely different "Ansichten" (Tag/Woche/Monat/Jahr), each
+ * replacing everything below the header — explicit request to drop that
+ * switching altogether: every chart now stands on the page at once, as one
+ * long, user-reorderable feed (see lib/statsLayout.ts + StatsLayoutSheet).
+ *
+ * Three things stay fixed at the top, not part of that reorderable feed:
+ * the three headline tiles (this week's balance / Ø kcal per day / Ø
+ * macros) and the icon row beneath them that jumps straight to any chart
+ * further down. Both always describe THIS calendar week — there is no
+ * longer a page-level period to vary them by.
+ */
 export function StatsPage() {
-  const navigate = useNavigate()
-  const [period, setPeriod] = useState<Period>('week')
-  const [anchorKey, setAnchorKey] = useState(() => toLocalDateKey(new Date()))
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const [legendOpen, setLegendOpen] = useState(false)
-  // Which of the two summaries the area below expands on. Chart first: the
-  // shape over time is what the period views exist for, the macro breakdown is
-  // the follow-up question.
-  const [view, setView] = useState<'trend' | 'nutrients'>('trend')
-  const { startKey, endKey } = getPeriodRange(period, anchorKey)
+  const [layout, setLayout] = useState<StatsTileKey[]>(getStatsLayout)
+  const [editOpen, setEditOpen] = useState(false)
+
+  const todayKey = toLocalDateKey(new Date())
+  const { startKey, endKey } = getPeriodRange('week', todayKey)
   const meals = useMealSummariesInRange(startKey, endKey)
 
-  // Per-day totals across all four macros, not just kcal: the chart's points
-  // are tappable and open the full nutrient rings for that day or week.
-  //
-  // Memoised together, because everything downstream (the buckets below) keys
-  // off this Map's identity. Rebuilt on every render it would defeat their
-  // memoisation as surely as having none — and on a year's worth of meals
-  // that is a full pass over every row, repeated for every unrelated render.
   const { nutritionByDate, totals } = useMemo(() => {
     const byDate = new Map<string, Nutrition>()
     const sum = { kcal: 0, protein: 0, carbs: 0, fat: 0 }
@@ -76,459 +61,151 @@ export function StatsPage() {
     return { nutritionByDate: byDate, totals: sum }
   }, [meals])
 
-  const mealCount = meals?.length ?? 0
   const dailyAverage = computeDailyAverage(startKey, endKey, totals.kcal)
   const macroAverages = computeDailyMacroAverages(startKey, endKey, totals)
-  const perMealAverages =
-    mealCount > 0
-      ? {
-          kcal: totals.kcal / mealCount,
-          protein: totals.protein / mealCount,
-          carbs: totals.carbs / mealCount,
-          fat: totals.fat / mealCount,
-        }
-      : { kcal: 0, protein: 0, carbs: 0, fat: 0 }
 
   const bodyProfile = getBodyProfile()
-  const dailyTargets = bodyProfile ? computeDailyTargets(bodyProfile) : null
-  // Always the trailing week ending at the period's own end date, regardless
-  // of which period (Tag/Woche/Monat/Jahr) is selected: the bands are a
-  // "how am I doing lately" read, not a value to sum or average further over
-  // a longer browsed range the way kcal/macros are above.
+  const tdee = bodyProfile ? computeTDEE(bodyProfile) : null
+  const maintenanceBalance = tdee !== null ? classifyMaintenanceBalance(dailyAverage, tdee) : null
+
+  // "Bilanz" — this week's average vs. the user's own GOAL target
+  // (Ziel−Ø), independent of the maintenance reading above (see
+  // classifyMaintenanceBalance's own doc comment on why the two differ).
+  const dayData = useMemo(() => bucketByDay(startKey, endKey, nutritionByDate), [startKey, endKey, nutritionByDate])
+  const targetKcalByDate = useDailyTargetKcalMap(startKey, endKey)
+  const targetNutritionByDate = useMemo(
+    () => (targetKcalByDate ? targetKcalAsNutritionMap(targetKcalByDate) : new Map<string, Nutrition>()),
+    [targetKcalByDate],
+  )
+  const targetDayData = useMemo(() => bucketByDay(startKey, endKey, targetNutritionByDate), [startKey, endKey, targetNutritionByDate])
+  const targetKcalByKey = targetKcalByDate ? targetKcalByBucketKey(targetDayData) : null
+  const averageComparison = targetKcalByKey ? computeAverageComparison(dayData, targetKcalByKey, todayKey) : null
+  // "Ziel minus Durchschnitt" — negative means the average came in OVER
+  // target (more eaten than planned), which is the state worth flagging.
+  const calorieBalance = averageComparison ? -averageComparison.diff : null
+
   const microOverview = useMicronutrientOverview(endKey)
 
-  // Woche bars = days (click → that day's Tag view); Monat bars = weeks
-  // (click → that week's Woche view); Jahr points = months (click → that
-  // month's Monat view) — each period's chart drills into the next-finer one.
-  // Memoised: bucketing walks every meal in the period, and this page
-  // re-renders for reasons that have nothing to do with the buckets (a sheet
-  // opening, the header's scroll value, a live query settling). Without this
-  // each of those repeated the whole pass over the data.
-  const dayData = useMemo(
-    () => (period === 'week' ? bucketByDay(startKey, endKey, nutritionByDate) : []),
-    [period, startKey, endKey, nutritionByDate],
-  )
-  const weekData = useMemo(
-    () => (period === 'month' ? bucketByWeek(startKey, endKey, nutritionByDate) : []),
-    [period, startKey, endKey, nutritionByDate],
-  )
-  const monthData = useMemo(
-    () => (period === 'year' ? bucketByMonth(Number(anchorKey.slice(0, 4)), nutritionByDate) : []),
-    [period, anchorKey, nutritionByDate],
-  )
-  const barData = period === 'week' ? dayData : period === 'month' ? weekData : []
-
-  // The target-kcal line on the trend chart, bucketed the exact same way as
-  // the actual-intake data above (same functions, same keys) so the two line
-  // up point for point. null/undefined (no body profile yet) hides the line
-  // entirely rather than drawing it at 0.
-  const targetKcalByDate = useDailyTargetKcalMap(startKey, endKey)
-  const targetNutritionByDate = targetKcalByDate ? targetKcalAsNutritionMap(targetKcalByDate) : new Map<string, Nutrition>()
-  const targetDayData = period === 'week' ? bucketByDay(startKey, endKey, targetNutritionByDate) : []
-  const targetWeekData = period === 'month' ? bucketByWeek(startKey, endKey, targetNutritionByDate) : []
-  const targetMonthData = period === 'year' ? bucketByMonth(Number(anchorKey.slice(0, 4)), targetNutritionByDate) : []
-  const targetKcalByKey = targetKcalByDate
-    ? targetKcalByBucketKey([...targetDayData, ...targetWeekData, ...targetMonthData])
-    : null
-  function withTarget(buckets: StatBucket[]): ChartBucket[] {
-    return buckets.map((b) => ({ ...b, targetKcal: targetKcalByKey?.get(b.key) ?? null }))
+  function scrollToTile(key: StatsTileKey) {
+    document.getElementById(`stats-tile-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  // Tile 1 ("kcal gesamt" on Tag) becomes a surplus/deficit readout on the
-  // other three periods, one granularity up from what's charted: Woche
-  // averages day-by-day, Monat week-by-week, Jahr month-by-month (see
-  // computeAverageComparison). Reuses the exact buckets/lookup already built
-  // above for the chart — only the "today" key needs adjusting for Jahr's
-  // YYYY-MM bucket keys.
-  const todayKey = toLocalDateKey(new Date())
-  const deficitBuckets = period === 'week' ? dayData : period === 'month' ? weekData : period === 'year' ? monthData : []
-  const deficitTodayKey = period === 'year' ? todayKey.slice(0, 7) : todayKey
-  const averageComparison = targetKcalByKey ? computeAverageComparison(deficitBuckets, targetKcalByKey, deficitTodayKey) : null
-  // "Ziel minus Durchschnitt" — the inverse of averageComparison.diff
-  // (actual − target). Negative means the average came in OVER target (more
-  // eaten than planned) and reads red; zero-or-positive means on or under
-  // target and reads blue. This mapping was the other way round until
-  // v1.19.18 and was corrected on explicit request — over target is the
-  // state worth flagging, which is also the convention everywhere else.
-  const calorieBalance = averageComparison ? -averageComparison.diff : null
-  const perMealData =
-    period === 'day'
-      ? [...(meals ?? [])]
-          .sort((a, b) => a.createdAt - b.createdAt)
-          .map((m) => ({ key: m.id, label: MEAL_TYPE_LABELS[m.mealType], kcal: m.nutrition.kcal }))
-      : []
-
-  // The 3rd tile's ring shows the day's absolute totals on Tag, and daily
-  // averages (vs. the same daily targets) on Woche/Monat/Jahr — comparing a
-  // multi-day sum directly against a one-day target wouldn't mean anything.
-  const ringValues =
-    period === 'day'
-      ? totals
-      : { kcal: dailyAverage, protein: macroAverages.protein, carbs: macroAverages.carbs, fat: macroAverages.fat }
-
-  function handleBarClick(payload: { key: string } | undefined) {
-    if (!payload) return
-    if (period === 'week') navigate('/', { state: { dateKey: payload.key } })
-    else if (period === 'month') {
-      setPeriod('week')
-      setAnchorKey(payload.key)
-    }
-  }
-
-  function handleMonthPointClick(monthKey: string | undefined) {
-    if (!monthKey) return
-    setPeriod('month')
-    setAnchorKey(`${monthKey}-01`)
-  }
+  const MicroIcon = STATS_TILE_META.micronutrients.icon
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-28">
       <PageHeader title="Statistik" />
 
-      {/* Global brainstorm round (v2.1): the always-fully-expanded segmented
-          control is gone in favor of a collapsed pill (defaults to "Woche")
-          that only reveals the other three periods on touch — same
-          Kamera-app-style device as the Supps page's own picker, see
-          ExpandablePicker's own comment for why. Tapping the period you're
-          already on (from inside the expanded row) still opens the calendar
-          sheet, same as before — ExpandablePicker's onChange fires even when
-          the tapped option matches the current value, so that shortcut just
-          moves one level down (expand, then tap the highlighted option)
-          instead of firing straight from the always-visible row. */}
-      <ExpandablePicker
-        options={PERIODS}
-        value={period}
-        onChange={(key) => (period === key ? setPickerOpen(true) : setPeriod(key))}
-        label="Zeitraum"
-      />
+      <p className="mb-3 text-center text-xs font-medium text-ink-soft">{formatPeriodLabel('week', todayKey)}</p>
 
-      {/* The prev/next arrow tile is gone — the calendar sheet (a second tap
-          on the active pill above) is now the only way to change the shown
-          period, so there was nothing left for a dedicated navigator bar to
-          do besides report where those arrows used to point. This still does
-          that reporting job, just without arrows or a tap target either
-          side of it — a tile now (Round 3, v2.3), not bare text, per the
-          "no floating text" pass. */}
-      <div className="mb-4 flex justify-center">
-        <MessageTile className="font-medium">{formatPeriodLabel(period, anchorKey)}</MessageTile>
-      </div>
-
-      <div className="mb-6 grid grid-cols-3 gap-2">
-        {/* Tag keeps the plain daily total. Woche/Monat/Jahr swap it for a
-            surplus/deficit readout instead — the absolute total of a whole
-            month means little on its own, but "on average, how do I compare
-            to what I need" does. Falls back to the plain total when there's
-            nothing to compare against yet (no body profile, or the target
-            history is still loading). */}
-        {period === 'day' || averageComparison === null || calorieBalance === null ? (
-          <StatTile value={Math.round(totals.kcal).toLocaleString('de-DE')} label="kcal gesamt" />
-        ) : (
-          // No words anywhere on this tile per explicit request — just the
-          // bare balance (colored) over the bare target number (gray).
-          <StatTile
-            value={Math.round(Math.abs(calorieBalance)).toLocaleString('de-DE')}
-            valueClassName={calorieBalance < 0 ? 'text-danger' : 'text-kcal'}
-            label={Math.round(averageComparison.target).toLocaleString('de-DE')}
-          />
-        )}
-        <StatTile
-          value={Math.round(period === 'day' ? perMealAverages.kcal : dailyAverage).toLocaleString('de-DE')}
-          label={period === 'day' ? 'Ø kcal / Mahlzeit' : 'Ø kcal / Tag'}
-          selected={period !== 'day' && view === 'trend'}
-          onSelect={period === 'day' ? undefined : () => setView('trend')}
-        />
-        <RingTile
-          kcal={ringValues.kcal}
-          protein={ringValues.protein}
-          carbs={ringValues.carbs}
-          fat={ringValues.fat}
-          targets={dailyTargets}
-          caption={period === 'day' ? 'Nährwerte' : 'Ø Nährwerte/Tag'}
-          selected={period !== 'day' && view === 'nutrients'}
-          onSelect={period === 'day' ? undefined : () => setView('nutrients')}
-        />
-      </div>
-
-      {period === 'day' ? (
-        <>
-          {/* Makronährstoffe first, Mikronährstoffe below on scroll — back to
-              this order after trying micros-first: kcal/protein/carbs/fat is
-              still the number people check first on a given day, with the
-              micronutrient picture as the deeper, second-glance layer below
-              it rather than the very first thing on the page. */}
-          <GlassSurface rim={24} className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Makronährstoffe</h3>
-            {meals === undefined ? (
-              <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
-            ) : perMealData.length === 0 ? (
-              <p className="py-10 text-center text-sm text-ink-soft">Keine Mahlzeiten an diesem Tag.</p>
-            ) : (
-              <RemainingHero
-                kcal={totals.kcal}
-                protein={totals.protein}
-                carbs={totals.carbs}
-                fat={totals.fat}
-                targets={dailyTargets}
-                perMeal={perMealAverages}
-              />
-            )}
-          </GlassSurface>
-          <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Mikronährstoffe</h3>
-            <MicronutrientBars overview={microOverview} />
-          </GlassSurface>
-        </>
-      ) : view === 'nutrients' ? (
-        <>
-          {/* The Feed's own daily breakdown, applied to the period's average —
-              same rings, same colours, same percent-of-target readout, so the
-              number in the tile above and the detail below are visibly the
-              same thing at two levels of zoom. */}
-          <GlassSurface rim={24} className="glass-subtle glass-subtle-themed mb-4 rounded-3xl p-5 shadow-sm shadow-black/5">
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Makronährstoffe</h3>
-            {meals === undefined ? (
-              <p className="py-10 text-center text-sm text-ink-soft">Lädt…</p>
-            ) : (
-              <RemainingHero
-                kcal={dailyAverage}
-                protein={macroAverages.protein}
-                carbs={macroAverages.carbs}
-                fat={macroAverages.fat}
-                targets={dailyTargets}
-              />
-            )}
-          </GlassSurface>
-          <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Mikronährstoffe</h3>
-            <MicronutrientBars overview={microOverview} />
-          </GlassSurface>
-        </>
-      ) : (
-        <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-4 shadow-sm shadow-black/5">
-          {/* The "i" sits on the same line as this card's own heading, per
-              explicit request — even on Jahr, which has no heading text of
-              its own, `justify-between` still pushes it to the right. */}
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-ink-soft">
-              {(period === 'week' || period === 'month') && meals !== undefined && barData.length > 0
-                ? monthHeadingLabel(startKey, endKey)
-                : ''}
-            </span>
-            <button
-              type="button"
-              onClick={() => setLegendOpen(true)}
-              aria-label="Legende zum Diagramm"
-              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-bg text-[10px] font-bold text-ink-faint hover:text-ink-soft"
-            >
-              i
-            </button>
-          </div>
-          {/* min-h rather than a fixed h-56: the detail panel opens inside this
-              box, and a fixed height would squeeze the chart instead of letting
-              the card grow. */}
-          <div className="min-h-56">
-            {meals === undefined ? (
-              <p className="flex h-56 items-center justify-center text-sm text-ink-soft">Lädt…</p>
-            ) : (
-              <KcalTrendChart
-                data={withTarget(period === 'year' ? monthData : barData)}
-                targets={dailyTargets}
-                emptyLabel="Keine Einträge in diesem Zeitraum."
-                onSelectBucket={(bucket: StatBucket) =>
-                  period === 'year' ? handleMonthPointClick(bucket.key) : handleBarClick({ key: bucket.key })
-                }
-              />
-            )}
-          </div>
+      <div className="mb-4 grid grid-cols-3 gap-2">
+        <GlassSurface rim={24} className="glass-subtle glass-subtle-themed flex h-24 w-full flex-col items-center justify-center rounded-3xl p-3 text-center shadow-sm shadow-black/5">
+          {averageComparison === null || calorieBalance === null ? (
+            <>
+              <div className="hero-num text-xl text-ink">{Math.round(totals.kcal).toLocaleString('de-DE')}</div>
+              <div className="text-[10px] text-ink-soft">kcal gesamt</div>
+            </>
+          ) : (
+            <>
+              <div
+                className="hero-num text-xl"
+                style={{ color: calorieBalance < 0 ? 'var(--color-warning)' : 'var(--color-ink)' }}
+              >
+                {Math.round(Math.abs(calorieBalance)).toLocaleString('de-DE')}
+              </div>
+              <div className="text-[10px] text-ink-soft">{maintenanceBalance ? MAINTENANCE_LABEL[maintenanceBalance] : 'Bilanz'}</div>
+            </>
+          )}
         </GlassSurface>
-      )}
 
-      <SupplementScoreCard />
+        <GlassSurface rim={24} className="glass-subtle glass-subtle-themed flex h-24 w-full flex-col items-center justify-center rounded-3xl p-3 text-center shadow-sm shadow-black/5">
+          <div className="hero-num text-xl text-ink">{Math.round(dailyAverage).toLocaleString('de-DE')}</div>
+          <div className="text-[10px] text-ink-soft">Ø kcal/d</div>
+        </GlassSurface>
 
-      {pickerOpen && period === 'day' && (
-        <DayPickerModal
-          selectedDateKey={anchorKey}
-          onSelect={(key) => {
-            setAnchorKey(key)
-            setPickerOpen(false)
-          }}
-          onClose={() => setPickerOpen(false)}
-        />
-      )}
-      {pickerOpen && period === 'week' && (
-        <DayPickerModal
-          selectedDateKey={anchorKey}
-          onSelect={(key) => {
-            // Picking any day selects the week that contains it — the anchor
-            // just needs to be that day, getPeriodRange('week', …) does the rest.
-            setAnchorKey(key)
-            setPickerOpen(false)
-          }}
-          onClose={() => setPickerOpen(false)}
-        />
-      )}
-      {pickerOpen && period === 'month' && (
-        <MonthPickerModal
-          selectedYear={Number(anchorKey.slice(0, 4))}
-          selectedMonth={Number(anchorKey.slice(5, 7))}
-          onSelect={(year, month) => {
-            setAnchorKey(`${year}-${String(month).padStart(2, '0')}-01`)
-            setPickerOpen(false)
-          }}
-          onClose={() => setPickerOpen(false)}
-        />
-      )}
-      {pickerOpen && period === 'year' && (
-        <YearPickerModal
-          selectedYear={Number(anchorKey.slice(0, 4))}
-          onSelect={(year) => {
-            setAnchorKey(`${year}-01-01`)
-            setPickerOpen(false)
-          }}
-          onClose={() => setPickerOpen(false)}
-        />
-      )}
-      {legendOpen && (
-        <ChartLegendSheet hasTargetLine={Boolean(targetKcalByKey)} onClose={() => setLegendOpen(false)} />
-      )}
-    </div>
-  )
-}
+        <GlassSurface rim={24} className="glass-subtle glass-subtle-themed flex h-24 w-full flex-col items-center justify-center gap-1 rounded-3xl p-3 shadow-sm shadow-black/5">
+          {(['protein', 'carbs', 'fat'] as const satisfies readonly MacroType[]).map((type) => (
+            <div key={type} className="flex w-full items-center justify-center gap-1.5">
+              <span style={{ color: `var(--color-${type})` }}>
+                <MacroIcon type={type} className="h-3 w-3" />
+              </span>
+              <span className="hero-num text-sm text-ink">{Math.round(macroAverages[type])}g</span>
+            </div>
+          ))}
+        </GlassSurface>
+      </div>
 
-/**
- * One tile of the stat row.
- *
- * When `onSelect` is given the tile becomes the control that chooses what the
- * area below shows, and `selected` marks which one is active. The numbers were
- * already the two summaries of the period, so making them the switch keeps the
- * page from growing a separate row of tabs that says the same thing twice.
- */
-function StatTile({
-  value,
-  valueClassName = 'text-ink',
-  label,
-  selected,
-  onSelect,
-}: {
-  value: string
-  /** Overrides the value's color — used by the deficit/surplus tile below, everything else keeps the default. */
-  valueClassName?: string
-  label: string
-  selected?: boolean
-  onSelect?: () => void
-}) {
-  const body = (
-    <>
-      <div className={`hero-num text-xl ${valueClassName}`}>{value}</div>
-      <div className="text-[10px] text-ink-soft">{label}</div>
-    </>
-  )
-  const shell = `flex h-24 w-full flex-col items-center justify-center rounded-3xl p-3 text-center shadow-sm shadow-black/5 transition ${
-    selected ? 'ring-2 ring-inset ring-accent' : ''
-  }`
+      {/* Jump row — plain icons on a small neutral chip, deliberately not a
+          big tile of their own (explicit request): this is navigation, not
+          content. Order mirrors the feed's own current order below. */}
+      <div className="mb-6 flex flex-wrap justify-center gap-2">
+        {layout.map((key) => {
+          const Icon = STATS_TILE_META[key].icon
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => scrollToTile(key)}
+              aria-label={`Zu ${STATS_TILE_META[key].label} springen`}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-ink-soft shadow-sm shadow-black/5 active:scale-95"
+            >
+              <Icon className="h-4 w-4" />
+            </button>
+          )
+        })}
+      </div>
 
-  if (!onSelect) {
-    return (
-      <GlassSurface rim={24} className={`glass-subtle glass-subtle-themed ${shell}`}>
-        {body}
-      </GlassSurface>
-    )
-  }
-  return (
-    <GlassSurface
-      as="button"
-      rim={24}
-      type="button"
-      onClick={onSelect}
-      aria-pressed={selected}
-      className={`glass-subtle glass-subtle-themed ${shell}`}
-    >
-      {body}
-    </GlassSurface>
-  )
-}
-
-/**
- * The 3rd tile of the stat row — a switch into the macro breakdown below,
- * same job ConcentricRings used to do here. Big-Number-Redesign replaces the
- * literal rings with four small identity-colored scale lines (the same
- * `.hero-rule` device the breakdown itself now uses), each filled to that
- * macro's share of its target — a glance-sized preview of the same
- * not-a-ring language, not a separate visual metaphor of its own.
- */
-function RingTile({
-  kcal,
-  protein,
-  carbs,
-  fat,
-  targets,
-  caption,
-  selected,
-  onSelect,
-}: {
-  kcal: number
-  protein: number
-  carbs: number
-  fat: number
-  targets: { kcal: number; protein: number; carbs: number; fat: number } | null
-  caption: string
-  selected?: boolean
-  onSelect?: () => void
-}) {
-  // No caption inside the tile any more — per explicit request, the glyph
-  // gets the tile's whole area instead of sharing it with a line of text
-  // underneath. `caption` still becomes the tile's accessible name
-  // (aria-label) rather than being dropped outright: this is otherwise an
-  // SVG-free glyph with no text content at all, and removing its only
-  // description along with the visible words would have silently broken it
-  // for a screen-reader user tapping through the stat row.
-  //
-  // Was ConcentricRings (see git history) until the Big-Number-Redesign
-  // replaced every ring/percentage device app-wide with the same
-  // .hero-rule bar used everywhere else a value tracks against a target —
-  // one visual language instead of two, per the redesign's own point 1.
-  const values: Record<'kcal' | 'protein' | 'carbs' | 'fat', number> = { kcal, protein, carbs, fat }
-  const colors = {
-    kcal: 'var(--color-kcal)',
-    protein: 'var(--color-protein)',
-    carbs: 'var(--color-carbs)',
-    fat: 'var(--color-fat)',
-  } as const
-  const body = (
-    <div className="flex w-full flex-col gap-1.5 px-1">
-      {(['kcal', 'protein', 'carbs', 'fat'] as const).map((type) => {
-        const target = targets?.[type]
-        const ratio = target ? values[type] / target : 0
-        return (
-          <div key={type} className="hero-rule" style={{ height: 3 }}>
-            <i style={{ width: `${Math.max(0, Math.min(100, ratio * 100))}%`, background: colors[type] }} />
+      <div className="flex flex-col gap-4">
+        {layout.map((key) => (
+          <div key={key} id={`stats-tile-${key}`}>
+            {key === 'kcal' && <MacroTrendCard macro="kcal" />}
+            {key === 'protein' && <MacroTrendCard macro="protein" />}
+            {key === 'carbs' && <MacroTrendCard macro="carbs" />}
+            {key === 'fat' && <MacroTrendCard macro="fat" />}
+            {key === 'suppScore' && <SupplementScoreCard />}
+            {key === 'illness' && <IllnessChart />}
+            {key === 'micronutrients' && (
+              <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
+                <div className="mb-3 flex items-center gap-1.5">
+                  <span className="text-ink-soft">
+                    <MicroIcon className="h-4 w-4" />
+                  </span>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Mikronährstoffe</h3>
+                </div>
+                <MicronutrientBars overview={microOverview} />
+              </GlassSurface>
+            )}
           </div>
-        )
-      })}
+        ))}
+      </div>
+
+      <div className="mt-6 flex justify-center">
+        <button
+          type="button"
+          onClick={() => setEditOpen(true)}
+          className="flex items-center gap-1.5 text-xs font-medium text-ink-faint"
+        >
+          <EditIcon />
+          Bearbeiten
+        </button>
+      </div>
+
+      {editOpen && (
+        <StatsLayoutSheet
+          onClose={() => {
+            setEditOpen(false)
+            setLayout(getStatsLayout())
+          }}
+        />
+      )}
     </div>
   )
-  const shell = `flex h-24 w-full items-center justify-center rounded-3xl p-3 shadow-sm shadow-black/5 transition ${
-    selected ? 'ring-2 ring-inset ring-accent' : ''
-  }`
+}
 
-  if (!onSelect) {
-    return (
-      <GlassSurface rim={24} role="img" aria-label={caption} className={`glass-subtle glass-subtle-themed ${shell}`}>
-        {body}
-      </GlassSurface>
-    )
-  }
+function EditIcon() {
   return (
-    <GlassSurface
-      as="button"
-      rim={24}
-      type="button"
-      onClick={onSelect}
-      aria-pressed={selected}
-      aria-label={caption}
-      className={`glass-subtle glass-subtle-themed ${shell}`}
-    >
-      {body}
-    </GlassSurface>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
   )
 }
