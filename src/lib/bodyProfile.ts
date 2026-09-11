@@ -26,6 +26,14 @@ export const ACTIVITY_LABELS: Record<ActivityLevel, string> = {
   very_active: 'Sehr aktiv (Sport + körperliche Arbeit)',
 }
 
+/**
+ * Physical Activity Level (PAL) multipliers, converting BMR to total daily
+ * energy expenditure. These five values are the standard PAL bands from the
+ * FAO/WHO/UNU joint expert consultation on human energy requirements (2001,
+ * "Human energy requirements", FAO Food and Nutrition Technical Report
+ * Series 1) — not house numbers; every general-purpose TDEE calculator that
+ * cites a source traces back to this same table.
+ */
 const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
   sedentary: 1.2,
   light: 1.375,
@@ -67,25 +75,54 @@ export interface DailyTargets {
   fat: number
 }
 
-/** Mifflin-St Jeor basal metabolic rate, scaled by activity level. */
+/**
+ * Basal metabolic rate via the Mifflin-St Jeor equation (Mifflin MD, St
+ * Jeor ST, et al. "A new predictive equation for resting energy expenditure
+ * in healthy individuals." Am J Clin Nutr. 1990;51(2):241-247). Chosen over
+ * the older Harris-Benedict equation because it's the one the Academy of
+ * Nutrition and Dietetics' own evidence analysis endorses as most accurate
+ * for both non-obese and obese adults when indirect calorimetry isn't
+ * available (Frankenfield D, et al. "Comparison of predictive equations for
+ * resting metabolic rate in healthy nonobese and obese adults: a systematic
+ * review." J Am Diet Assoc. 2005;105(5):775-789) — it predicted RMR within
+ * 10% of measured values in roughly 70-82% of people, the narrowest error
+ * band of the equations reviewed. Like every predictive equation it's a
+ * population-level estimate, not a measurement: real error for any one
+ * person can still be meaningfully larger, especially outside the
+ * "healthy, non-obese, not elderly" population the equation was derived on.
+ */
+export function computeBmr(profile: Pick<BodyProfile, 'sex' | 'heightCm' | 'weightKg' | 'age'>): number {
+  const { sex, heightCm, weightKg, age } = profile
+  return sex === 'male'
+    ? 10 * weightKg + 6.25 * heightCm - 5 * age + 5
+    : 10 * weightKg + 6.25 * heightCm - 5 * age - 161
+}
+
+/** Mifflin-St Jeor BMR, scaled by activity level (see ACTIVITY_MULTIPLIERS) to estimate total daily energy expenditure. */
 export function computeTDEE(
   profile: Pick<BodyProfile, 'sex' | 'heightCm' | 'weightKg' | 'age' | 'activityLevel'>,
 ): number {
-  const { sex, heightCm, weightKg, age, activityLevel } = profile
-  const bmr =
-    sex === 'male'
-      ? 10 * weightKg + 6.25 * heightCm - 5 * age + 5
-      : 10 * weightKg + 6.25 * heightCm - 5 * age - 161
-  return bmr * ACTIVITY_MULTIPLIERS[activityLevel]
+  return computeBmr(profile) * ACTIVITY_MULTIPLIERS[profile.activityLevel]
 }
 
 /**
  * Slider bounds for the daily deficit/surplus (goalRateKcal), as a fraction
- * of TDEE. "Recommended max" reference points (moderate, widely-cited
- * fitness guidelines) plus a 10% buffer the slider can still reach beyond
- * that reference — except "Muskelaufbau", which gets a smaller, symmetric
- * range with no extra buffer since it is not meant to be pushed hard in
- * either direction.
+ * of TDEE. "Recommended max" reference points, plus a 10% buffer the slider
+ * can still reach beyond that reference — except "Muskelaufbau", which gets
+ * a smaller, symmetric range with no extra buffer since it is not meant to
+ * be pushed hard in either direction.
+ *
+ * The reference points themselves: a deficit of roughly 300-500 kcal/day
+ * (about 15-20% of a typical adult's TDEE) is the range generally used for
+ * sustainable fat loss while limiting lean-mass loss, and deficits beyond
+ * ~500 kcal/day are where the risk of losing muscle alongside fat rises
+ * meaningfully for anyone strength training. A surplus of roughly 10-20% of
+ * TDEE (≈200-500 kcal/day) is the commonly used range for a "lean bulk" —
+ * enough to support muscle gain without an outsized rate of fat gain,
+ * larger for less experienced lifters, smaller for more advanced ones. 20%
+ * deficit / 15% surplus sit inside those ranges for most bodyweights; the
+ * slider's own buffer exists so someone deliberately choosing a slightly
+ * more aggressive rate isn't hard-blocked at exactly the textbook number.
  */
 const RECOMMENDED_MAX_DEFICIT_FRACTION = 0.2 // Abnehmen: 20% of TDEE
 const RECOMMENDED_MAX_SURPLUS_FRACTION = 0.15 // Zunehmen: 15% of TDEE
@@ -105,10 +142,38 @@ export function computeGoalRateBounds(goal: Goal, tdee: number): { min: number; 
 /**
  * Mifflin-St Jeor TDEE, adjusted by the goal's daily deficit/surplus
  * (goalRateKcal, chosen via the in-range slider — see computeGoalRateBounds).
- * Macros: protein at 1.8g/kg bodyweight (2.2g/kg for "Muskelaufbau" —
- * prioritizes hitting protein needs alongside a smaller, optional
- * deficit/surplus), fat at 25% of target kcal, carbs fill the remainder.
- * This is a standard rule-of-thumb split, not personalized nutrition advice.
+ *
+ * Macros:
+ * - Protein at 1.8g/kg bodyweight generally, 2.2g/kg for "Muskelaufbau".
+ *   The International Society of Sports Nutrition's 2017 position stand
+ *   (Jäger R, et al. "International Society of Sports Nutrition Position
+ *   Stand: protein and exercise." J Int Soc Sports Nutr. 2017;14:20) puts
+ *   1.4-2.0g/kg as sufficient for building/maintaining muscle in most
+ *   exercising adults; a 2018 meta-analysis (Morton RW, et al. "A
+ *   systematic review, meta-analysis and meta-regression of the effect of
+ *   protein supplementation on resistance training-induced gains in
+ *   muscle mass and strength in healthy adults." Br J Sports Med.
+ *   2018;52(6):376-384) found intakes up to ~2.2g/kg still associated with
+ *   greater lean-mass gains in resistance-trained individuals, which is
+ *   the figure used here for the one goal actually built around muscle
+ *   gain; 1.8g/kg for the other three goals sits inside the ISSN's general
+ *   range with headroom for a cut (higher relative protein helps preserve
+ *   muscle in a deficit) without over-prescribing it for someone just
+ *   maintaining.
+ * - Fat at 25% of target kcal — inside the Institute of Medicine's
+ *   Acceptable Macronutrient Distribution Range of 20-35% of energy from
+ *   fat for adults (Dietary Reference Intakes for Energy, Carbohydrate,
+ *   Fiber, Fat, Fatty Acids, Cholesterol, Protein, and Amino Acids,
+ *   National Academies Press, 2005), picked as a mid-range default rather
+ *   than the low or high end.
+ * - Carbs fill whatever energy remains after protein and fat — which lands
+ *   solidly inside the IOM's 45-65%-of-energy AMDR for carbohydrate for any
+ *   realistic combination of the protein/fat values above.
+ *
+ * This is a standard, published rule-of-thumb split, not personalized
+ * nutrition advice tailored to any one person's medical situation — see
+ * BodyProfileSection's own "Wie wird der Bedarf berechnet?" info sheet,
+ * which shows this exact computation with its intermediate numbers.
  */
 export function computeDailyTargets(profile: BodyProfile): DailyTargets {
   const { goal, goalRateKcal, weightKg } = profile
@@ -144,6 +209,43 @@ export function computeDailyTargets(profile: BodyProfile): DailyTargets {
     protein: Math.round(proteinG),
     carbs: Math.round(carbsG),
     fat: Math.round(fatG),
+  }
+}
+
+/** Every intermediate number computeDailyTargets works through, for the "Wie wird der Bedarf berechnet?" transparency sheet (BodyProfileSection) — the same computation, just with nothing hidden between BMR and the final targets. */
+export interface DailyTargetsExplanation {
+  bmr: number
+  activityLevel: ActivityLevel
+  activityMultiplier: number
+  tdee: number
+  goal: Goal
+  /** Signed: negative = deficit, positive = surplus, 0 for "Halten". */
+  adjustment: number
+  proteinPerKg: number
+  targets: DailyTargets
+}
+
+export function explainDailyTargets(profile: BodyProfile): DailyTargetsExplanation {
+  const bmr = computeBmr(profile)
+  const tdee = computeTDEE(profile)
+  const { goal, goalRateKcal } = profile
+  const adjustment =
+    goal === 'lose'
+      ? -Math.abs(goalRateKcal)
+      : goal === 'gain'
+        ? Math.abs(goalRateKcal)
+        : goal === 'build_muscle'
+          ? goalRateKcal
+          : 0
+  return {
+    bmr,
+    activityLevel: profile.activityLevel,
+    activityMultiplier: ACTIVITY_MULTIPLIERS[profile.activityLevel],
+    tdee,
+    goal,
+    adjustment,
+    proteinPerKg: goal === 'build_muscle' ? 2.2 : 1.8,
+    targets: computeDailyTargets(profile),
   }
 }
 

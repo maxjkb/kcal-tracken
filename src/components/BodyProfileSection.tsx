@@ -6,6 +6,7 @@ import {
   computeDailyTargets,
   computeGoalRateBounds,
   computeTDEE,
+  explainDailyTargets,
   getBodyProfile,
   GOAL_LABELS,
   setBodyProfile,
@@ -75,9 +76,7 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
     <GlassSurface as="section" rim={24} className="glass-subtle glass-subtle-themed mb-6 rounded-3xl p-4 shadow-sm shadow-black/5">
       <div className="mb-3 flex justify-end">
         <InfoButton label="Wie wird der Bedarf berechnet?" title="Berechnung des Tagesbedarfs">
-          Wird genutzt, um deinen täglichen Kalorien- und Makrobedarf zu berechnen (Mifflin-St-Jeor-Formel)
-          — dieser erscheint dann als Prozentangabe neben deinen absoluten Werten im Feed und in der
-          Statistik. Bleibt lokal auf deinem Gerät (und synct mit, falls unter Sync eingerichtet).
+          <CalculationBreakdown profile={profile} />
         </InfoButton>
       </div>
 
@@ -217,6 +216,104 @@ export function BodyProfileSection({ onSaved }: { onSaved: () => void }) {
         </div>
       </div>
     </GlassSurface>
+  )
+}
+
+/**
+ * Step-by-step breakdown behind the "Wie wird der Bedarf berechnet?" info
+ * button — every intermediate number computeDailyTargets works through
+ * (BMR → TDEE → Ziel-Anpassung → Makro-Split), with the actual formulas and
+ * their sources named, not just the final numbers. Round 6 (v2.6): this used
+ * to be one static paragraph naming the formula in passing; explicit request
+ * to make the calculation itself transparent, not just disclosed.
+ */
+function CalculationBreakdown({ profile }: { profile: BodyProfile }) {
+  const e = explainDailyTargets(profile)
+  const goalLabel =
+    e.goal === 'maintain'
+      ? 'Halten (keine Anpassung)'
+      : `${GOAL_LABELS[e.goal]}: ${e.adjustment > 0 ? '+' : ''}${Math.round(e.adjustment)} kcal`
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2.5">
+        <Step
+          n={1}
+          title="Grundumsatz (BMR)"
+          value={`${Math.round(e.bmr)} kcal`}
+          detail="Mifflin-St-Jeor-Formel — von der Academy of Nutrition and Dietetics als genaueste Standardformel für den Ruheumsatz bewertet (trifft bei ca. 70–82% der Menschen auf ±10% des tatsächlich gemessenen Werts)."
+        />
+        <Step
+          n={2}
+          title="Aktivitätsfaktor"
+          value={`× ${e.activityMultiplier} (${ACTIVITY_LABELS[e.activityLevel]})`}
+          detail="Die fünf Aktivitätsstufen stammen aus dem FAO/WHO/UNU-Rahmenwerk zum menschlichen Energiebedarf — Standardwerte, keine App-eigene Schätzung."
+        />
+        <Step
+          n={3}
+          title="Erhaltungsbedarf (TDEE)"
+          value={`${Math.round(e.tdee)} kcal`}
+          detail="Grundumsatz × Aktivitätsfaktor — die Kalorienmenge, bei der dein Gewicht stabil bleibt."
+        />
+        <Step
+          n={4}
+          title="Ziel-Anpassung"
+          value={goalLabel}
+          detail="Ein Defizit/Überschuss von grob 15–20% des Erhaltungsbedarfs gilt allgemein als nachhaltiger Richtwert, ohne unnötig Muskelmasse zu riskieren — die Schieberegler oben sind darauf begrenzt (mit etwas Spielraum)."
+        />
+        <Step
+          n={5}
+          title="Tagesziel"
+          value={`${e.targets.kcal} kcal`}
+          detail="Erhaltungsbedarf + Ziel-Anpassung, mindestens 1200 kcal."
+        />
+        <Step
+          n={6}
+          title="Makro-Split"
+          value={`${e.targets.protein}g Protein · ${e.targets.fat}g Fett · ${e.targets.carbs}g Carbs`}
+          detail={`Protein: ${e.proteinPerKg}g/kg Körpergewicht (Richtwert der International Society of Sports Nutrition für Muskelerhalt/-aufbau). Fett: 25% der Kalorien, innerhalb der von der Dietary-Reference-Intakes-Empfehlung genannten Spanne von 20–35%. Carbs: der Rest — landet damit ebenfalls innerhalb der dort empfohlenen 45–65%.`}
+        />
+      </div>
+
+      <div>
+        <p className="mb-1 text-xs font-semibold text-ink">Grenzen dieser Rechnung</p>
+        <p className="text-xs leading-relaxed text-ink-soft">
+          Das sind Bevölkerungs-Durchschnittswerte, keine Messung an dir persönlich — der tatsächliche
+          Bedarf einzelner Menschen kann spürbar abweichen, besonders außerhalb von „gesund, nicht
+          untergewichtig/stark übergewichtig, nicht hochbetagt". Die Werte sind ein guter, belegter
+          Startpunkt, kein Ersatz für eine individuelle Beratung.
+        </p>
+      </div>
+
+      <div>
+        <p className="mb-1 text-xs font-semibold text-ink">Quellen</p>
+        <ul className="list-disc space-y-0.5 pl-4 text-xs leading-relaxed text-ink-soft">
+          <li>Mifflin MD, St Jeor ST, et al. Am J Clin Nutr. 1990;51(2):241-247.</li>
+          <li>Frankenfield D, et al. J Am Diet Assoc. 2005;105(5):775-789.</li>
+          <li>FAO/WHO/UNU. Human energy requirements. FAO Food and Nutrition Technical Report Series 1, 2001.</li>
+          <li>Jäger R, et al. J Int Soc Sports Nutr. 2017;14:20.</li>
+          <li>Morton RW, et al. Br J Sports Med. 2018;52(6):376-384.</li>
+          <li>Dietary Reference Intakes for Energy, Carbohydrate, Fiber, Fat, Fatty Acids, Cholesterol, Protein, and Amino Acids. National Academies Press, 2005.</li>
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+function Step({ n, title, value, detail }: { n: number; title: string; value: string; detail: string }) {
+  return (
+    <div className="flex gap-2.5">
+      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/12 text-[10px] font-bold text-accent">
+        {n}
+      </span>
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-baseline gap-x-1.5">
+          <span className="text-sm font-semibold text-ink">{title}</span>
+          <span className="text-sm font-semibold text-accent">{value}</span>
+        </div>
+        <p className="text-xs leading-relaxed text-ink-soft">{detail}</p>
+      </div>
+    </div>
   )
 }
 
