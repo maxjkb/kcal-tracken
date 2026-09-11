@@ -1387,3 +1387,83 @@ export async function estimateSupplementContribution(name: string, dosage: strin
   })
   return parseMicronutrients(parsed)
 }
+
+// --- Krankheits-Anfälligkeits-Score -----------------------------------------
+
+const SUSCEPTIBILITY_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    score: {
+      type: 'NUMBER',
+      description: '0-100. 0 = aktuell sehr unwahrscheinlich anfällig für eine alltägliche Erkältung/Grippe/Magen-Darm, 100 = aktuell sehr anfällig.',
+    },
+    reasoning: {
+      type: 'STRING',
+      description:
+        'Kurze Begründung auf Deutsch (3-5 Sätze): welche der gegebenen Faktoren den Score nach oben bzw. unten ziehen, inklusive einer kurzen, ehrlichen Einordnung, dass dies eine grobe, illustrative Heuristik ist und kein medizinisch validierter Risikowert.',
+    },
+    tips: {
+      type: 'ARRAY',
+      description: '2-4 kurze, konkrete, vorsorgliche Vorschläge, wie der Nutzer den Score verbessern könnte (z.B. bestimmte Mikronährstofflücke schließen, Schlaf, Kleidung bei Kälte) — keine Supplement-Dosierungsempfehlungen.',
+      items: { type: 'STRING' },
+    },
+  },
+  required: ['score', 'reasoning', 'tips'],
+}
+
+const SUSCEPTIBILITY_SYSTEM_PROMPT = `Du bist ein Ernährungs-/Gesundheitsberater. Berechne einen "Anfälligkeits-Score" (0-100), der ILLUSTRATIV einschätzt, wie anfällig der Nutzer aktuell für eine alltägliche Erkrankung ist (Erkältung, Grippe, Magen-Darm — NICHT für ernste/chronische Erkrankungen).
+
+Du bekommst: die aktuelle Jahreszeit, ggf. die aktuelle Außentemperatur (kann fehlen), eine Zusammenfassung der aktuellen Mikronährstoff-Versorgung, sowie die eigene Krankheitshistorie (Anzahl Krankheitsphasen in den letzten 90 Tagen, insgesamt seit Beginn der Aufzeichnung).
+
+Fachlicher Rahmen (halte dich strikt daran, erfinde nichts darüber hinaus):
+- Der Zusammenhang zwischen einzelnen Mikronährstoffen (v.a. Vitamin D, Zink, Vitamin C) und der Häufigkeit banaler Atemwegsinfekte ist in der Forschung uneinheitlich und eher schwach belegt — eine echte Nährstofflücke ist plausibel relevant, ein voll gedeckter Bedarf ist aber kein Schutzgarant.
+- Kältere Jahreszeit/Temperatur korreliert mit mehr Erkältungen (u.a. durch mehr Zeit in Innenräumen mit anderen Menschen), ist aber kein direkter Kausalmechanismus über "Frieren" allein.
+- Eine höhere Anzahl eigener Krankheitsphasen in den letzten Monaten ist der stärkste hier verfügbare individuelle Hinweis auf aktuell erhöhte Anfälligkeit.
+- Erfinde keine Symptome, keine Diagnosen, keine Aussagen über ernste Erkrankungen. Score und Begründung sind eine grobe, für den Alltag gedachte Heuristik, kein medizinischer Test.
+
+Antworte ausschließlich als JSON gemäß dem vorgegebenen Schema, auf Deutsch.`
+
+export interface SusceptibilityInput {
+  season: string
+  temperatureC: number | null
+  micronutrientSummary: string
+  recentIllnessCount90d: number
+  totalEpisodeCount: number
+}
+
+export interface SusceptibilityResult {
+  score: number
+  reasoning: string
+  tips: string[]
+}
+
+/**
+ * Computes the "Anfälligkeits-Score" — refreshed at most weekly (see
+ * lib/susceptibility.ts's staleness check), never on every app open, since
+ * none of its inputs (season, recent nutrient trend, illness history)
+ * meaningfully change day to day. Explicitly scoped to everyday illness
+ * (cold/flu/stomach bug), not a general health-risk score — see the system
+ * prompt's own framing of how weak/mixed the underlying evidence actually
+ * is for most of these factors individually.
+ */
+export async function estimateSusceptibilityScore(input: SusceptibilityInput): Promise<SusceptibilityResult> {
+  const lines = [
+    `Aktuelle Jahreszeit: ${input.season}`,
+    input.temperatureC !== null ? `Aktuelle Außentemperatur: ${Math.round(input.temperatureC)}°C` : 'Aktuelle Außentemperatur: nicht verfügbar.',
+    `Mikronährstoff-Versorgung: ${input.micronutrientSummary}`,
+    `Krankheitsphasen in den letzten 90 Tagen: ${input.recentIllnessCount90d}`,
+    `Krankheitsphasen insgesamt seit Beginn der Aufzeichnung: ${input.totalEpisodeCount}`,
+  ]
+
+  const parsed = await callGemini({
+    systemPrompt: SUSCEPTIBILITY_SYSTEM_PROMPT,
+    parts: [{ text: lines.join('\n') }],
+    responseSchema: SUSCEPTIBILITY_SCHEMA,
+  })
+
+  return {
+    score: Math.max(0, Math.min(100, Math.round(Number(parsed.score) || 0))),
+    reasoning: String(parsed.reasoning ?? ''),
+    tips: Array.isArray(parsed.tips) ? parsed.tips.map((t) => String(t)) : [],
+  }
+}

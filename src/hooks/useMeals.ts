@@ -48,6 +48,19 @@ export function useRecentMeals(limit: number): Meal[] | undefined {
 }
 
 /**
+ * The earliest date key any meal has ever been logged under — the start of
+ * the "Alles" period on the Statistik page (lib/stats.ts's Period type).
+ * `undefined` while loading (useLiveQuery's own convention), `null` once
+ * loaded but nothing has ever been logged.
+ */
+export function useEarliestMealDate(): string | null | undefined {
+  return useLiveQuery(async () => {
+    const first = await db.meals.orderBy('date').first()
+    return first?.date ?? null
+  }, [])
+}
+
+/**
  * One-tap starting points for the meal editor, ranked by how well each fits
  * *this* moment — see lib/mealSuggestions.ts for the scoring.
  *

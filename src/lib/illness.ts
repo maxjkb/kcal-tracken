@@ -2,7 +2,6 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db, toLocalDateKey, type Nutrition, type SickDay } from './db'
 import { computeDailyTargets, getBodyProfile } from './bodyProfile'
 import { estimateIllnessTargets } from './gemini'
-import { bucketByDay, bucketByMonth, bucketByWeek, type Period, type StatBucket } from './stats'
 
 /** How far back "recent eating habits" looks when grounding an on-request target suggestion — long enough to smooth over a couple of one-off days, short enough to still reflect how the user eats right now. */
 const RECENT_HABITS_DAYS = 30
@@ -21,24 +20,114 @@ export function useSickDaysInRange(startKey: string, endKey: string): Set<string
 }
 
 /**
- * Sick days in [startKey, endKey], bucketed the exact same way lib/stats.ts
- * buckets meal nutrition (bucketByDay/Week/Month) — for the Statistik page's
- * Krankheits-Diagramm. Each sick day counts as 1, folded into a synthetic
- * per-date Nutrition map (the count rides in the `kcal` field, the only one
- * the existing bucket functions actually need to sum) purely to reuse that
- * exact date-bucketing logic rather than re-deriving week/month boundaries a
- * second time — a bucket's `.kcal` here means "how many sick days", nothing
- * to do with calories.
+ * One illness, not one day — consecutive calendar dates marked sick fold
+ * into a single episode (Round 6, v2.6, explicit request: "Tage, die ich
+ * hintereinander weg als krank markiere, sollen auch als zusammenhängende
+ * Krankheit erkannt werden und nicht jeder Tag einzeln"). `category` takes
+ * whichever day in the run set one first; `severities` keeps every day's
+ * own reading in order, since the whole point of a per-day scale is that it
+ * can move within one illness.
  */
-export function useSickDayBuckets(startKey: string, endKey: string, period: Period): StatBucket[] | undefined {
-  return useLiveQuery(async () => {
-    const rows = await db.sickDays.where('date').between(startKey, endKey, true, true).toArray()
-    const byDate = new Map<string, Nutrition>()
-    for (const r of rows) byDate.set(r.date, { kcal: 1, protein: 0, carbs: 0, fat: 0 })
-    if (period === 'month') return bucketByWeek(startKey, endKey, byDate)
-    if (period === 'year') return bucketByMonth(Number(startKey.slice(0, 4)), byDate)
-    return bucketByDay(startKey, endKey, byDate)
-  }, [startKey, endKey, period])
+/** Shared with SickDaySheet (entry) and SusceptibilitySheet (history detail) so both read the same names for the same values. */
+export const CATEGORY_LABELS: Record<NonNullable<SickDay['category']>, string> = {
+  erkaeltung: 'Erkältung',
+  grippe: 'Grippe',
+  magen_darm: 'Magen-Darm',
+  sonstiges: 'Sonstiges',
+}
+
+export interface IllnessEpisode {
+  startDate: string
+  endDate: string
+  days: number
+  category?: SickDay['category']
+  severities: NonNullable<SickDay['severity']>[]
+}
+
+const SEVERITY_SCORE: Record<NonNullable<SickDay['severity']>, number> = { leicht: 1, mittel: 2, schwer: 3 }
+const SEVERITY_LABEL: Record<number, NonNullable<SickDay['severity']>> = { 1: 'leicht', 2: 'mittel', 3: 'schwer' }
+
+function addOneDay(dateKey: string): string {
+  const [y, m, d] = dateKey.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  date.setDate(date.getDate() + 1)
+  return toLocalDateKey(date)
+}
+
+/** Groups sick days into episodes — see IllnessEpisode's own doc comment. `sickDays` need not be pre-sorted. */
+export function groupIntoEpisodes(sickDays: SickDay[]): IllnessEpisode[] {
+  const sorted = [...sickDays].sort((a, b) => a.date.localeCompare(b.date))
+  const episodes: IllnessEpisode[] = []
+  for (const day of sorted) {
+    const current = episodes[episodes.length - 1]
+    if (current && addOneDay(current.endDate) === day.date) {
+      current.endDate = day.date
+      current.days++
+      current.category ??= day.category
+      if (day.severity) current.severities.push(day.severity)
+    } else {
+      episodes.push({
+        startDate: day.date,
+        endDate: day.date,
+        days: 1,
+        category: day.category,
+        severities: day.severity ? [day.severity] : [],
+      })
+    }
+  }
+  return episodes
+}
+
+/** Ø days per episode — "wie lange bin ich im Schnitt krank". null with no episodes yet. */
+export function averageEpisodeDurationDays(episodes: IllnessEpisode[]): number | null {
+  if (episodes.length === 0) return null
+  return episodes.reduce((sum, e) => sum + e.days, 0) / episodes.length
+}
+
+/** The most recently ENDED episode — "wann war ich zuletzt krank". Episodes come oldest-first (see useIllnessEpisodes), so this is simply the last one. */
+export function mostRecentEpisode(episodes: IllnessEpisode[]): IllnessEpisode | null {
+  return episodes.length > 0 ? episodes[episodes.length - 1] : null
+}
+
+/** "DD.MM.YYYY" from a local date key — used wherever an episode's start/end date is shown. */
+export function formatDateKey(key: string): string {
+  const [y, m, d] = key.split('-')
+  return `${d}.${m}.${y}`
+}
+
+export const SEVERITY_DISPLAY_LABEL: Record<NonNullable<SickDay['severity']>, string> = {
+  leicht: 'Leichter Verlauf',
+  mittel: 'Mittlerer Verlauf',
+  schwer: 'Schwerer Verlauf',
+}
+
+/** One episode's own mean severity, rounded to the nearest label — the per-episode step averageSeverityLabel builds on, exposed separately for the illness-history detail list (SusceptibilitySheet). Null when nothing was reported for that episode. */
+export function episodeSeverityLabel(episode: IllnessEpisode): NonNullable<SickDay['severity']> | null {
+  if (episode.severities.length === 0) return null
+  const avg = episode.severities.reduce((sum, s) => sum + SEVERITY_SCORE[s], 0) / episode.severities.length
+  return SEVERITY_LABEL[Math.round(Math.min(3, Math.max(1, avg)))]
+}
+
+/**
+ * "Im Schnitt hast du einen leichten/mittleren/schweren Verlauf" — averaged
+ * per EPISODE, not per raw day: each illness counts once regardless of how
+ * many days it ran, since the question is about how illnesses typically
+ * feel, not which severity value shows up on the most individual days. An
+ * episode with no severity entered at all doesn't contribute (nothing was
+ * reported for it); null when nobody has entered a severity yet anywhere.
+ */
+export function averageSeverityLabel(episodes: IllnessEpisode[]): NonNullable<SickDay['severity']> | null {
+  const episodeLabels = episodes
+    .map((e) => episodeSeverityLabel(e))
+    .filter((l): l is NonNullable<SickDay['severity']> => l !== null)
+  if (episodeLabels.length === 0) return null
+  const overall = episodeLabels.reduce((sum, l) => sum + SEVERITY_SCORE[l], 0) / episodeLabels.length
+  return SEVERITY_LABEL[Math.round(Math.min(3, Math.max(1, overall)))]
+}
+
+/** All sick days ever logged, grouped into episodes, oldest first. */
+export function useIllnessEpisodes(): IllnessEpisode[] | undefined {
+  return useLiveQuery(async () => groupIntoEpisodes(await db.sickDays.toArray()), [])
 }
 
 /**
@@ -57,10 +146,10 @@ export async function toggleSickDay(dateKey: string): Promise<boolean> {
   return true
 }
 
-/** Saves the detail Sheet's fields (category/note/adjustTargets) without touching any existing targetOverride. */
+/** Saves the detail Sheet's fields (category/note/severity/adjustTargets) without touching any existing targetOverride. */
 export async function saveSickDayDetails(
   dateKey: string,
-  details: { category?: SickDay['category']; note?: string; adjustTargets?: boolean },
+  details: { category?: SickDay['category']; note?: string; severity?: SickDay['severity']; adjustTargets?: boolean },
 ): Promise<void> {
   const existing = await db.sickDays.get(dateKey)
   const now = Date.now()

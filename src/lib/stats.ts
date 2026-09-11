@@ -1,6 +1,14 @@
 import { toLocalDateKey, type Nutrition } from './db'
 
-export type Period = 'day' | 'week' | 'month' | 'year'
+/**
+ * 'all' is handled specially by callers (StatsPage computes its own
+ * start/end from the earliest recorded date, see useEarliestMealDate) —
+ * unlike the other four it has no fixed-length window an anchor could
+ * shift through, so getPeriodRange/formatPeriodLabel/shiftAnchor below
+ * never actually receive it; their 'all' branches only exist so the
+ * functions stay total.
+ */
+export type Period = 'day' | 'week' | 'month' | 'year' | 'all'
 
 function parseDateKey(key: string): Date {
   const [y, m, d] = key.split('-').map(Number)
@@ -32,6 +40,7 @@ export function getPeriodRange(period: Period, anchorKey: string): { startKey: s
     const end = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0)
     return { startKey: toLocalDateKey(start), endKey: toLocalDateKey(end) }
   }
+  if (period === 'all') return { startKey: anchorKey, endKey: anchorKey } // never actually called, see Period's own doc comment
   const start = new Date(anchor.getFullYear(), 0, 1)
   const end = new Date(anchor.getFullYear(), 11, 31)
   return { startKey: toLocalDateKey(start), endKey: toLocalDateKey(end) }
@@ -42,7 +51,7 @@ export function shiftAnchor(period: Period, anchorKey: string, delta: number): s
   if (period === 'day') anchor.setDate(anchor.getDate() + delta)
   else if (period === 'week') anchor.setDate(anchor.getDate() + delta * 7)
   else if (period === 'month') anchor.setMonth(anchor.getMonth() + delta)
-  else anchor.setFullYear(anchor.getFullYear() + delta)
+  else if (period === 'year') anchor.setFullYear(anchor.getFullYear() + delta)
   return toLocalDateKey(anchor)
 }
 
@@ -62,6 +71,7 @@ export function formatPeriodLabel(period: Period, anchorKey: string): string {
   if (period === 'month') {
     return anchor.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })
   }
+  if (period === 'all') return 'Gesamter Zeitraum'
   return String(anchor.getFullYear())
 }
 
@@ -140,6 +150,33 @@ export function bucketByMonth(year: number, byDate: Map<string, Nutrition>): Sta
     if (y === year) addInto(buckets[m - 1], nutrition)
   }
   return buckets
+}
+
+/**
+ * Like bucketByMonth, but across every month the range spans rather than one
+ * fixed year — used only for the "Alles" period (the entire recorded
+ * history can run for years), where a single calendar year's worth of
+ * months wouldn't cover it. Labeled "Sep 25" (month + 2-digit year) instead
+ * of bucketByMonth's bare "Sep", since the year is no longer implied by a
+ * heading above the chart the way a single-year view's is.
+ */
+export function bucketByMonthRange(startKey: string, endKey: string, byDate: Map<string, Nutrition>): StatBucket[] {
+  const start = parseDateKey(startKey)
+  const end = parseDateKey(endKey)
+  const buckets = new Map<string, StatBucket>()
+  const cur = new Date(start.getFullYear(), start.getMonth(), 1)
+  const endMonth = new Date(end.getFullYear(), end.getMonth(), 1)
+  while (cur <= endMonth) {
+    const key = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`
+    buckets.set(key, { key, label: `${MONTH_LABELS[cur.getMonth()]} ${String(cur.getFullYear()).slice(2)}`, ...EMPTY })
+    cur.setMonth(cur.getMonth() + 1)
+  }
+  for (const [dateKey, nutrition] of byDate) {
+    const key = dateKey.slice(0, 7)
+    const bucket = buckets.get(key)
+    if (bucket) addInto(bucket, nutrition)
+  }
+  return [...buckets.values()]
 }
 
 /** `key` is the Monday date-key of the week — usable as the anchor when drilling into the Woche view. */
