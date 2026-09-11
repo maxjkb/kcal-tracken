@@ -17,6 +17,17 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '2.5.0',
+    date: '2026-09-11',
+    highlights: [
+      'Statistik-Seite komplett überarbeitet: keine Tag/Woche/Monat/Jahr-Ansichtsumschaltung mehr — stattdessen ein langer, frei sortierbarer Feed mit allen Diagrammen auf einer Seite (Kalorien, Supp-Score, Krankheit, Mikronährstoffe, Kohlenhydrate, Protein, Fett), jede Kachel mit eigenem Icon und eigenem Woche/Monat/Jahr-Umschalter. Eine Icon-Leiste springt direkt zu jedem Diagramm, ein dezenter „Bearbeiten"-Button am Seitenende öffnet ein Sheet zum dauerhaften Umsortieren.',
+      'Die drei Kopf-Kacheln zeigen jetzt: links die Kalorienbilanz (schwarz/weiß im Defizit, rot bei Überschuss) mit einer zusätzlichen grauen Einordnung als Defizit/Erhaltung/Überschuss gegenüber dem tatsächlichen Kalorienbedarf; Mitte „Ø kcal/d"; rechts Protein/Kohlenhydrate/Fett nur noch als Icon mit Zahl.',
+      'Neues, von allen bisherigen Rottönen unterscheidbares Rostrot für „über Ziel"/Überschuss — jetzt einheitlich in der Statistik-Bilanz und im Feed bei Kalorien/Makros verwendet, statt des bisherigen Gelbs.',
+      'Neues Krankheits-Diagramm: Anzahl kranker Tage pro Woche/Monat/Jahr als Balken.',
+      'Die Feed-Tageszeiten-Kacheln bleiben jetzt so ein-/ausgeklappt, wie zuletzt eingestellt, statt sich bei jedem Seitenbesuch zurückzusetzen.',
+    ],
+  },
+  {
     version: '2.4.0',
     date: '2026-09-10',
     highlights: [
