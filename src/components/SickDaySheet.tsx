@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import { Sheet } from './Sheet'
 import { GeminiError } from '../lib/gemini'
-import { requestIllnessTargetAdjustment, saveSickDayDetails, toggleSickDay, useSickDay } from '../lib/illness'
+import { CATEGORY_LABELS, requestIllnessTargetAdjustment, saveSickDayDetails, toggleSickDay, useSickDay } from '../lib/illness'
 import type { SickDay } from '../lib/db'
 
-const CATEGORY_LABELS: Record<NonNullable<SickDay['category']>, string> = {
-  erkaeltung: 'Erkältung',
-  grippe: 'Grippe',
-  magen_darm: 'Magen-Darm',
-  sonstiges: 'Sonstiges',
-}
 const CATEGORY_ORDER = Object.keys(CATEGORY_LABELS) as NonNullable<SickDay['category']>[]
+
+const SEVERITY_LABELS: Record<NonNullable<SickDay['severity']>, string> = {
+  leicht: 'Leicht',
+  mittel: 'Mittel',
+  schwer: 'Schwer',
+}
+const SEVERITY_ORDER = Object.keys(SEVERITY_LABELS) as NonNullable<SickDay['severity']>[]
 
 /**
  * Detail entry point for one sick day — opened by SickDayButton's long-press
@@ -22,6 +23,7 @@ const CATEGORY_ORDER = Object.keys(CATEGORY_LABELS) as NonNullable<SickDay['cate
 export function SickDaySheet({ dateKey, onClose }: { dateKey: string; onClose: () => void }) {
   const sickDay = useSickDay(dateKey)
   const [category, setCategory] = useState<SickDay['category']>(undefined)
+  const [severity, setSeverity] = useState<SickDay['severity']>(undefined)
   const [note, setNote] = useState('')
   const [initialized, setInitialized] = useState(false)
   const [computing, setComputing] = useState(false)
@@ -32,20 +34,21 @@ export function SickDaySheet({ dateKey, onClose }: { dateKey: string; onClose: (
   // isn't fighting the live query re-emitting on every keystroke's own save.
   if (!initialized && sickDay !== undefined) {
     setCategory(sickDay?.category)
+    setSeverity(sickDay?.severity)
     setNote(sickDay?.note ?? '')
     setInitialized(true)
   }
 
-  async function persist(nextCategory: SickDay['category'], nextNote: string) {
+  async function persist(nextCategory: SickDay['category'], nextNote: string, nextSeverity: SickDay['severity']) {
     if (!sickDay) await toggleSickDay(dateKey) // long-press on an unmarked day still marks it once details are entered
-    await saveSickDayDetails(dateKey, { category: nextCategory, note: nextNote })
+    await saveSickDayDetails(dateKey, { category: nextCategory, note: nextNote, severity: nextSeverity })
   }
 
   async function handleAdjust() {
     setComputing(true)
     setError(null)
     try {
-      await persist(category, note)
+      await persist(category, note, severity)
       await requestIllnessTargetAdjustment(dateKey)
     } catch (err) {
       setError(err instanceof GeminiError ? err.message : 'Die Anpassung konnte nicht berechnet werden.')
@@ -79,7 +82,7 @@ export function SickDaySheet({ dateKey, onClose }: { dateKey: string; onClose: (
                 onClick={() => {
                   const next = category === key ? undefined : key
                   setCategory(next)
-                  void persist(next, note)
+                  void persist(next, note, severity)
                 }}
                 className={`rounded-xl px-2 py-3 text-xs font-medium transition ${
                   category === key ? 'bg-danger/15 text-danger' : 'bg-bg text-ink-soft hover:bg-line'
@@ -91,12 +94,38 @@ export function SickDaySheet({ dateKey, onClose }: { dateKey: string; onClose: (
           </div>
         </div>
 
+        <div>
+          <span className="mb-1.5 block text-xs text-ink-soft">Verlauf heute</span>
+          <div className="grid grid-cols-3 gap-1.5">
+            {SEVERITY_ORDER.map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  const next = severity === key ? undefined : key
+                  setSeverity(next)
+                  void persist(category, note, next)
+                }}
+                className={`rounded-xl px-2 py-3 text-xs font-medium transition ${
+                  severity === key ? 'bg-danger/15 text-danger' : 'bg-bg text-ink-soft hover:bg-line'
+                }`}
+              >
+                {SEVERITY_LABELS[key]}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-[11px] text-ink-faint">
+            Wie fühlst du dich heute? Bei einer mehrtägigen Krankheit gerne jeden Tag neu angeben — z.B. heute schon
+            leichter als gestern.
+          </p>
+        </div>
+
         <label className="flex flex-col gap-1">
           <span className="text-xs text-ink-soft">Symptome / Notiz</span>
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            onBlur={() => void persist(category, note)}
+            onBlur={() => void persist(category, note, severity)}
             placeholder="z.B. Halsschmerzen, leichtes Fieber…"
             rows={2}
             className="field resize-none rounded-2xl px-3 py-2 text-sm"

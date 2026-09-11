@@ -85,3 +85,12 @@ export function YearIcon({ className }: { className?: string }) {
     </svg>
   )
 }
+
+/** "Alles" — the fifth Statistik period, the entire recorded history. An infinity glyph rather than a bigger dot-grid: the other four scale by count, but there's no fixed count for "everything". */
+export function AllIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE} className={className}>
+      <path d="M7 9a3 3 0 1 0 0 6c1.7 0 3-1.5 5-3s3.3-3 5-3a3 3 0 1 1 0 6c-1.7 0-3-1.5-5-3s-3.3-3-5-3Z" />
+    </svg>
+  )
+}

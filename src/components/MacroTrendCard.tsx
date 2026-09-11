@@ -1,24 +1,13 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMealSummariesInRange } from '../hooks/useMeals'
-import { toLocalDateKey, type Nutrition } from '../lib/db'
+import { useMealSummariesInRange, type MealSummary } from '../hooks/useMeals'
+import { MEAL_TYPE_LABELS, toLocalDateKey, type Nutrition } from '../lib/db'
 import { computeDailyTargets, getBodyProfile } from '../lib/bodyProfile'
 import { targetKcalAsNutritionMap, targetKcalByBucketKey, useDailyTargetKcalMap } from '../lib/targetHistory'
-import {
-  bucketByDay,
-  bucketByMonth,
-  bucketByWeek,
-  formatPeriodLabel,
-  getPeriodRange,
-  monthHeadingLabel,
-  type Period,
-  type StatBucket,
-} from '../lib/stats'
-import { DayPickerModal, MonthPickerModal, YearPickerModal } from './DatePickerModal'
+import { bucketByDay, bucketByMonth, bucketByMonthRange, bucketByWeek, type Period, type StatBucket } from '../lib/stats'
 import { KcalTrendChart, type ChartBucket } from './KcalTrendChart'
 import { ChartLegendSheet } from './ChartLegendSheet'
 import { GlassSurface } from '../glass/GlassSurface'
-import { PeriodToggle } from './PeriodToggle'
 import { STATS_TILE_META } from './StatsTileMeta'
 import type { StatsTileKey } from '../lib/statsLayout'
 
@@ -31,18 +20,28 @@ const METRIC_COLOR: Record<TrendMacro, string> = {
   fat: 'var(--color-fat)',
 }
 
+function bucketByPeriod(period: Period, startKey: string, endKey: string, byDate: Map<string, Nutrition>): StatBucket[] {
+  if (period === 'month') return bucketByWeek(startKey, endKey, byDate)
+  if (period === 'year') return bucketByMonth(Number(startKey.slice(0, 4)), byDate)
+  if (period === 'all') return bucketByMonthRange(startKey, endKey, byDate)
+  return bucketByDay(startKey, endKey, byDate) // 'week' (period 'day' never reaches this — see buckets below)
+}
+
 /**
- * One nutrient's trend chart, self-contained — its own Woche/Monat/Jahr
- * toggle, calendar navigation, legend and drill-down, all independent of
- * every other tile on the Statistik feed (Round 5, v2.5): the page used to
- * have exactly one of these (kcal) sharing a single page-level period
- * switcher with everything else on the page; explicit request that ALL
- * charts stand on the page at once ruled that shared switcher out, so each
- * chart now carries its own small one instead.
+ * One nutrient's trend chart. Round 6 (v2.6): the Woche/Monat/Jahr toggle
+ * each of these used to carry on its own is gone — explicit request to
+ * control every adaptive chart from ONE picker back on the page itself
+ * (StatsPage), so this component is now purely driven by the `period`/
+ * `startKey`/`endKey` props that picker computes; it owns no period state
+ * of its own any more. `onDrillDown` reports a bar tap that should narrow
+ * the shared period (Monat→Woche, Jahr→Monat, Alles→Jahr) back up to the
+ * page, which owns that state; a Woche-bar tap still jumps straight to the
+ * Feed for that day, unrelated to the shared period.
  *
- * "Tag" isn't one of this card's own period options — a single day has no
- * trend to plot; a specific day's numbers are still one tap away (drilling
- * into a Woche bar opens that day in the Feed).
+ * "Tag" is the one period with no date-bucketed trend to plot (a single day
+ * has no "day-over-day" shape) — its buckets are one per MEAL instead,
+ * in the order logged, so the chart still reads as "how did today build
+ * up" rather than being disabled outright.
  *
  * Reuses KcalTrendChart itself rather than a second chart implementation:
  * for `macro !== 'kcal'` the bucketed macro value is copied into the
@@ -54,18 +53,26 @@ const METRIC_COLOR: Record<TrendMacro, string> = {
  * (targetHistory.ts). Protein/carbs/fat have no such history in this app —
  * only ever the CURRENT daily target — so their target line uses today's
  * value applied flatly across the whole shown range, bucketed the exact
- * same way as the real data for point-for-point alignment. Less accurate
- * for a body profile that changed recently, which is why the legend spells
- * that out for macros but not kcal (see legendTargetDescription below).
+ * same way as the real data for point-for-point alignment. Neither draws a
+ * target line for "Tag" — a per-meal target has no real meaning.
  */
-export function MacroTrendCard({ macro }: { macro: TrendMacro }) {
+export function MacroTrendCard({
+  macro,
+  period,
+  startKey,
+  endKey,
+  onDrillDown,
+}: {
+  macro: TrendMacro
+  period: Period
+  startKey: string
+  endKey: string
+  /** A bar/point was tapped that should narrow the page's shared period — e.g. a Monat week-bar reporting ('week', thatWeeksMonday). */
+  onDrillDown: (period: Period, anchorKey: string) => void
+}) {
   const navigate = useNavigate()
-  const [period, setPeriod] = useState<Period>('week')
-  const [anchorKey, setAnchorKey] = useState(() => toLocalDateKey(new Date()))
-  const [pickerOpen, setPickerOpen] = useState(false)
   const [legendOpen, setLegendOpen] = useState(false)
 
-  const { startKey, endKey } = getPeriodRange(period, anchorKey)
   const meals = useMealSummariesInRange(startKey, endKey)
 
   const nutritionByDate = useMemo(() => {
@@ -81,11 +88,11 @@ export function MacroTrendCard({ macro }: { macro: TrendMacro }) {
     return byDate
   }, [meals])
 
-  const bucketFn = period === 'week' ? bucketByDay : period === 'month' ? bucketByWeek : null
-  const buckets = useMemo(() => {
-    if (period === 'year') return bucketByMonth(Number(anchorKey.slice(0, 4)), nutritionByDate)
-    return bucketFn ? bucketFn(startKey, endKey, nutritionByDate) : []
-  }, [period, startKey, endKey, anchorKey, nutritionByDate, bucketFn])
+  const perMealBuckets = useMemo(() => buildPerMealBuckets(meals), [meals])
+  const buckets = useMemo(
+    () => (period === 'day' ? perMealBuckets : bucketByPeriod(period, startKey, endKey, nutritionByDate)),
+    [period, startKey, endKey, nutritionByDate, perMealBuckets],
+  )
 
   const bodyProfile = getBodyProfile()
   const dailyTargets = bodyProfile ? computeDailyTargets(bodyProfile) : null
@@ -93,10 +100,10 @@ export function MacroTrendCard({ macro }: { macro: TrendMacro }) {
   // kcal: real historical per-day targets. Others: today's flat target,
   // applied to every date in range then bucketed identically — see this
   // component's own doc comment. Called unconditionally either way (rules
-  // of hooks) — its result is simply unused when macro isn't kcal.
-  const kcalTargetByDate = useDailyTargetKcalMap(startKey, endKey)
+  // of hooks) — its result is simply unused when macro isn't kcal or period is 'day'.
+  const kcalTargetByDate = useDailyTargetKcalMap(period === 'day' ? '' : startKey, period === 'day' ? '' : endKey)
   const flatTargetByDate = useMemo(() => {
-    if (macro === 'kcal' || !dailyTargets) return null
+    if (macro === 'kcal' || !dailyTargets || period === 'day') return null
     const map = new Map<string, Nutrition>()
     for (let cur = new Date(`${startKey}T00:00:00`); toLocalDateKey(cur) <= endKey; cur.setDate(cur.getDate() + 1)) {
       const day: Nutrition = { kcal: 0, protein: 0, carbs: 0, fat: 0 }
@@ -104,28 +111,25 @@ export function MacroTrendCard({ macro }: { macro: TrendMacro }) {
       map.set(toLocalDateKey(cur), day)
     }
     return map
-  }, [macro, dailyTargets, startKey, endKey])
+  }, [macro, dailyTargets, startKey, endKey, period])
 
-  const targetNutritionByDate = macro === 'kcal' ? (kcalTargetByDate ? targetKcalAsNutritionMap(kcalTargetByDate) : null) : flatTargetByDate
+  const targetNutritionByDate =
+    period === 'day' ? null : macro === 'kcal' ? (kcalTargetByDate ? targetKcalAsNutritionMap(kcalTargetByDate) : null) : flatTargetByDate
 
   const targetBuckets = useMemo(() => {
-    if (!targetNutritionByDate) return []
-    if (period === 'year') return bucketByMonth(Number(anchorKey.slice(0, 4)), targetNutritionByDate)
-    return bucketFn ? bucketFn(startKey, endKey, targetNutritionByDate) : []
-  }, [targetNutritionByDate, period, startKey, endKey, anchorKey, bucketFn])
+    if (!targetNutritionByDate || period === 'day') return []
+    return bucketByPeriod(period, startKey, endKey, targetNutritionByDate)
+  }, [targetNutritionByDate, period, startKey, endKey])
   const targetByKey = targetNutritionByDate ? targetKcalByBucketKey(targetBuckets.map((b) => ({ ...b, kcal: b[macro] }))) : null
 
   const chartData: ChartBucket[] = buckets.map((b) => ({ ...b, kcal: b[macro], targetKcal: targetByKey?.get(b.key) ?? null }))
 
-  function handleBarClick(bucket: StatBucket) {
+  function handleSelectBucket(bucket: StatBucket) {
     if (period === 'week') navigate('/', { state: { dateKey: bucket.key } })
-    else if (period === 'month') {
-      setPeriod('week')
-      setAnchorKey(bucket.key)
-    } else {
-      setPeriod('month')
-      setAnchorKey(`${bucket.key}-01`)
-    }
+    else if (period === 'month') onDrillDown('week', bucket.key)
+    else if (period === 'year') onDrillDown('month', `${bucket.key}-01`)
+    else if (period === 'all') onDrillDown('year', `${bucket.key.slice(0, 4)}-01-01`)
+    // 'day': nothing finer to drill into — the chart's own tap-to-preview already shows the meal's macros.
   }
 
   const meta = STATS_TILE_META[macro as StatsTileKey]
@@ -140,28 +144,15 @@ export function MacroTrendCard({ macro }: { macro: TrendMacro }) {
           </span>
           <span className="text-xs font-semibold text-ink-soft">{meta.label}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <PeriodToggle value={period} onChange={setPeriod} />
-          <button
-            type="button"
-            onClick={() => setPickerOpen(true)}
-            className="text-[11px] font-medium text-ink-soft underline decoration-dotted underline-offset-2"
-          >
-            {period === 'year' ? anchorKey.slice(0, 4) : formatPeriodLabel(period, anchorKey)}
-          </button>
-          <button
-            type="button"
-            onClick={() => setLegendOpen(true)}
-            aria-label="Legende zum Diagramm"
-            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-bg text-[10px] font-bold text-ink-faint hover:text-ink-soft"
-          >
-            i
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setLegendOpen(true)}
+          aria-label="Legende zum Diagramm"
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-bg text-[10px] font-bold text-ink-faint hover:text-ink-soft"
+        >
+          i
+        </button>
       </div>
-      {(period === 'week' || period === 'month') && meals !== undefined && buckets.length > 0 && (
-        <p className="mb-1 text-[11px] font-medium text-ink-faint">{monthHeadingLabel(startKey, endKey)}</p>
-      )}
       <div className="min-h-56">
         {meals === undefined ? (
           <p className="flex h-56 items-center justify-center text-sm text-ink-soft">Lädt…</p>
@@ -170,30 +161,12 @@ export function MacroTrendCard({ macro }: { macro: TrendMacro }) {
             data={chartData}
             targets={dailyTargets}
             emptyLabel="Keine Einträge in diesem Zeitraum."
-            onSelectBucket={handleBarClick}
+            onSelectBucket={period === 'day' ? undefined : handleSelectBucket}
             lineColor={METRIC_COLOR[macro]}
           />
         )}
       </div>
 
-      {pickerOpen && period === 'week' && (
-        <DayPickerModal selectedDateKey={anchorKey} onSelect={(key) => { setAnchorKey(key); setPickerOpen(false) }} onClose={() => setPickerOpen(false)} />
-      )}
-      {pickerOpen && period === 'month' && (
-        <MonthPickerModal
-          selectedYear={Number(anchorKey.slice(0, 4))}
-          selectedMonth={Number(anchorKey.slice(5, 7))}
-          onSelect={(year, month) => { setAnchorKey(`${year}-${String(month).padStart(2, '0')}-01`); setPickerOpen(false) }}
-          onClose={() => setPickerOpen(false)}
-        />
-      )}
-      {pickerOpen && period === 'year' && (
-        <YearPickerModal
-          selectedYear={Number(anchorKey.slice(0, 4))}
-          onSelect={(year) => { setAnchorKey(`${year}-01-01`); setPickerOpen(false) }}
-          onClose={() => setPickerOpen(false)}
-        />
-      )}
       {legendOpen && (
         <ChartLegendSheet
           hasTargetLine={Boolean(targetByKey)}
@@ -209,4 +182,18 @@ export function MacroTrendCard({ macro }: { macro: TrendMacro }) {
       )}
     </GlassSurface>
   )
+}
+
+/** "Tag" granularity: one bucket per logged meal, in the order they were added, rather than per date. */
+function buildPerMealBuckets(meals: MealSummary[] | undefined): StatBucket[] {
+  return [...(meals ?? [])]
+    .sort((a, b) => a.createdAt - b.createdAt)
+    .map((m) => ({
+      key: m.id,
+      label: MEAL_TYPE_LABELS[m.mealType],
+      kcal: m.nutrition.kcal,
+      protein: m.nutrition.protein,
+      carbs: m.nutrition.carbs,
+      fat: m.nutrition.fat,
+    }))
 }

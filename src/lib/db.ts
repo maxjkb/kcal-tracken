@@ -421,6 +421,15 @@ export interface SickDay {
   category?: 'erkaeltung' | 'grippe' | 'magen_darm' | 'sonstiges'
   /** Free-text symptom/note, entered in the detail Sheet. */
   note?: string
+  /**
+   * How this specific day of the illness felt — deliberately per-day, not
+   * per whole illness: the explicit use case is a multi-day illness where
+   * the days themselves differ ("heute bin ich zwar noch krank, fühle mich
+   * aber schon viel fitter"). Averaged across an episode's days, then
+   * across episodes, for the "durchschnittlich schwerer/mittlerer/leichter
+   * Verlauf" reading — see lib/illness.ts's averageSeverityLabel.
+   */
+  severity?: 'leicht' | 'mittel' | 'schwer'
   /** Whether targets should be adjusted for this day at all — set from the Sheet's toggle. The adjustment itself is only computed on request (see estimateIllnessTargets in lib/gemini.ts), never automatically. */
   adjustTargets?: boolean
   /** The last on-request AI computation for this day, if one was ever run — kept so re-opening the Sheet shows the previous suggestion instead of a blank state. */
@@ -434,6 +443,34 @@ export interface SickDay {
   }
   createdAt: number
   updatedAt: number
+}
+
+/**
+ * One weekly computation of the "Anfälligkeits-Score" — how susceptible the
+ * user currently seems to everyday illness (a cold, flu, stomach bug),
+ * based on their recent nutrient intake, the current season, current
+ * weather where available, and their own illness history. Refreshed at
+ * most once a week (see lib/susceptibility.ts's staleness check) since
+ * none of its inputs meaningfully change day to day — kept as a run
+ * history (one row per week) rather than a single overwritten value so a
+ * past week's reading is never silently lost, the same precedent as
+ * SupplementAdvisorRun.
+ */
+export interface SusceptibilityRun {
+  id: string
+  /** Local date key (YYYY-MM-DD) of the day this run was computed — at most one per calendar week. */
+  computedOn: string
+  score: number
+  reasoning: string
+  tips: string[]
+  /** What the score was actually based on, kept for reference — never re-sent to the model. */
+  context: {
+    season: string
+    temperatureC: number | null
+    weatherAvailable: boolean
+    recentIllnessCount90d: number
+    micronutrientSummary: string
+  }
 }
 
 /**
@@ -552,6 +589,7 @@ class KcalDatabase extends Dexie {
   supplementChats!: EntityTable<SupplementChat, 'id'>
   coachChat!: EntityTable<CoachChat, 'id'>
   sickDays!: EntityTable<SickDay, 'date'>
+  susceptibilityRuns!: EntityTable<SusceptibilityRun, 'id'>
 
   constructor() {
     super('kcal-tracker')
@@ -649,6 +687,22 @@ class KcalDatabase extends Dexie {
       coachChat: 'id',
       sickDays: 'date',
     })
+    // v11: adds susceptibilityRuns for the "Anfälligkeits-Score" — see
+    // SusceptibilityRun's own doc comment.
+    this.version(11).stores({
+      meals: 'id, date, mealType, createdAt',
+      recipes: 'id, category, createdAt',
+      supplements: 'id, name, category, createdAt',
+      mySupplements: 'id, supplementId, createdAt',
+      supplementLog: 'id, mySupplementId, date, [mySupplementId+date+timeOfDay]',
+      supplementAdvisorRuns: 'id, date, generatedAt',
+      dailyTargetSnapshots: 'date',
+      mealprepVersions: 'id, recipeId, createdAt',
+      supplementChats: 'id, supplementKey, updatedAt',
+      coachChat: 'id',
+      sickDays: 'date',
+      susceptibilityRuns: 'id, computedOn',
+    })
   }
 }
 
@@ -679,6 +733,10 @@ export function newSupplementAdvisorRunId(): string {
 }
 
 export function newMealprepVersionId(): string {
+  return crypto.randomUUID()
+}
+
+export function newSusceptibilityRunId(): string {
   return crypto.randomUUID()
 }
 

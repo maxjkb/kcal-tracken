@@ -1,20 +1,32 @@
 import { useMemo, useState } from 'react'
-import { useMealSummariesInRange } from '../hooks/useMeals'
+import { useEarliestMealDate, useMealSummariesInRange } from '../hooks/useMeals'
 import { toLocalDateKey, type Nutrition } from '../lib/db'
 import { classifyMaintenanceBalance, computeTDEE, getBodyProfile, type MaintenanceBalance } from '../lib/bodyProfile'
 import { targetKcalAsNutritionMap, targetKcalByBucketKey, useDailyTargetKcalMap } from '../lib/targetHistory'
-import { bucketByDay, computeAverageComparison, computeDailyAverage, computeDailyMacroAverages, formatPeriodLabel, getPeriodRange } from '../lib/stats'
+import {
+  bucketByDay,
+  computeAverageComparison,
+  computeDailyAverage,
+  computeDailyMacroAverages,
+  formatPeriodLabel,
+  getPeriodRange,
+  type Period,
+} from '../lib/stats'
 import { PageHeader } from '../components/PageHeader'
 import { GlassSurface } from '../glass/GlassSurface'
 import { MacroIcon, type MacroType } from '../components/MacroIcon'
 import { MacroTrendCard } from '../components/MacroTrendCard'
-import { IllnessChart } from '../components/IllnessChart'
+import { SusceptibilityCard } from '../components/SusceptibilityCard'
+import { ThermometerIcon } from '../components/SickDayButton'
 import { SupplementScoreCard } from '../components/SupplementScoreCard'
 import { MicronutrientBars } from '../components/MicronutrientBars'
 import { useMicronutrientOverview } from '../hooks/useMicronutrients'
 import { STATS_TILE_META } from '../components/StatsTileMeta'
 import { getStatsLayout, type StatsTileKey } from '../lib/statsLayout'
 import { StatsLayoutSheet } from '../components/StatsLayoutSheet'
+import { ExpandablePicker, type PickerOption } from '../components/ExpandablePicker'
+import { AllIcon, DayIcon, MonthIcon, WeekIcon, YearIcon } from '../components/PickerIcons'
+import { DayPickerModal, MonthPickerModal, YearPickerModal } from '../components/DatePickerModal'
 
 const MAINTENANCE_LABEL: Record<MaintenanceBalance, string> = {
   defizit: 'Defizit',
@@ -22,26 +34,42 @@ const MAINTENANCE_LABEL: Record<MaintenanceBalance, string> = {
   ueberschuss: 'Überschuss',
 }
 
+const PERIOD_OPTIONS: PickerOption<Period>[] = [
+  { key: 'day', label: 'Tag', icon: DayIcon },
+  { key: 'week', label: 'Woche', icon: WeekIcon },
+  { key: 'month', label: 'Monat', icon: MonthIcon },
+  { key: 'year', label: 'Jahr', icon: YearIcon },
+  { key: 'all', label: 'Alles', icon: AllIcon },
+]
+
+const TREND_MACROS: StatsTileKey[] = ['kcal', 'protein', 'carbs', 'fat']
+
 /**
- * Round 5 (v2.5): a full rebuild, not a tune-up. The page used to switch
- * between four entirely different "Ansichten" (Tag/Woche/Monat/Jahr), each
- * replacing everything below the header — explicit request to drop that
- * switching altogether: every chart now stands on the page at once, as one
- * long, user-reorderable feed (see lib/statsLayout.ts + StatsLayoutSheet).
+ * Round 6 (v2.6) reverses part of Round 5: the page-level Tag/Woche/Monat/
+ * Jahr picker is back, now with a fifth "Alles" option (the entire recorded
+ * history — see useEarliestMealDate), and it's the ONE place that period is
+ * chosen — explicit request that switching it should happen centrally
+ * rather than per-chart (Round 5 had briefly moved a Woche/Monat/Jahr
+ * toggle onto each trend card individually). Only the four adaptive trend
+ * charts (kcal/protein/carbs/fat, via MacroTrendCard) actually respond to
+ * it; Supp-Score, Krankheit and Mikronährstoffe don't have a "period" of
+ * their own to vary and stay exactly as they are regardless of what's
+ * selected here — each says so in its own info text.
  *
- * Three things stay fixed at the top, not part of that reorderable feed:
- * the three headline tiles (this week's balance / Ø kcal per day / Ø
- * macros) and the icon row beneath them that jumps straight to any chart
- * further down. Both always describe THIS calendar week — there is no
- * longer a page-level period to vary them by.
+ * The three headline tiles (balance/Ø-kcal/macros) and the chart-jump icon
+ * row stay independent of this picker too, same as Round 5: they always
+ * describe THIS calendar week specifically, not whatever period is
+ * currently selected for the charts below.
  */
 export function StatsPage() {
   const [layout, setLayout] = useState<StatsTileKey[]>(getStatsLayout)
   const [editOpen, setEditOpen] = useState(false)
 
   const todayKey = toLocalDateKey(new Date())
-  const { startKey, endKey } = getPeriodRange('week', todayKey)
-  const meals = useMealSummariesInRange(startKey, endKey)
+
+  // --- Headline tiles: always this calendar week, independent of the picker below ---
+  const { startKey: weekStartKey, endKey: weekEndKey } = getPeriodRange('week', todayKey)
+  const meals = useMealSummariesInRange(weekStartKey, weekEndKey)
 
   const { nutritionByDate, totals } = useMemo(() => {
     const byDate = new Map<string, Nutrition>()
@@ -61,8 +89,8 @@ export function StatsPage() {
     return { nutritionByDate: byDate, totals: sum }
   }, [meals])
 
-  const dailyAverage = computeDailyAverage(startKey, endKey, totals.kcal)
-  const macroAverages = computeDailyMacroAverages(startKey, endKey, totals)
+  const dailyAverage = computeDailyAverage(weekStartKey, weekEndKey, totals.kcal)
+  const macroAverages = computeDailyMacroAverages(weekStartKey, weekEndKey, totals)
 
   const bodyProfile = getBodyProfile()
   const tdee = bodyProfile ? computeTDEE(bodyProfile) : null
@@ -71,26 +99,43 @@ export function StatsPage() {
   // "Bilanz" — this week's average vs. the user's own GOAL target
   // (Ziel−Ø), independent of the maintenance reading above (see
   // classifyMaintenanceBalance's own doc comment on why the two differ).
-  const dayData = useMemo(() => bucketByDay(startKey, endKey, nutritionByDate), [startKey, endKey, nutritionByDate])
-  const targetKcalByDate = useDailyTargetKcalMap(startKey, endKey)
+  const dayData = useMemo(() => bucketByDay(weekStartKey, weekEndKey, nutritionByDate), [weekStartKey, weekEndKey, nutritionByDate])
+  const targetKcalByDate = useDailyTargetKcalMap(weekStartKey, weekEndKey)
   const targetNutritionByDate = useMemo(
     () => (targetKcalByDate ? targetKcalAsNutritionMap(targetKcalByDate) : new Map<string, Nutrition>()),
     [targetKcalByDate],
   )
-  const targetDayData = useMemo(() => bucketByDay(startKey, endKey, targetNutritionByDate), [startKey, endKey, targetNutritionByDate])
+  const targetDayData = useMemo(
+    () => bucketByDay(weekStartKey, weekEndKey, targetNutritionByDate),
+    [weekStartKey, weekEndKey, targetNutritionByDate],
+  )
   const targetKcalByKey = targetKcalByDate ? targetKcalByBucketKey(targetDayData) : null
   const averageComparison = targetKcalByKey ? computeAverageComparison(dayData, targetKcalByKey, todayKey) : null
   // "Ziel minus Durchschnitt" — negative means the average came in OVER
   // target (more eaten than planned), which is the state worth flagging.
   const calorieBalance = averageComparison ? -averageComparison.diff : null
 
-  const microOverview = useMicronutrientOverview(endKey)
+  const microOverview = useMicronutrientOverview(weekEndKey)
+
+  // --- Central period picker, driving the four adaptive trend charts ---
+  const [period, setPeriod] = useState<Period>('week')
+  const [anchorKey, setAnchorKey] = useState(() => todayKey)
+  const [anchorPickerOpen, setAnchorPickerOpen] = useState(false)
+  const earliestMealDate = useEarliestMealDate()
+  const { startKey: chartStartKey, endKey: chartEndKey } =
+    period === 'all' ? { startKey: earliestMealDate ?? todayKey, endKey: todayKey } : getPeriodRange(period, anchorKey)
+
+  function handleDrillDown(nextPeriod: Period, nextAnchor: string) {
+    setPeriod(nextPeriod)
+    setAnchorKey(nextAnchor)
+  }
 
   function scrollToTile(key: StatsTileKey) {
     document.getElementById(`stats-tile-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const MicroIcon = STATS_TILE_META.micronutrients.icon
+  const SuppScoreIcon = STATS_TILE_META.suppScore.icon
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-28">
@@ -155,15 +200,52 @@ export function StatsPage() {
         })}
       </div>
 
+      {/* Central period picker — drives only the four adaptive trend charts below. */}
+      <ExpandablePicker options={PERIOD_OPTIONS} value={period} onChange={setPeriod} label="Zeitraum" />
+      <div className="mb-6 flex justify-center">
+        {period === 'all' ? (
+          <p className="text-xs font-medium text-ink-soft">{formatPeriodLabel('all', anchorKey)}</p>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setAnchorPickerOpen(true)}
+            className="text-xs font-medium text-ink-soft underline decoration-dotted underline-offset-2"
+          >
+            {period === 'year' ? anchorKey.slice(0, 4) : formatPeriodLabel(period, anchorKey)}
+          </button>
+        )}
+      </div>
+
       <div className="flex flex-col gap-4">
         {layout.map((key) => (
           <div key={key} id={`stats-tile-${key}`}>
-            {key === 'kcal' && <MacroTrendCard macro="kcal" />}
-            {key === 'protein' && <MacroTrendCard macro="protein" />}
-            {key === 'carbs' && <MacroTrendCard macro="carbs" />}
-            {key === 'fat' && <MacroTrendCard macro="fat" />}
-            {key === 'suppScore' && <SupplementScoreCard />}
-            {key === 'illness' && <IllnessChart />}
+            {TREND_MACROS.includes(key) && (
+              <MacroTrendCard
+                macro={key as 'kcal' | 'protein' | 'carbs' | 'fat'}
+                period={period}
+                startKey={chartStartKey}
+                endKey={chartEndKey}
+                onDrillDown={handleDrillDown}
+              />
+            )}
+            {key === 'suppScore' && (
+              <>
+                <SupplementScoreCard />
+                <p className="mt-1.5 flex items-center justify-center gap-1 text-center text-[10px] text-ink-faint">
+                  <SuppScoreIcon className="h-3 w-3" />
+                  Unabhängig vom oben gewählten Zeitraum — läuft seit Beginn durchgehend mit.
+                </p>
+              </>
+            )}
+            {key === 'illness' && (
+              <>
+                <SusceptibilityCard />
+                <p className="mt-1.5 flex items-center justify-center gap-1 text-center text-[10px] text-ink-faint">
+                  <ThermometerIcon className="h-3 w-3" />
+                  Unabhängig vom oben gewählten Zeitraum — der Score aktualisiert sich höchstens einmal pro Woche.
+                </p>
+              </>
+            )}
             {key === 'micronutrients' && (
               <GlassSurface rim={24} className="glass-subtle glass-subtle-themed rounded-3xl p-5 shadow-sm shadow-black/5">
                 <div className="mb-3 flex items-center gap-1.5">
@@ -173,6 +255,9 @@ export function StatsPage() {
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Mikronährstoffe</h3>
                 </div>
                 <MicronutrientBars overview={microOverview} />
+                <p className="mt-2 text-[10px] text-ink-faint">
+                  Unabhängig vom oben gewählten Zeitraum — zeigt immer die letzten Wochen.
+                </p>
               </GlassSurface>
             )}
           </div>
@@ -189,6 +274,29 @@ export function StatsPage() {
           Bearbeiten
         </button>
       </div>
+
+      {anchorPickerOpen && (period === 'day' || period === 'week') && (
+        <DayPickerModal
+          selectedDateKey={anchorKey}
+          onSelect={(key) => { setAnchorKey(key); setAnchorPickerOpen(false) }}
+          onClose={() => setAnchorPickerOpen(false)}
+        />
+      )}
+      {anchorPickerOpen && period === 'month' && (
+        <MonthPickerModal
+          selectedYear={Number(anchorKey.slice(0, 4))}
+          selectedMonth={Number(anchorKey.slice(5, 7))}
+          onSelect={(year, month) => { setAnchorKey(`${year}-${String(month).padStart(2, '0')}-01`); setAnchorPickerOpen(false) }}
+          onClose={() => setAnchorPickerOpen(false)}
+        />
+      )}
+      {anchorPickerOpen && period === 'year' && (
+        <YearPickerModal
+          selectedYear={Number(anchorKey.slice(0, 4))}
+          onSelect={(year) => { setAnchorKey(`${year}-01-01`); setAnchorPickerOpen(false) }}
+          onClose={() => setAnchorPickerOpen(false)}
+        />
+      )}
 
       {editOpen && (
         <StatsLayoutSheet

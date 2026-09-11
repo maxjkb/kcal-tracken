@@ -16,6 +16,15 @@ während diese Datei ab 1.14.0 liegen blieb; damit stehen beide wieder auf demse
 Stand. Die Git-Tags aus dem Absatz darüber sind in demselben Zeitraum ebenfalls
 ausgeblieben: der letzte gesetzte ist `v1.2.1`.
 
+## [2.6.0] - 2026-09-11
+
+- Kalorienbedarf-Berechnung transparent gemacht: der bestehende Info-Button bei den Körperwerten zeigt jetzt eine live nachvollziehbare, nummerierte Schritt-für-Schritt-Berechnung (BMR, Aktivitätsfaktor, TDEE, Ziel-Anpassung, Protein pro kg) inklusive der zugrundeliegenden wissenschaftlichen Quellen (Mifflin-St Jeor, FAO/WHO/UNU, ISSN, IOM). Die Berechnung selbst war bereits fundiert und wurde nicht verändert.
+- Statistik: zentrale Tag/Woche/Monat/Jahr/Alles-Kachel steuert jetzt gemeinsam Kalorien-, Protein-, Kohlenhydrat- und Fett-Diagramm — statt vier einzelner Umschalter. „Alles" zeigt den gesamten erfassten Zeitraum. Supp-Score, Krankheit und Mikronährstoffe bleiben unabhängig davon, mit entsprechendem Hinweis im Infotext.
+- Die aufklappbare Auswahl-Kachel (Statistik/Supps) behält jetzt immer die feste Reihenfolge ihrer Reiter bei (keine Neuzentrierung mehr), das Auf-/Zuklappen ist dafür sauber animiert.
+- Krankheits-Diagramm komplett überarbeitet: statt eines Balkendiagramms zeigt es jetzt einen wöchentlich aktualisierten Anfälligkeits-Score (basierend auf Jahreszeit, aktueller Außentemperatur, Mikronährstoff-Versorgung und Krankheitshistorie — bewusst als grobe, illustrative Einschätzung geframt, kein medizinischer Test), dazu Ø Tage pro Krankheit, das Datum der letzten Krankheit und den durchschnittlichen Verlauf. Ein Antippen öffnet ein Detail-Sheet mit Score-Zusammensetzung, Tipps und der Krankheitshistorie.
+- Bei jeder Krankheit lässt sich jetzt zusätzlich der tagesaktuelle Verlauf (leicht/mittel/schwer) angeben — z. B. um festzuhalten, dass man sich an Tag 3 schon deutlich fitter fühlt als an Tag 1.
+- Aufeinanderfolgende krank markierte Tage zählen jetzt als eine zusammenhängende Krankheit statt als einzelne, unabhängige Tage.
+
 ## [2.5.0] - 2026-09-11
 
 - Statistik-Seite komplett überarbeitet: keine Tag/Woche/Monat/Jahr-Ansichtsumschaltung mehr — stattdessen ein langer, frei sortierbarer Feed mit allen Diagrammen auf einer Seite (Kalorien, Supp-Score, Krankheit, Mikronährstoffe, Kohlenhydrate, Protein, Fett), jede Kachel mit eigenem Icon und eigenem Woche/Monat/Jahr-Umschalter. Eine Icon-Leiste springt direkt zu jedem Diagramm, ein dezenter „Bearbeiten"-Button am Seitenende öffnet ein Sheet zum dauerhaften Umsortieren.

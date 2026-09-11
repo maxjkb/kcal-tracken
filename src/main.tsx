@@ -10,6 +10,7 @@ import { refreshAdvisorIfStale, watchForNewDay } from './lib/supplementAdvisor.t
 import { backfillMissingMicronutrients } from './lib/micronutrients.ts'
 import { backfillMissingSupplementContributions } from './hooks/useSupplements.ts'
 import { recordTodaysTargetSnapshot } from './lib/targetHistory.ts'
+import { refreshSusceptibilityIfStale } from './lib/susceptibility.ts'
 
 // Fire-and-forget: ask the browser to exempt this origin's storage (API key,
 // meals) from automatic eviction. Safe to call on every load.
@@ -45,6 +46,13 @@ void backfillMissingSupplementContributions()
 // after the fact. A no-op once today already has a snapshot, or if there's
 // no body profile yet at all — see recordTodaysTargetSnapshot.
 void recordTodaysTargetSnapshot()
+
+// Fire-and-forget: refreshes the "Anfälligkeits-Score" at most once a week —
+// see refreshSusceptibilityIfStale. watchForNewDay() only re-checks the daily
+// advisor, but a resumed PWA instance still gets a fresh weekly check the
+// next time isSusceptibilityRunStale actually flips true on any later app
+// open, since every call re-reads the stored run rather than a boot-time flag.
+void refreshSusceptibilityIfStale()
 
 // A no-op touchstart listener is the standard trick to make iOS Safari
 // actually apply the :active pseudo-class on tap — without it, iOS treats
