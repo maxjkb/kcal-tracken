@@ -17,6 +17,18 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '2.6.0',
+    date: '2026-09-11',
+    highlights: [
+      'Kalorienbedarf transparent gemacht: der Info-Button bei den Körperwerten zeigt jetzt eine nummerierte Schritt-für-Schritt-Berechnung inkl. wissenschaftlicher Quellen (Mifflin-St Jeor, FAO/WHO/UNU, ISSN, IOM).',
+      'Statistik: eine zentrale Tag/Woche/Monat/Jahr/Alles-Kachel steuert jetzt gemeinsam Kalorien-, Protein-, Kohlenhydrat- und Fett-Diagramm. Supp-Score, Krankheit und Mikronährstoffe bleiben unabhängig davon.',
+      'Die Auswahl-Kachel (Statistik/Supps) behält jetzt eine feste Reiter-Reihenfolge, das Auf-/Zuklappen ist animiert.',
+      'Krankheits-Diagramm überarbeitet: statt Balken jetzt ein wöchentlicher Anfälligkeits-Score (Jahreszeit, Wetter, Mikronährstoffe, Krankheitshistorie) mit Detail-Sheet, plus Ø Tage/Krankheit und letztes Krank-Datum.',
+      'Bei Krankheiten lässt sich jetzt zusätzlich der tagesaktuelle Verlauf (leicht/mittel/schwer) angeben.',
+      'Aufeinanderfolgende krank markierte Tage zählen jetzt als eine zusammenhängende Krankheit.',
+    ],
+  },
+  {
     version: '2.5.0',
     date: '2026-09-11',
     highlights: [
